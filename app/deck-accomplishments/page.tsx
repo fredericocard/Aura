@@ -1,6 +1,18 @@
 'use client';
 
+import { useState } from 'react';
+
+const BRACKETS = [
+  { num: 1, name: 'Exhibition', desc: 'Your ultra-casual commander deck.', restrictions: ['No mass land denial or extra turns', 'No 2-card infinite combos', 'No game changers'], note: 'Few tutors' },
+  { num: 2, name: 'Core', desc: 'The average current preconstructed deck.', restrictions: ['No mass land denial', 'No chaining extra turns', 'No 2-card infinite combos', 'No game changers'], note: 'Few tutors' },
+  { num: 3, name: 'Upgraded', desc: 'Beyond the strength of an average precon deck.', restrictions: ['No mass land denial', 'No chaining extra turns'], note: 'Late game 2-card infinite combos allowed. Three game changes.' },
+  { num: 4, name: 'Optimized', desc: 'High power commander. It\'s time to go wild!', restrictions: [], note: 'No restrictions (other than the banned list)' },
+  { num: 5, name: 'cEDH', desc: 'High power with a very competitive and metagame focused mindset.', restrictions: [], note: 'No restrictions (other than the banned list)' },
+];
+
 export default function DeckAccomplishmentsPage() {
+  const [bracketModalActive, setBracketModalActive] = useState(false);
+  const [selectedBracket, setSelectedBracket] = useState<number>(3);
 
   const styles = `
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -424,6 +436,169 @@ export default function DeckAccomplishmentsPage() {
     }
 
 
+    /* ── Bracket Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-card {
+      width: calc(100% - 48px);
+      max-width: 340px;
+      background: rgb(245,239,227);
+      border: 1.3px solid rgb(184,168,138);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      animation: modalIn 0.25s ease;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    @keyframes modalIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: rgb(44,62,54);
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgb(222,212,192);
+      border: 1px solid rgb(184,168,138);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgb(90,110,98);
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-close:active { transform: scale(0.9); }
+
+    .bracket-option {
+      padding: 12px;
+      background: rgb(222,212,192);
+      border-radius: 12px;
+      border: 1.5px solid rgb(184,168,138);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .bracket-option:active { transform: scale(0.98); }
+
+    .bracket-option.selected {
+      border-color: rgb(26,122,106);
+      background: rgba(26,122,106,0.08);
+      box-shadow: 0 0 0 1px rgb(26,122,106);
+    }
+
+    .bracket-option-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .bracket-option-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgb(14,52,44) 0%, rgb(26,72,62) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: rgb(245,239,227);
+      flex-shrink: 0;
+    }
+
+    .bracket-option-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: rgb(44,62,54);
+      flex: 1;
+    }
+
+    .bracket-option-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid rgb(184,168,138);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .bracket-option.selected .bracket-option-check {
+      border-color: rgb(26,122,106);
+      background: rgb(26,122,106);
+    }
+
+    .bracket-option-check-mark {
+      color: rgb(245,239,227);
+      font-size: 11px;
+      font-weight: 700;
+      display: none;
+    }
+
+    .bracket-option.selected .bracket-option-check-mark {
+      display: block;
+    }
+
+    .bracket-option-desc {
+      font-size: 10px;
+      color: rgb(90,110,98);
+      margin-left: 38px;
+      line-height: 1.4;
+    }
+
+    .bracket-option-restrictions {
+      margin-top: 6px;
+      margin-left: 38px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .bracket-restriction {
+      font-size: 9px;
+      color: rgb(168,74,58);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .bracket-note {
+      font-size: 9px;
+      color: rgb(90,110,98);
+      margin-left: 38px;
+      margin-top: 3px;
+      font-style: italic;
+    }
+
     /* ── Bottom Nav ── */
     .bottom-nav {
       margin-top: auto;
@@ -597,10 +772,10 @@ export default function DeckAccomplishmentsPage() {
           </div>
 
           {/* Bracket Pill */}
-          <div className="bracket-pill">
-            <span className="bracket-number">3</span>
+          <div className="bracket-pill" onClick={() => setBracketModalActive(true)} style={{ cursor: 'pointer' }}>
+            <span className="bracket-number">{selectedBracket}</span>
             <div className="bracket-divider" />
-            <span className="bracket-name">Upgraded</span>
+            <span className="bracket-name">{BRACKETS[selectedBracket - 1].name}</span>
           </div>
 
           {/* Ornate Divider */}
@@ -748,12 +923,12 @@ export default function DeckAccomplishmentsPage() {
               </svg>
               Recent Games
             </a>
-            <a href="/brackets" className="action-btn" style={{ textDecoration: 'none' }}>
+            <button className="action-btn" onClick={() => setBracketModalActive(true)}>
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 3h4v4H2zM2 11h4v4H2zM12 7h4v4h-4zM6 5h6M6 13h6M12 9V5M12 9v4" />
               </svg>
               Brackets
-            </a>
+            </button>
           </div>
         </div>
 
@@ -811,6 +986,45 @@ export default function DeckAccomplishmentsPage() {
         </div>
       </div>
 
+      {/* Bracket Selection Modal */}
+      {bracketModalActive && (
+        <div className="modal-overlay" onClick={() => setBracketModalActive(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Select Bracket</div>
+              <button className="modal-close" onClick={() => setBracketModalActive(false)} type="button">&#10005;</button>
+            </div>
+            {BRACKETS.map((b) => (
+              <div
+                key={b.num}
+                className={`bracket-option${selectedBracket === b.num ? ' selected' : ''}`}
+                onClick={() => { setSelectedBracket(b.num); setBracketModalActive(false); }}
+              >
+                <div className="bracket-option-header">
+                  <div className="bracket-option-num">{b.num}</div>
+                  <div className="bracket-option-name">{b.name}</div>
+                  <div className="bracket-option-check">
+                    <span className="bracket-option-check-mark">&#10003;</span>
+                  </div>
+                </div>
+                <div className="bracket-option-desc">{b.desc}</div>
+                {b.restrictions.length > 0 && (
+                  <div className="bracket-option-restrictions">
+                    {b.restrictions.map((r, i) => (
+                      <div key={i} className="bracket-restriction">&#9747; {r}</div>
+                    ))}
+                  </div>
+                )}
+                {b.note && (
+                  <div className="bracket-note">
+                    {b.restrictions.length === 0 ? '✓ ' : ''}{b.note}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }
