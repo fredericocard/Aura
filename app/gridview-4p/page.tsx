@@ -4,11 +4,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function GridView4P() {
-  const [players, setPlayers] = useState({
-    1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W', 'U', 'B', 'G'], assignedColor: null as string | null },
-    2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [], assignedColor: null as string | null },
-    3: { life: 40, name: 'Player 3', commander: null, claimed: false, colors: [], assignedColor: null as string | null },
-    4: { life: 40, name: 'Player 4', commander: null, claimed: false, colors: [], assignedColor: null as string | null }
+  const [players, setPlayers] = useState<Record<number, { life: number; name: string; commander: string | null; claimed: boolean; colors: string[]; assignedColor: string | null }>>({
+    1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W', 'U', 'B', 'G'], assignedColor: null },
+    2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [], assignedColor: null },
+    3: { life: 40, name: 'Player 3', commander: null, claimed: false, colors: [], assignedColor: null },
+    4: { life: 40, name: 'Player 4', commander: null, claimed: false, colors: [], assignedColor: null }
   });
 
   const [playerColors] = useState<Record<number, string>>({
@@ -20,7 +20,7 @@ export default function GridView4P() {
 
   const [playerClasses] = useState<Record<number, string>>({ 1: 'p1', 2: 'p2', 3: 'p3', 4: 'p4' });
 
-  const [manaColorStyles] = useState({
+  const [manaColorStyles] = useState<Record<string, { grad: number[][]; border: number[]; shadow: number[] }>>({
     W: { grad: [[160, 140, 90], [190, 170, 115], [210, 192, 140]], border: [220, 200, 155], shadow: [160, 140, 90] },
     U: { grad: [[14, 72, 110], [26, 100, 140], [42, 125, 165]], border: [56, 135, 170], shadow: [14, 72, 110] },
     B: { grad: [[25, 18, 30], [42, 35, 50], [60, 52, 68]], border: [75, 65, 82], shadow: [25, 18, 30] },
@@ -29,7 +29,7 @@ export default function GridView4P() {
   });
 
   const [usedColors, setUsedColors] = useState<string[]>([]);
-  const [counters, setCounters] = useState({
+  const [counters, setCounters] = useState<Record<number, { poison: number; experience: number; energy: number }>>({
     1: { poison: 0, experience: 0, energy: 0 },
     2: { poison: 0, experience: 0, energy: 0 },
     3: { poison: 0, experience: 0, energy: 0 },
@@ -63,7 +63,7 @@ export default function GridView4P() {
   const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const pickPlayerColor = (playerNum: number, newUsedColors: string[]) => {
-    const p = players[playerNum as keyof typeof players];
+    const p = players[playerNum];
     if (!p.colors || p.colors.length === 0) return null;
 
     const allMana = Object.keys(manaColorStyles);
@@ -91,7 +91,7 @@ export default function GridView4P() {
   };
 
   const applyColorIdentity = (playerNum: number) => {
-    const p = players[playerNum as keyof typeof players];
+    const p = players[playerNum];
     if (!p.claimed || !p.colors || p.colors.length === 0) return;
 
     const newUsedColors = [...usedColors];
@@ -107,14 +107,14 @@ export default function GridView4P() {
   };
 
   const updateLifeDisplay = (playerNum: number) => {
-    const life = players[playerNum as keyof typeof players].life;
+    const life = players[playerNum].life;
     // State is managed in render
   };
 
   const handleLifeChange = (playerNum: number, delta: number) => {
     setPlayers(prev => ({
       ...prev,
-      [playerNum]: { ...prev[playerNum as keyof typeof prev], life: Math.max(0, Math.min(999, prev[playerNum as keyof typeof prev].life + delta)) }
+      [playerNum]: { ...prev[playerNum], life: Math.max(0, Math.min(999, prev[playerNum].life + delta)) }
     }));
   };
 
@@ -132,7 +132,7 @@ export default function GridView4P() {
     if (!joinSlot) return;
     setJoinModalOpen(false);
 
-    const slot = joinSlot as keyof typeof players;
+    const slot = joinSlot!;
     const profile = simulatedProfiles[simIndex % simulatedProfiles.length];
     setSimIndex(prev => prev + 1);
 
@@ -148,7 +148,7 @@ export default function GridView4P() {
     }));
 
     const newUsedColors = [...usedColors];
-    const mana = pickPlayerColor(parseInt(slot as string), newUsedColors);
+    const mana = pickPlayerColor(slot, newUsedColors);
     setUsedColors(newUsedColors);
 
     if (mana) {
@@ -191,7 +191,7 @@ export default function GridView4P() {
   };
 
   const handleCounterChange = (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => {
-    const playerNum = selectedCounterPlayer as keyof typeof counters;
+    const playerNum = selectedCounterPlayer;
     setCounters(prev => ({
       ...prev,
       [playerNum]: {
@@ -235,9 +235,9 @@ export default function GridView4P() {
   };
 
   const getPlayerColor = (playerNum: number) => {
-    const p = players[playerNum as keyof typeof players];
+    const p = players[playerNum];
     if (!p.claimed || !p.assignedColor) return null;
-    const style = manaColorStyles[p.assignedColor as keyof typeof manaColorStyles];
+    const style = manaColorStyles[p.assignedColor];
     if (!style) return null;
     const [d, m, l] = style.grad;
     const brd = style.border;
@@ -251,7 +251,7 @@ export default function GridView4P() {
 
   useEffect(() => {
     scheduleCollapse();
-    const unclaimedExist = [1, 2, 3, 4].some(i => !players[i as keyof typeof players].claimed);
+    const unclaimedExist = [1, 2, 3, 4].some(i => !players[i].claimed);
     if (!unclaimedExist) return;
 
     const PULSE_SCHEDULE = [30000, 30000, 60000, 60000];
@@ -262,7 +262,7 @@ export default function GridView4P() {
       const delay = pulseStep < PULSE_SCHEDULE.length ? PULSE_SCHEDULE[pulseStep] : PULSE_ONGOING;
       pulseStep++;
       pulseTimeoutRef.current = setTimeout(() => {
-        const unclaimedPlayers = [1, 2, 3, 4].filter(i => !players[i as keyof typeof players].claimed);
+        const unclaimedPlayers = [1, 2, 3, 4].filter(i => !players[i].claimed);
         if (unclaimedPlayers.length > 0) {
           schedulePulse();
         }
@@ -1581,9 +1581,9 @@ export default function GridView4P() {
 
               <div className="player-selector">
                 {[1, 2, 3, 4].map(num => {
-                  const p = players[num as keyof typeof players];
-                  const style = p.claimed && p.assignedColor && manaColorStyles[p.assignedColor as keyof typeof manaColorStyles]
-                    ? { background: `rgb(${manaColorStyles[p.assignedColor as keyof typeof manaColorStyles].grad[1].join(',')})`, borderColor: `rgb(${manaColorStyles[p.assignedColor as keyof typeof manaColorStyles].border.join(',')})` }
+                  const p = players[num];
+                  const style = p.claimed && p.assignedColor && manaColorStyles[p.assignedColor]
+                    ? { background: `rgb(${manaColorStyles[p.assignedColor].grad[1].join(',')})`, borderColor: `rgb(${manaColorStyles[p.assignedColor].border.join(',')})` }
                     : { background: 'rgb(222,212,192)', color: 'rgb(90,110,98)' };
 
                   return (
@@ -1601,11 +1601,11 @@ export default function GridView4P() {
 
               <div className="selected-player-info">
                 <div className="selected-commander">
-                  {players[selectedCounterPlayer as keyof typeof players].commander || '—'}
+                  {players[selectedCounterPlayer].commander || '—'}
                 </div>
                 <div className="selected-player-name">
-                  {players[selectedCounterPlayer as keyof typeof players].claimed
-                    ? players[selectedCounterPlayer as keyof typeof players].name
+                  {players[selectedCounterPlayer].claimed
+                    ? players[selectedCounterPlayer].name
                     : `Player ${selectedCounterPlayer}`}
                 </div>
               </div>
@@ -1634,7 +1634,7 @@ export default function GridView4P() {
                       −
                     </button>
                     <div className="counter-value">
-                      {counters[selectedCounterPlayer as keyof typeof counters][type]}
+                      {counters[selectedCounterPlayer][type]}
                     </div>
                     <button className="counter-btn" onClick={() => handleCounterChange(type, 'plus')}>
                       +
@@ -1676,7 +1676,7 @@ export default function GridView4P() {
                   <div
                     className="join-qr-badge"
                     style={{
-                      background: `linear-gradient(135deg, ${playerColors[joinSlot as keyof typeof playerColors]}, rgb(184,146,46))`
+                      background: `linear-gradient(135deg, ${playerColors[joinSlot]}, rgb(184,146,46))`
                     }}
                   >
                     {joinSlot}
