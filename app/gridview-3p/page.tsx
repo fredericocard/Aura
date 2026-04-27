@@ -45,8 +45,8 @@ export default function GridView3P() {
   const [usedColors, setUsedColors] = useState<string[]>([]);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [countersFlipped, setCountersFlipped] = useState(false);
-  const navTimerRef = useRef<NodeJS.Timeout>();
-  const pulseTimerRef = useRef<NodeJS.Timeout>();
+  const navTimerRef = useRef<NodeJS.Timeout>(null);
+  const pulseTimerRef = useRef<NodeJS.Timeout>(null);
   const [simIndex, setSimIndex] = useState(0);
 
   const PULSE_SCHEDULE = [30000, 30000, 60000, 60000];
