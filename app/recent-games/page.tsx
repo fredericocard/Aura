@@ -1,7 +1,7 @@
 'use client';
 
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { useState } from 'react';
 
 interface Player {
   name: string;
@@ -281,7 +281,7 @@ function getBadgeColor(key: string): string {
   return colors[key] || 'rgb(90,110,98)';
 }
 
-function renderBadgePath(key: string): JSX.Element {
+function renderBadgePath(key: string): React.JSX.Element {
   switch (key) {
     case 'brilliance':
       return <polygon points="12,2 15,9 22,9 17,14 18.5,21 12,17 5.5,21 7,14 2,9 9,9" />;

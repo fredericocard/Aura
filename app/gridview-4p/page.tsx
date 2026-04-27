@@ -1676,7 +1676,7 @@ export default function GridView4P() {
                   <div
                     className="join-qr-badge"
                     style={{
-                      background: `linear-gradient(135deg, ${playerColors[joinSlot]}, rgb(184,146,46))`
+                      background: `linear-gradient(135deg, ${playerColors[joinSlot!]}, rgb(184,146,46))`
                     }}
                   >
                     {joinSlot}
