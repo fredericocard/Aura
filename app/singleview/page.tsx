@@ -51,7 +51,11 @@ export default function SingleViewPage() {
 
   // Life control functions
   const adjustLife = (delta: number) => {
-    setLife(prev => prev + delta);
+    setLife(prev => Math.max(0, prev + delta));
+  };
+
+  const handleRevive = () => {
+    setLife(1);
   };
 
   // Opponent expansion
@@ -191,6 +195,76 @@ export default function SingleViewPage() {
 
         .life-card.critical { box-shadow: 0 16px 34px rgba(168,74,58,0.4), 0 4px 10px rgba(168,74,58,0.25); }
         .life-card.critical .life-number { color: #ff6b6b; text-shadow: 0 0 20px rgba(255,107,107,0.5); }
+
+        .life-card.dead {
+          box-shadow: 0 16px 34px rgba(168,74,58,0.5), 0 4px 10px rgba(168,74,58,0.3);
+          background: linear-gradient(135deg, rgb(80,50,45) 0%, rgb(100,60,50) 50%, rgb(120,70,55) 100%);
+          border-color: rgba(168,74,58,0.6);
+        }
+
+        .life-card.dead .life-number {
+          color: #ff6b6b;
+          text-shadow: 0 0 30px rgba(255,107,107,0.6);
+        }
+
+        .revive-btn {
+          padding: 12px 32px;
+          border-radius: 22px;
+          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
+          border: 1.5px solid rgb(56,158,133);
+          color: rgb(245,239,227);
+          font-family: 'Inter', sans-serif;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 12px rgba(26,120,105,0.35);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .revive-btn:active { transform: scale(0.95); }
+
+        .review-game-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px 20px;
+          margin-top: 12px;
+          background: rgb(245,239,227);
+          border: 1px solid rgb(184,168,138);
+          border-radius: 14px;
+          box-shadow: 0 6px 16px rgba(26,20,13,0.08);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+          color: inherit;
+          width: 100%;
+        }
+
+        .review-game-btn:active { transform: scale(0.98); }
+
+        .review-game-icon {
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .review-game-text {
+          font-size: 14px;
+          font-weight: 600;
+          color: rgb(44,62,54);
+        }
+
+        .review-game-arrow {
+          font-size: 14px;
+          color: rgb(26,122,106);
+          margin-left: auto;
+        }
 
         .life-controls {
           display: flex;
@@ -1447,7 +1521,7 @@ export default function SingleViewPage() {
         )}
 
         {/* Life Card */}
-        <div className={`life-card ${isLifeExpanded ? 'expanded' : 'collapsed'} ${life < 10 ? 'critical' : ''}`}>
+        <div className={`life-card ${isLifeExpanded ? 'expanded' : 'collapsed'} ${life === 0 ? 'dead' : life < 10 ? 'critical' : ''}`}>
           <div className="life-counters">
             {poison > 0 && (
               <div className="life-counter-indicator visible">
@@ -1477,11 +1551,38 @@ export default function SingleViewPage() {
             )}
           </div>
           <div className="life-number">{life}</div>
-          <div className="life-controls">
-            <button className="control-button" onClick={() => adjustLife(-1)}>−</button>
-            <button className="control-button" onClick={() => adjustLife(1)}>+</button>
-          </div>
+          {life > 0 ? (
+            <div className="life-controls">
+              <button className="control-button" onClick={() => adjustLife(-1)}>−</button>
+              <button className="control-button" onClick={() => adjustLife(1)}>+</button>
+            </div>
+          ) : (
+            <div className="life-controls" style={{ justifyContent: 'center' }}>
+              <button className="revive-btn" onClick={handleRevive}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20Z" />
+                  <path d="M12 8V16M8 12H16" />
+                </svg>
+                Revive
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Review Game Button — only visible when dead */}
+        {life === 0 && (
+          <a href="/game-review" className="review-game-btn">
+            <div className="review-game-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgb(26,122,106)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+                <path d="M16 13H8M16 17H8M10 9H8" />
+              </svg>
+            </div>
+            <span className="review-game-text">Review Game</span>
+            <span className="review-game-arrow">&#8250;</span>
+          </a>
+        )}
 
         {/* Opponents Panel */}
         <div className={`opponents-panel ${expandedOpponent ? 'has-expanded' : ''}`}>
