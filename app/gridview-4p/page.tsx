@@ -281,12 +281,28 @@ export default function GridView4P() {
     const p = players[playerNum];
     const colorStyle = getPlayerColor(playerNum);
     const isRotatedLeft = playerNum === 1 || playerNum === 3;
-    const isEliminated = p.life === 0 && !p.claimed;
+    const isEliminated = p.life === 0;
+
+    const stopHold = () => {
+      if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
+      if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
+    };
+
+    const startHold = (delta: number) => {
+      const timer = setTimeout(() => {
+        handleLifeChange(playerNum, delta * 4);
+        const repeatTimer = setInterval(() => {
+          handleLifeChange(playerNum, delta * 5);
+        }, 200);
+        repeatTimersRef.current[playerNum] = repeatTimer;
+      }, 500);
+      holdTimersRef.current[playerNum] = timer;
+    };
 
     return (
       <div
         key={playerNum}
-        className={`player-tile ${p.claimed ? 'claimed' : 'unclaimed'} ${playerClasses[playerNum]} ${isEliminated ? 'eliminated' : ''}`}
+        className={`player-tile ${p.claimed ? 'claimed' : 'unclaimed'} ${playerClasses[playerNum]} ${isEliminated && !p.claimed ? 'eliminated' : ''}`}
         id={`tile${playerNum}`}
         style={colorStyle || {}}
       >
@@ -299,84 +315,35 @@ export default function GridView4P() {
           </div>
         )}
         <div className={`tile-content ${isRotatedLeft ? 'rotate-left' : 'rotate-right'}`}>
-          {!isEliminated ? (
+          {/* Normal: life > 0 */}
+          {!isEliminated && (
             <div className="tile-normal" id={`normal${playerNum}`}>
               <div className="tile-counters" id={`counters${playerNum}`}>
-                <div className={`tile-counter-indicator ${counters[playerNum].poison > 0 ? 'visible' : ''}`} id={`poison${playerNum}Ind`}>
+                <div className={`tile-counter-indicator ${counters[playerNum].poison > 0 ? 'visible' : ''}`}>
                   <svg viewBox="0 0 23 23" fill="none">
                     <path d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="tile-counter-number" id={`poison${playerNum}Disp`}>{counters[playerNum].poison}</span>
+                  <span className="tile-counter-number">{counters[playerNum].poison}</span>
                 </div>
-                <div className={`tile-counter-indicator ${counters[playerNum].experience > 0 ? 'visible' : ''}`} id={`exp${playerNum}Ind`}>
+                <div className={`tile-counter-indicator ${counters[playerNum].experience > 0 ? 'visible' : ''}`}>
                   <svg viewBox="0 0 23 23" fill="none">
                     <path d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M1.3 21.3H21.3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="tile-counter-number" id={`exp${playerNum}Disp`}>{counters[playerNum].experience}</span>
+                  <span className="tile-counter-number">{counters[playerNum].experience}</span>
                 </div>
-                <div className={`tile-counter-indicator ${counters[playerNum].energy > 0 ? 'visible' : ''}`} id={`energy${playerNum}Ind`}>
+                <div className={`tile-counter-indicator ${counters[playerNum].energy > 0 ? 'visible' : ''}`}>
                   <svg viewBox="0 0 23 23" fill="none">
                     <path d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="tile-counter-number" id={`energy${playerNum}Disp`}>{counters[playerNum].energy}</span>
+                  <span className="tile-counter-number">{counters[playerNum].energy}</span>
                 </div>
               </div>
               <div className="life-display">
-                <button
-                  className="life-minus-btn"
-                  data-player={playerNum}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleLifeChange(playerNum, -1);
-                    const timer = setTimeout(() => {
-                      const repeatTimer = setInterval(() => {
-                        handleLifeChange(playerNum, -5);
-                      }, 400);
-                      repeatTimersRef.current[playerNum] = repeatTimer;
-                    }, 500);
-                    holdTimersRef.current[playerNum] = timer;
-                  }}
-                  onMouseUp={() => {
-                    if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
-                    if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
-                  }}
-                  onMouseLeave={() => {
-                    if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
-                    if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
-                  }}
-                >
-                  −
-                </button>
-                <div className={`life-number ${p.life <= 10 ? 'critical' : ''}`} id={`life${playerNum}`}>
-                  {p.life}
-                </div>
-                <button
-                  className="life-plus-btn"
-                  data-player={playerNum}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleLifeChange(playerNum, 1);
-                    const timer = setTimeout(() => {
-                      const repeatTimer = setInterval(() => {
-                        handleLifeChange(playerNum, 5);
-                      }, 400);
-                      repeatTimersRef.current[playerNum] = repeatTimer;
-                    }, 500);
-                    holdTimersRef.current[playerNum] = timer;
-                  }}
-                  onMouseUp={() => {
-                    if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
-                    if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
-                  }}
-                  onMouseLeave={() => {
-                    if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
-                    if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
-                  }}
-                >
-                  +
-                </button>
+                <button className="life-minus-btn" onClick={() => handleLifeChange(playerNum, -1)} onMouseDown={() => startHold(-1)} onMouseUp={stopHold} onMouseLeave={stopHold} onTouchStart={() => startHold(-1)} onTouchEnd={stopHold}>−</button>
+                <div className={`life-number ${p.life <= 10 ? 'critical' : ''}`}>{p.life}</div>
+                <button className="life-plus-btn" onClick={() => handleLifeChange(playerNum, 1)} onMouseDown={() => startHold(1)} onMouseUp={stopHold} onMouseLeave={stopHold} onTouchStart={() => startHold(1)} onTouchEnd={stopHold}>+</button>
               </div>
               {p.claimed ? (
                 <div className="tile-commander">{p.commander}</div>
@@ -384,37 +351,30 @@ export default function GridView4P() {
                 <div className="commander-dash">Player {playerNum}</div>
               )}
             </div>
-          ) : (
+          )}
+
+          {/* Eliminated + unclaimed: QR code + revive */}
+          {isEliminated && !p.claimed && (
             <div className="tile-qr active">
               <div className="qr-label">Scan to review game</div>
               <div className="qr-box">
                 <div className="qr-pattern">
                   <div className="qr-center">
-                    <div
-                      className="qr-badge"
-                      style={{
-                        background: `linear-gradient(135deg,${
-                          playerNum === 1
-                            ? 'rgb(26,122,106),rgb(184,146,46)'
-                            : playerNum === 2
-                            ? 'rgb(168,74,58),rgb(184,146,46)'
-                            : playerNum === 3
-                            ? 'rgb(42,138,86),rgb(184,146,46)'
-                            : 'rgb(184,146,46),rgb(184,146,46)'
-                        })`
-                      }}
-                    >
-                      P
-                    </div>
+                    <div className="qr-badge" style={{ background: `linear-gradient(135deg,${playerColors[playerNum]},rgb(184,146,46))` }}>P</div>
                   </div>
                 </div>
               </div>
-              <div className="qr-player-label">
-                {p.name} — eliminated
-              </div>
-              <button className="revive-btn" onClick={() => handleRevive(playerNum)}>
-                Revive
-              </button>
+              <div className="qr-player-label">Player {playerNum} — eliminated</div>
+              <button className="revive-btn" onClick={() => handleRevive(playerNum)}>Revive</button>
+            </div>
+          )}
+
+          {/* Eliminated + claimed: life number + revive only */}
+          {isEliminated && p.claimed && (
+            <div className="tile-normal">
+              <div className="life-number critical">{p.life}</div>
+              <button className="revive-btn" onClick={() => handleRevive(playerNum)}>Revive</button>
+              <div className="tile-commander">{p.commander}</div>
             </div>
           )}
         </div>

@@ -59,6 +59,7 @@ export default function GridView5P() {
   const navCollapseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const popupOpenRef = useRef(false);
+  const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
 
   const playerColors: Record<number, string> = {
     1: 'rgb(26,122,106)',
@@ -275,6 +276,20 @@ export default function GridView5P() {
     }));
   };
 
+  const startLongPress = (playerNum: number, delta: number) => {
+    longPressRef.current.timeout = setTimeout(() => {
+      updateLife(playerNum, delta * 4);
+      longPressRef.current.interval = setInterval(() => {
+        updateLife(playerNum, delta * 5);
+      }, 200);
+    }, 500);
+  };
+
+  const stopLongPress = () => {
+    if (longPressRef.current.timeout) { clearTimeout(longPressRef.current.timeout); longPressRef.current.timeout = null; }
+    if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
+  };
+
   useEffect(() => {
     // Apply color to player 1 on mount
     applyColorIdentity(1);
@@ -331,22 +346,15 @@ export default function GridView5P() {
         )}
 
         <div className={`tile-content ${rotation ? rotation : ''}`}>
-          {!showQr && (
+          {/* Normal: life > 0 */}
+          {!isEliminated && (
             <div className="tile-normal">
               <div className="tile-counters">
                 {counters[playerNum].poison > 0 && (
                   <div className="tile-counter-indicator visible">
                     <svg viewBox="0 0 23 23" fill="none">
-                      <path
-                        d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <span className="tile-counter-number">{counters[playerNum].poison}</span>
                   </div>
@@ -354,11 +362,7 @@ export default function GridView5P() {
                 {counters[playerNum].experience > 0 && (
                   <div className="tile-counter-indicator visible">
                     <svg viewBox="0 0 23 23" fill="none">
-                      <path
-                        d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M1.3 21.3H21.3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <span className="tile-counter-number">{counters[playerNum].experience}</span>
@@ -367,64 +371,16 @@ export default function GridView5P() {
                 {counters[playerNum].energy > 0 && (
                   <div className="tile-counter-indicator visible">
                     <svg viewBox="0 0 23 23" fill="none">
-                      <path
-                        d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <span className="tile-counter-number">{counters[playerNum].energy}</span>
                   </div>
                 )}
               </div>
               <div className="life-display">
-                <button
-                  className="life-minus-btn"
-                  onClick={() => updateLife(playerNum, -1)}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    let holdTimer: NodeJS.Timeout | null = null;
-                    let repeatTimer: NodeJS.Timeout | null = null;
-                    updateLife(playerNum, -1);
-                    holdTimer = setTimeout(() => {
-                      repeatTimer = setInterval(() => {
-                        updateLife(playerNum, -5);
-                      }, 400);
-                    }, 500);
-                    const cleanup = () => {
-                      if (holdTimer) clearTimeout(holdTimer);
-                      if (repeatTimer) clearInterval(repeatTimer);
-                    };
-                    document.addEventListener('mouseup', cleanup, { once: true });
-                  }}
-                >
-                  −
-                </button>
-                <div className={`life-number ${p.life <= 10 && p.life > 0 ? 'critical' : ''}`}>
-                  {p.life}
-                </div>
-                <button
-                  className="life-plus-btn"
-                  onClick={() => updateLife(playerNum, 1)}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    let holdTimer: NodeJS.Timeout | null = null;
-                    let repeatTimer: NodeJS.Timeout | null = null;
-                    updateLife(playerNum, 1);
-                    holdTimer = setTimeout(() => {
-                      repeatTimer = setInterval(() => {
-                        updateLife(playerNum, 5);
-                      }, 400);
-                    }, 500);
-                    const cleanup = () => {
-                      if (holdTimer) clearTimeout(holdTimer);
-                      if (repeatTimer) clearInterval(repeatTimer);
-                    };
-                    document.addEventListener('mouseup', cleanup, { once: true });
-                  }}
-                >
-                  +
-                </button>
+                <button className="life-minus-btn" onClick={() => updateLife(playerNum, -1)} onMouseDown={() => startLongPress(playerNum, -1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(playerNum, -1)} onTouchEnd={stopLongPress}>−</button>
+                <div className={`life-number ${p.life <= 10 && p.life > 0 ? 'critical' : ''}`}>{p.life}</div>
+                <button className="life-plus-btn" onClick={() => updateLife(playerNum, 1)} onMouseDown={() => startLongPress(playerNum, 1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(playerNum, 1)} onTouchEnd={stopLongPress}>+</button>
               </div>
               {p.claimed ? (
                 <div className="tile-commander">{p.commander}</div>
@@ -434,27 +390,28 @@ export default function GridView5P() {
             </div>
           )}
 
+          {/* Eliminated + unclaimed: QR code + revive */}
           {showQr && (
             <div className="tile-qr active">
               <div className="qr-label">Scan to review game</div>
               <div className="qr-box">
                 <div className="qr-pattern">
                   <div className="qr-center">
-                    <div
-                      className="qr-badge"
-                      style={{
-                        background: `linear-gradient(135deg, ${playerColors[playerNum]}, rgb(184,146,46))`
-                      }}
-                    >
-                      P
-                    </div>
+                    <div className="qr-badge" style={{ background: `linear-gradient(135deg, ${playerColors[playerNum]}, rgb(184,146,46))` }}>P</div>
                   </div>
                 </div>
               </div>
-              <div className="qr-player-label">{p.name} — eliminated</div>
-              <button className="revive-btn" onClick={() => revivePlayer(playerNum)}>
-                Revive
-              </button>
+              <div className="qr-player-label">Player {playerNum} — eliminated</div>
+              <button className="revive-btn" onClick={() => revivePlayer(playerNum)}>Revive</button>
+            </div>
+          )}
+
+          {/* Eliminated + claimed: life number + revive only */}
+          {isEliminated && isClaimed && (
+            <div className="tile-normal">
+              <div className="life-number critical">{p.life}</div>
+              <button className="revive-btn" onClick={() => revivePlayer(playerNum)}>Revive</button>
+              <div className="tile-commander">{p.commander}</div>
             </div>
           )}
         </div>

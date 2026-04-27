@@ -47,6 +47,7 @@ export default function GridView3P() {
   const [countersFlipped, setCountersFlipped] = useState(false);
   const navTimerRef = useRef<NodeJS.Timeout>(null);
   const pulseTimerRef = useRef<NodeJS.Timeout>(null);
+  const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
   const [simIndex, setSimIndex] = useState(0);
 
   const PULSE_SCHEDULE = [30000, 30000, 60000, 60000];
@@ -126,6 +127,27 @@ export default function GridView3P() {
       ...prev,
       [playerNum]: { ...prev[playerNum], life: Math.max(0, Math.min(999, prev[playerNum].life + delta)) }
     }));
+  };
+
+  const revivePlayer = (playerNum: PlayerNum) => {
+    setPlayers(prev => ({
+      ...prev,
+      [playerNum]: { ...prev[playerNum], life: 1 }
+    }));
+  };
+
+  const startLongPress = (playerNum: PlayerNum, delta: number) => {
+    longPressRef.current.timeout = setTimeout(() => {
+      handleLifeDelta(playerNum, delta * 4);
+      longPressRef.current.interval = setInterval(() => {
+        handleLifeDelta(playerNum, delta * 5);
+      }, 200);
+    }, 500);
+  };
+
+  const stopLongPress = () => {
+    if (longPressRef.current.timeout) { clearTimeout(longPressRef.current.timeout); longPressRef.current.timeout = null; }
+    if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
   };
 
   const openJoinModal = (slot: PlayerNum) => {
@@ -277,7 +299,7 @@ export default function GridView3P() {
     };
   };
 
-  const isEliminated = (playerNum: PlayerNum) => players[playerNum].life === 0 && !players[playerNum].claimed;
+  const isEliminated = (playerNum: PlayerNum) => players[playerNum].life === 0;
 
   const PlayerTile = ({ playerNum, rotation, className = '' }: { playerNum: PlayerNum; rotation?: string; className?: string }) => {
     const p = players[playerNum];
@@ -301,6 +323,7 @@ export default function GridView3P() {
         )}
 
         <div className={`tile-content ${rotation ? rotation : ''}`}>
+          {/* Not eliminated: normal life display */}
           {!isEliminatedState && (
             <div className="tile-normal">
               <div className="tile-counters">
@@ -332,9 +355,9 @@ export default function GridView3P() {
                 )}
               </div>
               <div className="life-display">
-                <button className="life-minus-btn" onClick={() => handleLifeDelta(playerNum, -1)}>−</button>
+                <button className="life-minus-btn" onClick={() => handleLifeDelta(playerNum, -1)} onMouseDown={() => startLongPress(playerNum, -1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(playerNum, -1)} onTouchEnd={stopLongPress}>−</button>
                 <div className={`life-number ${p.life <= 10 ? 'critical' : ''}`}>{p.life}</div>
-                <button className="life-plus-btn" onClick={() => handleLifeDelta(playerNum, 1)}>+</button>
+                <button className="life-plus-btn" onClick={() => handleLifeDelta(playerNum, 1)} onMouseDown={() => startLongPress(playerNum, 1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(playerNum, 1)} onTouchEnd={stopLongPress}>+</button>
               </div>
               <div className={p.claimed ? 'tile-commander' : 'commander-dash'}>
                 {p.claimed ? p.commander : `Player ${playerNum}`}
@@ -342,7 +365,8 @@ export default function GridView3P() {
             </div>
           )}
 
-          {isEliminatedState && (
+          {/* Eliminated + unclaimed: QR code + revive */}
+          {isEliminatedState && !p.claimed && (
             <div className="tile-qr active">
               <div className="qr-label">Scan to review game</div>
               <div className="qr-box">
@@ -352,8 +376,17 @@ export default function GridView3P() {
                   </div>
                 </div>
               </div>
-              <div className="qr-player-label">{p.name} — eliminated</div>
-              <button className="revive-btn" onClick={() => handleLifeDelta(playerNum, 39)}>Revive</button>
+              <div className="qr-player-label">Player {playerNum} — eliminated</div>
+              <button className="revive-btn" onClick={() => revivePlayer(playerNum)}>Revive</button>
+            </div>
+          )}
+
+          {/* Eliminated + claimed: life number + revive only */}
+          {isEliminatedState && p.claimed && (
+            <div className="tile-normal">
+              <div className="life-number critical">{p.life}</div>
+              <button className="revive-btn" onClick={() => revivePlayer(playerNum)}>Revive</button>
+              <div className="tile-commander">{p.commander}</div>
             </div>
           )}
         </div>
