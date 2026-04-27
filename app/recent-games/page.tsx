@@ -326,6 +326,30 @@ function capitalizeFirstLetter(str: string): string {
 }
 
 export default function RecentGamesPage() {
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterDeck, setFilterDeck] = useState<string | null>(null);
+  const [filterAura, setFilterAura] = useState<'all' | 'gain' | 'loss'>('all');
+
+  const allDecks = Array.from(new Set(games.flatMap(g => g.players.filter(p => p.name === 'Frederico').map(p => p.commander))));
+
+  const filteredGames = games
+    .filter(g => {
+      if (filterDeck) {
+        const me = g.players.find(p => p.name === 'Frederico');
+        if (!me || me.commander !== filterDeck) return false;
+      }
+      if (filterAura === 'gain') return g.aura >= 0;
+      if (filterAura === 'loss') return g.aura < 0;
+      return true;
+    })
+    .sort((a, b) => {
+      if (filterAura === 'gain') return b.aura - a.aura;
+      if (filterAura === 'loss') return a.aura - b.aura;
+      return 0;
+    });
+
+  const hasActiveFilter = filterDeck !== null || filterAura !== 'all';
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -372,6 +396,146 @@ export default function RecentGamesPage() {
           flex: 1;
           height: 1px;
           background: rgba(184,168,138,0.55);
+        }
+
+        /* ── Filter Button ── */
+        .filter-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          padding: 6px 12px;
+          border-radius: 999px;
+          border: 1.3px solid rgb(184,168,138);
+          background: rgb(222,212,192);
+          cursor: pointer;
+          font-family: 'Inter', sans-serif;
+          font-size: 12px;
+          font-weight: 600;
+          color: rgb(44,62,54);
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+
+        .filter-btn:active { transform: scale(0.95); }
+
+        .filter-btn.active {
+          background: linear-gradient(135deg, rgb(26,122,106) 0%, rgb(21,138,114) 100%);
+          color: rgb(245,239,227);
+          border-color: rgb(56,158,133);
+        }
+
+        .filter-btn svg {
+          width: 14px;
+          height: 14px;
+        }
+
+        /* ── Filter Popup ── */
+        .filter-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.4);
+          z-index: 500;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding-top: 80px;
+        }
+
+        .filter-popup {
+          width: calc(100% - 48px);
+          max-width: 340px;
+          background: rgb(245,239,227);
+          border: 1.3px solid rgb(184,168,138);
+          border-radius: 16px;
+          padding: 20px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+        }
+
+        .filter-popup-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 16px;
+        }
+
+        .filter-popup-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: rgb(44,62,54);
+        }
+
+        .filter-close {
+          background: none;
+          border: none;
+          font-size: 20px;
+          color: rgb(90,110,98);
+          cursor: pointer;
+        }
+
+        .filter-close:active { transform: scale(0.9); }
+
+        .filter-section-label {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: rgb(90,110,98);
+          margin-bottom: 8px;
+        }
+
+        .filter-section {
+          margin-bottom: 16px;
+        }
+
+        .filter-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .filter-chip {
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1.3px solid rgb(184,168,138);
+          background: rgb(222,212,192);
+          font-family: 'Inter', sans-serif;
+          font-size: 12px;
+          font-weight: 600;
+          color: rgb(44,62,54);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .filter-chip:active { transform: scale(0.95); }
+
+        .filter-chip.selected {
+          background: linear-gradient(135deg, rgb(26,122,106) 0%, rgb(21,138,114) 100%);
+          color: rgb(245,239,227);
+          border-color: rgb(56,158,133);
+        }
+
+        .filter-clear-btn {
+          width: 100%;
+          padding: 10px;
+          border-radius: 10px;
+          border: 1.3px solid rgb(184,168,138);
+          background: rgb(222,212,192);
+          font-family: 'Inter', sans-serif;
+          font-size: 13px;
+          font-weight: 600;
+          color: rgb(90,110,98);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .filter-clear-btn:active { transform: scale(0.95); }
+
+        .filter-no-results {
+          text-align: center;
+          padding: 40px 20px;
+          color: rgb(90,110,98);
+          font-size: 13px;
         }
 
         /* ── Games List ── */
@@ -1064,13 +1228,65 @@ export default function RecentGamesPage() {
         <div className="header">
           <div className="header-title">Recent Games</div>
           <div className="header-line" />
+          <button className={`filter-btn ${hasActiveFilter ? 'active' : ''}`} onClick={() => setFilterOpen(true)}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M2 3h12M4 7h8M6 11h4" />
+            </svg>
+            Filter
+          </button>
         </div>
+
+        {/* Filter Popup */}
+        {filterOpen && (
+          <div className="filter-overlay" onClick={() => setFilterOpen(false)}>
+            <div className="filter-popup" onClick={(e) => e.stopPropagation()}>
+              <div className="filter-popup-header">
+                <div className="filter-popup-title">Filters</div>
+                <button className="filter-close" onClick={() => setFilterOpen(false)}>✕</button>
+              </div>
+
+              <div className="filter-section">
+                <div className="filter-section-label">Deck</div>
+                <div className="filter-chips">
+                  {allDecks.map((deck) => (
+                    <div
+                      key={deck}
+                      className={`filter-chip ${filterDeck === deck ? 'selected' : ''}`}
+                      onClick={() => setFilterDeck(filterDeck === deck ? null : deck)}
+                    >
+                      {deck}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-section">
+                <div className="filter-section-label">Aura</div>
+                <div className="filter-chips">
+                  <div className={`filter-chip ${filterAura === 'all' ? 'selected' : ''}`} onClick={() => setFilterAura('all')}>All</div>
+                  <div className={`filter-chip ${filterAura === 'gain' ? 'selected' : ''}`} onClick={() => setFilterAura('gain')}>Gain ↑</div>
+                  <div className={`filter-chip ${filterAura === 'loss' ? 'selected' : ''}`} onClick={() => setFilterAura('loss')}>Loss ↓</div>
+                </div>
+              </div>
+
+              {hasActiveFilter && (
+                <button className="filter-clear-btn" onClick={() => { setFilterDeck(null); setFilterAura('all'); }}>
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Games List */}
         <div className="games-list">
-          {games.map((game, idx) => (
-            <GameCard key={idx} game={game} index={idx} />
-          ))}
+          {filteredGames.length === 0 ? (
+            <div className="filter-no-results">No games match your filters.</div>
+          ) : (
+            filteredGames.map((game, idx) => (
+              <GameCard key={idx} game={game} index={idx} />
+            ))
+          )}
         </div>
 
         {/* Bottom Nav */}
