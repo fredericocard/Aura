@@ -16,7 +16,7 @@ const PLAYERS = [
 const CATEGORIES = [
   { id: 'brilliance', label: 'Brilliance', question: 'Who pulled off the wildest play?', glyph: 'brilliance', color: '#C99B2F', soft: '#F6ECD2' },
   { id: 'flavor', label: 'Flavour', question: 'Who took the flavour win?', glyph: 'flavor', color: '#7E4E8A', soft: '#EADDEE' },
-  { id: 'rivalry', label: 'Rivalry', question: 'Who had the biggest target on its back?', glyph: 'rivalry', color: '#9E2B2B', soft: '#F1D4CF' },
+  { id: 'rivalry', label: 'Rivalry', question: 'Who was the biggest threat?', glyph: 'rivalry', color: '#9E2B2B', soft: '#F1D4CF' },
   { id: 'allegiance', label: 'Allegiance', question: 'Who did you team up with?', glyph: 'allegiance', color: '#2F7A74', soft: '#D6E6E3' },
   { id: 'fun', label: 'Fun', question: "Who's invited back first?", glyph: 'fun', color: '#E07B4A', soft: '#F9DFCD' },
 ];

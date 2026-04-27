@@ -2,9 +2,21 @@
 
 import React, { useState } from 'react';
 
+interface ScryfallCard {
+  name: string;
+  image_uris?: { art_crop: string };
+  card_faces?: { image_uris?: { art_crop: string } }[];
+  color_identity: string[];
+}
+
 export default function Page() {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [showNewDeck, setShowNewDeck] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ScryfallCard[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
 
   const displayToast = (msg: string) => {
     setToastMsg(msg);
@@ -12,20 +24,50 @@ export default function Page() {
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  const handleBack = () => {
-    displayToast('Back to Profile');
+  const searchScryfall = (query: string) => {
+    if (query.length < 2) { setSearchResults([]); return; }
+    setSearching(true);
+    fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}+is%3Acommander&order=name&unique=cards`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.data) {
+          setSearchResults(data.data.slice(0, 8));
+        } else {
+          setSearchResults([]);
+        }
+        setSearching(false);
+      })
+      .catch(() => { setSearchResults([]); setSearching(false); });
   };
 
-  const handleDeckClick = () => {
-    displayToast('Deck Details — Coming Soon');
+  const handleSearchInput = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimer) clearTimeout(searchTimer);
+    const timer = setTimeout(() => searchScryfall(value), 400);
+    setSearchTimer(timer);
   };
 
-  const handleNewDeck = () => {
-    displayToast('New Deck — Coming Soon');
+  const getCardArt = (card: ScryfallCard): string => {
+    if (card.image_uris?.art_crop) return card.image_uris.art_crop;
+    if (card.card_faces?.[0]?.image_uris?.art_crop) return card.card_faces[0].image_uris.art_crop;
+    return '';
   };
 
-  const handleNavClick = (label: string) => {
-    displayToast(`${label} — Coming Soon`);
+  const manaColors: Record<string, string> = {
+    W: '#f5efe3',
+    U: '#2d7fa0',
+    B: '#3a3a3a',
+    R: '#a84a3a',
+    G: '#2a8a56',
+  };
+
+  const handleSelectCommander = (card: ScryfallCard) => {
+    displayToast(`${card.name} added!`);
+    setShowNewDeck(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    // In production this would navigate to deck-accomplishments with the new deck
+    window.location.href = '/deck-accomplishments';
   };
 
   const styles = `
@@ -291,6 +333,144 @@ export default function Page() {
       transition: color 0.2s ease;
     }
 
+    /* ── New Deck Popup ── */
+    .newdeck-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 500;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 60px;
+    }
+
+    .newdeck-popup {
+      width: calc(100% - 48px);
+      max-width: 380px;
+      max-height: calc(100vh - 120px);
+      background: rgb(245,239,227);
+      border: 1.3px solid rgb(184,168,138);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .newdeck-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .newdeck-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: rgb(44,62,54);
+    }
+
+    .newdeck-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: rgb(90,110,98);
+      cursor: pointer;
+    }
+
+    .newdeck-search {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1.3px solid rgb(184,168,138);
+      background: rgb(222,212,192);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: rgb(44,62,54);
+      outline: none;
+      margin-bottom: 12px;
+    }
+
+    .newdeck-search:focus {
+      border-color: rgb(26,122,106);
+    }
+
+    .newdeck-search::placeholder {
+      color: rgb(138,154,142);
+    }
+
+    .newdeck-results {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .newdeck-result {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 6px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .newdeck-result:active {
+      background: rgba(26,122,106,0.08);
+    }
+
+    .newdeck-result-art {
+      width: 48px;
+      height: 42px;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: rgb(222,212,192);
+    }
+
+    .newdeck-result-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .newdeck-result-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .newdeck-result-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgb(44,62,54);
+      line-height: 1.2;
+    }
+
+    .newdeck-result-mana {
+      display: flex;
+      gap: 3px;
+      margin-top: 4px;
+    }
+
+    .newdeck-mana-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .newdeck-hint {
+      text-align: center;
+      padding: 20px;
+      color: rgb(138,154,142);
+      font-size: 13px;
+    }
+
     /* ── Toast ── */
     .toast {
       position: fixed;
@@ -380,9 +560,9 @@ export default function Page() {
           </a>
 
           {/* New Deck button */}
-          <a href="/edit-deck" className="new-deck-btn" style={{ textDecoration: 'none' }}>
+          <button className="new-deck-btn" onClick={() => setShowNewDeck(true)}>
             <span className="new-deck-plus">+</span> New Deck
-          </a>
+          </button>
         </div>
 
         {/* Bottom Nav: Recent Games | Profile | Decks (active) */}
@@ -417,6 +597,46 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      {/* New Deck Popup */}
+      {showNewDeck && (
+        <div className="newdeck-overlay" onClick={() => { setShowNewDeck(false); setSearchQuery(''); setSearchResults([]); }}>
+          <div className="newdeck-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="newdeck-header">
+              <div className="newdeck-title">Choose Commander</div>
+              <button className="newdeck-close" onClick={() => { setShowNewDeck(false); setSearchQuery(''); setSearchResults([]); }}>✕</button>
+            </div>
+            <input
+              className="newdeck-search"
+              type="text"
+              placeholder="Search commanders..."
+              value={searchQuery}
+              onChange={(e) => handleSearchInput(e.target.value)}
+              autoFocus
+            />
+            <div className="newdeck-results">
+              {searching && <div className="newdeck-hint">Searching...</div>}
+              {!searching && searchQuery.length < 2 && <div className="newdeck-hint">Type a commander name to search</div>}
+              {!searching && searchQuery.length >= 2 && searchResults.length === 0 && <div className="newdeck-hint">No commanders found</div>}
+              {searchResults.map((card, i) => (
+                <button key={i} className="newdeck-result" onClick={() => handleSelectCommander(card)}>
+                  <div className="newdeck-result-art">
+                    {getCardArt(card) && <img src={getCardArt(card)} alt={card.name} />}
+                  </div>
+                  <div className="newdeck-result-info">
+                    <div className="newdeck-result-name">{card.name}</div>
+                    <div className="newdeck-result-mana">
+                      {card.color_identity.map((c, j) => (
+                        <div key={j} className="newdeck-mana-dot" style={{ background: manaColors[c] || '#8a8a8a', border: c === 'W' ? '1px solid rgb(184,168,138)' : 'none' }} />
+                      ))}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
       <div className={`toast ${showToast ? 'show' : ''}`}>

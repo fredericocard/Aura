@@ -423,26 +423,6 @@ export default function DeckAccomplishmentsPage() {
       transform: scale(0.9);
     }
 
-    .edit-deck-btn {
-      margin: 0;
-      padding: 14px;
-      text-align: center;
-      cursor: pointer;
-      background: rgb(245,239,227);
-      border-radius: 22px;
-      border: 1px solid rgb(184,168,138);
-      box-shadow: 0 6px 16px rgba(26,20,13,0.08);
-      color: rgb(44,62,54);
-      font-size: 14px;
-      font-weight: 600;
-      font-family: inherit;
-      width: 100%;
-      transition: all 0.2s ease;
-    }
-
-    .edit-deck-btn:active {
-      transform: scale(0.9);
-    }
 
     /* ── Bottom Nav ── */
     .bottom-nav {
@@ -768,8 +748,11 @@ export default function DeckAccomplishmentsPage() {
               </svg>
               Recent Games
             </a>
-            <a href="/edit-deck" className="edit-deck-btn" style={{ textDecoration: 'none', display: 'block' }}>
-              Edit Your Deck
+            <a href="/brackets" className="action-btn" style={{ textDecoration: 'none' }}>
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h4v4H2zM2 11h4v4H2zM12 7h4v4h-4zM6 5h6M6 13h6M12 9V5M12 9v4" />
+              </svg>
+              Brackets
             </a>
           </div>
         </div>
