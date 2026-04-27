@@ -69,19 +69,19 @@ We test on browser and phone, make adjustments, and when it's approved the wiref
 
 | # | Wireframe | Logic doc | Claude Design | Next.js route | Status |
 |---|-----------|-----------|---------------|---------------|--------|
-| 01 | Landing | n/a | Done | `app/landing/` | Active, iterating |
-| 02 | How to Play | `02-how-to-play.docx` | Not started | — | Queued |
-| 03 | Create Pod | `03-create-pod.docx` | Not started | — | Queued |
-| 04 | Join Pod | `04-join-pod.docx` | Not started | — | Queued |
-| 05 | Grid View | `05-grid-view.docx` | Not started | — | Queued |
-| 06 | Single View | `06-single-view.docx` | Not started | — | Queued |
-| 07 | Game Review | `07-game-review.docx` | Done | `app/review/` | Active, iterating |
-| 08 | Game Summary | `08-game-summary.docx` | Not started | — | Queued |
-| 09 | Profile | `09-profile.docx` | Not started | — | Queued |
-| 10 | Decks | `10-decks.docx` | Not started | — | Queued |
-| 11 | Deck Accomplishments | `11-deck-accomplishments.docx` | Not started | — | Queued |
-| 12 | Edit Deck | `12-edit-deck.docx` | Not started | — | Queued |
-| 13 | Recent Games | `13-recent-games.docx` | Not started | — | Queued |
+| 01 | Landing | n/a | Done | `app/landing/` | Live |
+| 02 | How to Play | `02-how-to-play.docx` | Not started | `app/howtoplay/` | Placeholder |
+| 03 | Create Pod | `03-create-pod.docx` | Not started | `app/create/` | Placeholder |
+| 04 | Join Pod | `04-join-pod.docx` | Not started | `app/join/` | Placeholder |
+| 05 | Grid View | `05-grid-view.docx` | Not started | `app/gridview/` | Placeholder |
+| 06 | Single View | `06-single-view.docx` | Not started | `app/singleview/` | Placeholder |
+| 07 | Game Review | `07-game-review.docx` | Done | `app/review/` | Live |
+| 08 | Game Summary | `08-game-summary.docx` | Not started | `app/gamesummary/` | Placeholder |
+| 09 | Profile | `09-profile.docx` | Not started | `app/profile/` | Placeholder |
+| 10 | Decks | `10-decks.docx` | Not started | `app/decks/` | Placeholder |
+| 11 | Deck Accomplishments | `11-deck-accomplishments.docx` | Not started | `app/deck-accomplishments/` | Placeholder |
+| 12 | Edit Deck | `12-edit-deck.docx` | Not started | `app/edit-deck/` | Placeholder |
+| 13 | Recent Games | `13-recent-games.docx` | Not started | `app/recent-games/` | Placeholder |
 
 ---
 
@@ -90,36 +90,46 @@ We test on browser and phone, make adjustments, and when it's approved the wiref
 ```
 Aura/
   AURA_PROJECT_GUIDE.md        ← this file
+  README.md                     ← repo readme + structure guide
   CLAUDE.md                     ← Claude Code instructions
   AGENTS.md                     ← agent behavior rules
-  README.md                     ← repo readme
 
-  app/                          ← Next.js App Router
-    globals.css                 ← global styles, font imports
+  app/                          ← Next.js App Router (all screens)
     layout.tsx                  ← root layout
+    globals.css                 ← global styles, font imports
+    page.tsx                    ← home: wireframe directory
+    placeholder.tsx             ← shared placeholder for unfinished screens
     favicon.ico
-    landing/page.tsx            ← Landing wireframe
-    review/page.tsx             ← Game Review wireframe
-    [future wireframes]/page.tsx
+    landing/page.tsx            ← 01 Landing (live)
+    howtoplay/page.tsx          ← 02 How to Play (placeholder)
+    create/page.tsx             ← 03 Create a Pod (placeholder)
+    join/page.tsx               ← 04 Join a Pod (placeholder)
+    gridview/page.tsx           ← 05 Grid View (placeholder)
+    singleview/page.tsx         ← 06 Single View (placeholder)
+    review/page.tsx             ← 07 Game Review (live)
+    gamesummary/page.tsx        ← 08 Game Summary (placeholder)
+    profile/page.tsx            ← 09 Profile (placeholder)
+    decks/page.tsx              ← 10 Decks (placeholder)
+    deck-accomplishments/page.tsx ← 11 Deck Accomplishments (placeholder)
+    edit-deck/page.tsx          ← 12 Edit Deck (placeholder)
+    recent-games/page.tsx       ← 13 Recent Games (placeholder)
 
-  design_system/                ← the Aura design language
+  design_system/                ← design language (read-only reference)
     STYLE_GUIDE.md              ← full design specification
     WIREFRAME_TRANSLATION.md    ← how to translate wireframes
+    CLAUDE_DESIGN_PROMPT.md     ← prompt template for Claude Design
     README.md                   ← design system overview
     tokens/colors_and_type.css  ← CSS variables
-    components/                 ← reference JSX components
-      components.jsx            ← base primitives
-      ios-frame.jsx             ← iPhone frame wrapper
-      brand-screens.jsx         ← Splash + Onboarding
-      review-cards.jsx          ← Game Review cards
-      memory-card.jsx           ← Memory Card
-      game-review-screen.jsx    ← full Game Review
-    assets/
+    components/                 ← reference JSX components (not imported by app)
+    assets/                     ← source design assets
       glyphs/                   ← trait badge PNGs
       commanders/               ← sample commander art
 
-  public/                       ← static assets (Next.js)
-  [config files]                ← next.config, tsconfig, eslint, etc.
+  public/assets/                ← static assets served by Next.js
+    commanders/                 ← commander art (referenced as /assets/commanders/)
+    glyphs/                     ← badge icons (referenced as /assets/glyphs/)
+
+  [config files]                ← next.config.ts, tsconfig.json, eslint, postcss, etc.
 ```
 
 ---
