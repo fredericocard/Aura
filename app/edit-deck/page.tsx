@@ -1,11 +1,24 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+const BRACKETS = [
+  { num: 1, name: 'Exhibition', desc: 'Your ultra-casual commander deck.', restrictions: ['No mass land denial or extra turns', 'No 2-card infinite combos', 'No game changers'], note: 'Few tutors' },
+  { num: 2, name: 'Core', desc: 'The average current preconstructed deck.', restrictions: ['No mass land denial', 'No chaining extra turns', 'No 2-card infinite combos', 'No game changers'], note: 'Few tutors' },
+  { num: 3, name: 'Upgraded', desc: 'Beyond the strength of an average precon deck.', restrictions: ['No mass land denial', 'No chaining extra turns'], note: 'Late game 2-card infinite combos allowed. Three game changes.' },
+  { num: 4, name: 'Optimized', desc: 'High power commander. It\'s time to go wild!', restrictions: [], note: 'No restrictions (other than the banned list)' },
+  { num: 5, name: 'cEDH', desc: 'High power with a very competitive and metagame focused mindset.', restrictions: [], note: 'No restrictions (other than the banned list)' },
+];
+
 export default function EditDeckPage() {
+  const router = useRouter();
   const [addCardModalActive, setAddCardModalActive] = useState(false);
   const [importModalActive, setImportModalActive] = useState(false);
+  const [bracketModalActive, setBracketModalActive] = useState(false);
+  const [unsavedModalActive, setUnsavedModalActive] = useState(false);
+  const [selectedBracket, setSelectedBracket] = useState<number | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
   const [cards, setCards] = useState([
     { id: 1, num: 1, name: 'Swords to Plowshares', type: 'Instant', typeClass: 'instant', qty: 'x1' },
     { id: 2, num: 2, name: 'Nature\'s Lore', type: 'Sorcery', typeClass: 'sorcery', qty: 'x1' },
@@ -15,6 +28,19 @@ export default function EditDeckPage() {
 
   const removeCard = (id: number) => {
     setCards(cards.filter(card => card.id !== id));
+    setHasChanges(true);
+  };
+
+  const handleBack = () => {
+    if (hasChanges) {
+      setUnsavedModalActive(true);
+    } else {
+      router.push('/deck-accomplishments');
+    }
+  };
+
+  const handleSave = () => {
+    router.push('/deck-accomplishments');
   };
 
   const styles = `
@@ -540,6 +566,244 @@ export default function EditDeckPage() {
     }
 
     .import-btn:active { transform: scale(0.97); }
+
+    /* ── Bracket Selector Button ── */
+    .bracket-selector-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: rgb(245,239,227);
+      border-radius: 14px;
+      border: 1px solid rgb(184,168,138);
+      box-shadow: 0 6px 16px rgba(26,20,13,0.08);
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .bracket-selector-btn:active { transform: scale(0.98); }
+
+    .bracket-selector-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgb(14,52,44) 0%, rgb(26,72,62) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .bracket-selector-icon span {
+      font-size: 16px;
+      font-weight: 800;
+      color: rgb(245,239,227);
+    }
+
+    .bracket-selector-info {
+      flex: 1;
+    }
+
+    .bracket-selector-label {
+      font-size: 10px;
+      color: rgb(138,154,142);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .bracket-selector-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: rgb(44,62,54);
+      margin-top: 1px;
+    }
+
+    .bracket-selector-value.placeholder {
+      color: rgb(138,154,142);
+      font-weight: 500;
+    }
+
+    .bracket-selector-arrow {
+      color: rgb(26,122,106);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    /* ── Bracket Modal ── */
+    .bracket-option {
+      padding: 12px;
+      background: rgb(222,212,192);
+      border-radius: 12px;
+      border: 1.5px solid rgb(184,168,138);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .bracket-option:active { transform: scale(0.98); }
+
+    .bracket-option.selected {
+      border-color: rgb(26,122,106);
+      background: rgba(26,122,106,0.08);
+      box-shadow: 0 0 0 1px rgb(26,122,106);
+    }
+
+    .bracket-option-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .bracket-option-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgb(14,52,44) 0%, rgb(26,72,62) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: rgb(245,239,227);
+      flex-shrink: 0;
+    }
+
+    .bracket-option-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: rgb(44,62,54);
+      flex: 1;
+    }
+
+    .bracket-option-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid rgb(184,168,138);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .bracket-option.selected .bracket-option-check {
+      border-color: rgb(26,122,106);
+      background: rgb(26,122,106);
+    }
+
+    .bracket-option-check-mark {
+      color: rgb(245,239,227);
+      font-size: 11px;
+      font-weight: 700;
+      display: none;
+    }
+
+    .bracket-option.selected .bracket-option-check-mark {
+      display: block;
+    }
+
+    .bracket-option-desc {
+      font-size: 10px;
+      color: rgb(90,110,98);
+      margin-left: 38px;
+      line-height: 1.4;
+    }
+
+    .bracket-option-restrictions {
+      margin-top: 6px;
+      margin-left: 38px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .bracket-restriction {
+      font-size: 9px;
+      color: rgb(168,74,58);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .bracket-restriction.allowed {
+      color: rgb(26,122,106);
+    }
+
+    .bracket-note {
+      font-size: 9px;
+      color: rgb(90,110,98);
+      margin-left: 38px;
+      margin-top: 3px;
+      font-style: italic;
+    }
+
+    /* ── Unsaved Changes Modal ── */
+    .unsaved-modal-card {
+      width: calc(100% - 48px);
+      max-width: 300px;
+      background: rgb(245,239,227);
+      border: 1.3px solid rgb(184,168,138);
+      border-radius: 20px;
+      padding: 24px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      animation: modalIn 0.25s ease;
+      text-align: center;
+    }
+
+    .unsaved-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .unsaved-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: rgb(44,62,54);
+      margin-bottom: 6px;
+    }
+
+    .unsaved-desc {
+      font-size: 12px;
+      color: rgb(90,110,98);
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    .unsaved-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .unsaved-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .unsaved-btn:active { transform: scale(0.95); }
+
+    .unsaved-btn-cancel {
+      background: rgb(222,212,192);
+      color: rgb(44,62,54);
+      border: 1px solid rgb(184,168,138);
+    }
+
+    .unsaved-btn-discard {
+      background: rgb(168,74,58);
+      color: rgb(245,239,227);
+    }
   `;
 
   return (
@@ -549,7 +813,7 @@ export default function EditDeckPage() {
 
         {/* Header */}
         <div className="header">
-          <Link href="/decks" className="header-back">‹</Link>
+          <button className="header-back" onClick={handleBack} type="button">&#8249;</button>
           <div className="header-info">
             <div className="header-title">Edit Deck</div>
           </div>
@@ -586,6 +850,7 @@ export default function EditDeckPage() {
             className="field-input"
             type="text"
             defaultValue="Atraxa Superfriends"
+            onChange={() => setHasChanges(true)}
           />
 
           {/* Commander */}
@@ -600,6 +865,25 @@ export default function EditDeckPage() {
             </div>
             <span className="commander-arrow">▼</span>
           </div>
+
+          {/* Bracket Selector */}
+          <div className="section-label">Bracket</div>
+          <button
+            className="bracket-selector-btn"
+            onClick={() => setBracketModalActive(true)}
+            type="button"
+          >
+            <div className="bracket-selector-icon">
+              <span>{selectedBracket !== null ? BRACKETS[selectedBracket - 1].num : '?'}</span>
+            </div>
+            <div className="bracket-selector-info">
+              <div className="bracket-selector-label">Commander Bracket</div>
+              <div className={`bracket-selector-value${selectedBracket === null ? ' placeholder' : ''}`}>
+                {selectedBracket !== null ? `Bracket ${selectedBracket} — ${BRACKETS[selectedBracket - 1].name}` : 'Select a bracket...'}
+              </div>
+            </div>
+            <span className="bracket-selector-arrow">&#9660;</span>
+          </button>
 
           {/* Cards in Deck Header */}
           <div className="cards-header">
@@ -648,8 +932,8 @@ export default function EditDeckPage() {
         </div>
 
         {/* Save Button pinned to bottom */}
-        <button className="save-btn" type="button">
-          <span>✓</span>
+        <button className="save-btn" type="button" onClick={handleSave}>
+          <span>&#10003;</span>
           Save Deck
         </button>
 
@@ -756,6 +1040,81 @@ export default function EditDeckPage() {
           >
             Import Cards
           </button>
+        </div>
+      </div>
+
+      {/* Unsaved Changes Modal */}
+      <div
+        className={`modal-overlay ${unsavedModalActive ? 'active' : ''}`}
+        onClick={() => setUnsavedModalActive(false)}
+      >
+        <div className="unsaved-modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="unsaved-icon">&#9888;</div>
+          <div className="unsaved-title">Unsaved Changes</div>
+          <div className="unsaved-desc">You have unsaved changes. Are you sure you want to go back? Your changes will be lost.</div>
+          <div className="unsaved-actions">
+            <button
+              className="unsaved-btn unsaved-btn-cancel"
+              onClick={() => setUnsavedModalActive(false)}
+              type="button"
+            >
+              Keep Editing
+            </button>
+            <button
+              className="unsaved-btn unsaved-btn-discard"
+              onClick={() => router.push('/deck-accomplishments')}
+              type="button"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bracket Selection Modal */}
+      <div
+        className={`modal-overlay ${bracketModalActive ? 'active' : ''}`}
+        onClick={() => setBracketModalActive(false)}
+      >
+        <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <div className="modal-title">Select Bracket</div>
+            <button
+              className="modal-close"
+              onClick={() => setBracketModalActive(false)}
+              type="button"
+            >
+              &#10005;
+            </button>
+          </div>
+          {BRACKETS.map((b) => (
+            <div
+              key={b.num}
+              className={`bracket-option${selectedBracket === b.num ? ' selected' : ''}`}
+              onClick={() => { setSelectedBracket(b.num); setBracketModalActive(false); setHasChanges(true); }}
+            >
+              <div className="bracket-option-header">
+                <div className="bracket-option-num">{b.num}</div>
+                <div className="bracket-option-name">{b.name}</div>
+                <div className="bracket-option-check">
+                  <span className="bracket-option-check-mark">&#10003;</span>
+                </div>
+              </div>
+              <div className="bracket-option-desc">{b.desc}</div>
+              {b.restrictions.length > 0 && (
+                <div className="bracket-option-restrictions">
+                  {b.restrictions.map((r, i) => (
+                    <div key={i} className="bracket-restriction">&#9747; {r}</div>
+                  ))}
+                </div>
+              )}
+              {b.note && (
+                <div className={`bracket-note${b.restrictions.length === 0 ? '' : ''}`}>
+                  {b.restrictions.length === 0 ? '✓ ' : ''}{b.note}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </>

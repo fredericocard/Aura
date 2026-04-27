@@ -321,12 +321,6 @@ export default function Page() {
       <div className="app">
         {/* Header */}
         <div className="decks-header">
-          <a href="/profile" className="back-btn" onClick={(e) => {
-            e.preventDefault();
-            handleBack();
-          }}>
-            &#8249;
-          </a>
           <div className="title-row">
             <span className="title-text">Your Decks</span>
           </div>
@@ -335,10 +329,7 @@ export default function Page() {
         {/* Deck List */}
         <div className="deck-list">
           {/* Deck 1: Atraxa Superfriends */}
-          <a href="/deck-accomplishments" className="deck-card" onClick={(e) => {
-            e.preventDefault();
-            handleDeckClick();
-          }}>
+          <a href="/deck-accomplishments" className="deck-card">
             <div className="deck-art">
               <img src="https://cards.scryfall.io/art_crop/front/c/3/c34ae834-775e-447a-a330-0270c227c667.jpg" alt="Atraxa" />
               <div className="deck-art-fade"></div>
@@ -356,10 +347,7 @@ export default function Page() {
           </a>
 
           {/* Deck 2: Korvold Sac */}
-          <a href="/deck-accomplishments" className="deck-card" onClick={(e) => {
-            e.preventDefault();
-            handleDeckClick();
-          }}>
+          <a href="/deck-accomplishments" className="deck-card">
             <div className="deck-art">
               <img src="https://cards.scryfall.io/art_crop/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg" alt="Korvold" />
               <div className="deck-art-fade"></div>
@@ -376,10 +364,7 @@ export default function Page() {
           </a>
 
           {/* Deck 3: Yuriko Ninjas */}
-          <a href="/deck-accomplishments" className="deck-card" onClick={(e) => {
-            e.preventDefault();
-            handleDeckClick();
-          }}>
+          <a href="/deck-accomplishments" className="deck-card">
             <div className="deck-art">
               <img src="https://cards.scryfall.io/art_crop/front/3/b/3bd81ae6-e628-447a-a36b-597e63ede295.jpg" alt="Yuriko" />
               <div className="deck-art-fade"></div>
@@ -395,17 +380,14 @@ export default function Page() {
           </a>
 
           {/* New Deck button */}
-          <button className="new-deck-btn" onClick={handleNewDeck}>
+          <a href="/edit-deck" className="new-deck-btn" style={{ textDecoration: 'none' }}>
             <span className="new-deck-plus">+</span> New Deck
-          </button>
+          </a>
         </div>
 
         {/* Bottom Nav: Recent Games | Profile | Decks (active) */}
         <div className="bottom-nav">
-          <a href="/recent-games" className="nav-item" onClick={(e) => {
-            e.preventDefault();
-            handleNavClick('Recent Games');
-          }}>
+          <a href="/recent-games" className="nav-item">
             <div className="nav-icon">
               <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M2 4H16M2 9H16M2 14H16"/>
@@ -414,10 +396,7 @@ export default function Page() {
             <div className="nav-label">Recent Games</div>
           </a>
 
-          <a href="/profile" className="nav-item" onClick={(e) => {
-            e.preventDefault();
-            handleNavClick('Profile');
-          }}>
+          <a href="/profile" className="nav-item">
             <div className="nav-icon">
               <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
                 <circle cx="9" cy="6" r="3.5"/>

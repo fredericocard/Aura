@@ -1,19 +1,6 @@
 'use client';
 
 export default function DeckAccomplishmentsPage() {
-  const showToast = (msg: string) => {
-    const toast = document.getElementById('toast');
-    if (toast) {
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2000);
-    }
-  };
-
-  const handleBack = () => showToast('Back to Decks');
-  const handleEditDeck = () => showToast('Edit Deck — Coming Soon');
-  const handleRecentGames = () => showToast('Recent Games — Coming Soon');
-  const handleProfile = () => showToast('Profile');
 
   const styles = `
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -256,6 +243,43 @@ export default function DeckAccomplishmentsPage() {
       font-weight: 500;
     }
 
+    /* ── Bracket Pill ── */
+    .bracket-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin: 0 auto 14px;
+      padding: 6px 14px;
+      background: rgba(14,52,44,0.08);
+      border: 1px solid rgba(184,168,138,0.6);
+      border-radius: 20px;
+      position: relative;
+      z-index: 1;
+      width: fit-content;
+    }
+
+    .bracket-number {
+      font-size: 14px;
+      font-weight: 800;
+      color: rgb(26,122,106);
+      line-height: 1;
+    }
+
+    .bracket-divider {
+      width: 1px;
+      height: 12px;
+      background: rgb(184,168,138);
+    }
+
+    .bracket-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgb(44,62,54);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
     /* ── Ornate Divider ── */
     .ornate-divider {
       display: flex;
@@ -470,28 +494,6 @@ export default function DeckAccomplishmentsPage() {
       transition: color 0.2s ease;
     }
 
-    /* ── Toast ── */
-    .toast {
-      position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: rgb(44,62,54);
-      color: rgb(245,239,227);
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.3s ease;
-      z-index: 9999;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
   `;
 
   return (
@@ -500,7 +502,7 @@ export default function DeckAccomplishmentsPage() {
       <div className="app">
         {/* Header */}
         <div className="page-header">
-          <button className="back-btn" onClick={handleBack}>&#8249;</button>
+          <a href="/decks" className="back-btn" style={{ textDecoration: 'none' }}>&#8249;</a>
         </div>
 
         {/* Scrollable Content */}
@@ -581,6 +583,13 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="stat-label">Win Rate</div>
             </div>
+          </div>
+
+          {/* Bracket Pill */}
+          <div className="bracket-pill">
+            <span className="bracket-number">3</span>
+            <div className="bracket-divider" />
+            <span className="bracket-name">Upgraded</span>
           </div>
 
           {/* Ornate Divider */}
@@ -721,14 +730,14 @@ export default function DeckAccomplishmentsPage() {
           </div>
 
           {/* Edit Deck Button */}
-          <button className="edit-deck-btn" onClick={handleEditDeck}>
+          <a href="/edit-deck" className="edit-deck-btn" style={{ textDecoration: 'none', display: 'block' }}>
             Edit Your Deck
-          </button>
+          </a>
         </div>
 
         {/* Bottom Nav: Recent Games | Profile | Decks (active) */}
         <div className="bottom-nav">
-          <div className="nav-item" onClick={handleRecentGames}>
+          <a href="/recent-games" className="nav-item" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="nav-icon">
               <svg
                 className="nav-icon-svg"
@@ -742,9 +751,9 @@ export default function DeckAccomplishmentsPage() {
               </svg>
             </div>
             <div className="nav-label">Recent Games</div>
-          </div>
+          </a>
 
-          <div className="nav-item" onClick={handleProfile}>
+          <a href="/profile" className="nav-item" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="nav-icon">
               <svg
                 className="nav-icon-svg"
@@ -759,9 +768,9 @@ export default function DeckAccomplishmentsPage() {
               </svg>
             </div>
             <div className="nav-label">Profile</div>
-          </div>
+          </a>
 
-          <div className="nav-item active">
+          <a href="/decks" className="nav-item active" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="nav-icon">
               <svg
                 className="nav-icon-svg"
@@ -776,11 +785,10 @@ export default function DeckAccomplishmentsPage() {
               </svg>
             </div>
             <div className="nav-label">Decks</div>
-          </div>
+          </a>
         </div>
       </div>
 
-      <div className="toast" id="toast" />
     </>
   );
 }

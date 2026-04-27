@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import React, { useState } from 'react';
 
 export default function SingleViewPage() {
   // Life counter state
@@ -38,9 +37,9 @@ export default function SingleViewPage() {
 
   // Opponent data
   const opponents = [
-    { key: 'kess', name: 'Kess, Dissident Mage', player: 'Marta', life: 16, color: 'm', lifeColor: 'teal' },
-    { key: 'korvold', name: 'Korvold, Fae-Cursed King', player: 'Rafa', life: 12, color: 'r', lifeColor: 'red', poison: 2 },
-    { key: 'ghave', name: 'Ghave, Guru of Spores', player: 'Ana', life: 24, color: 'a', lifeColor: 'teal' },
+    { key: 'kess', name: 'Kess, Dissident Mage', player: 'Marta', life: 16, color: 'm', lifeColor: 'teal', aura: 72, badges: { brilliance: 2, flavor: 1, rivalry: 0, allegiance: 3, fun: 0 } },
+    { key: 'korvold', name: 'Korvold, Fae-Cursed King', player: 'Rafa', life: 12, color: 'r', lifeColor: 'red', poison: 2, aura: 45, badges: { brilliance: 1, flavor: 0, rivalry: 2, allegiance: 0, fun: 1 } },
+    { key: 'ghave', name: 'Ghave, Guru of Spores', player: 'Ana', life: 24, color: 'a', lifeColor: 'teal', aura: 88, badges: { brilliance: 4, flavor: 2, rivalry: 1, allegiance: 1, fun: 3 } },
   ];
 
   const myDecks = [
@@ -107,12 +106,6 @@ export default function SingleViewPage() {
       setShowToast(true);
       setTimeout(() => setShowToast(false), 2500);
     }
-  };
-
-  const handleGridView = () => {
-    setToastMessage('Grid view not available in single view mode');
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
   };
 
   // Search for commanders (simulated)
@@ -421,13 +414,124 @@ export default function SingleViewPage() {
           position: relative;
         }
 
+        .expand-aura-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+
+        .expand-aura-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: rgb(90,110,98);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .expand-aura-score {
+          padding: 2px 10px;
+          border-radius: 8px;
+          border: 1.5px solid rgba(120,180,220,0.8);
+          background: rgba(195,225,245,0.5);
+          font-size: 13px;
+          font-weight: 700;
+          color: rgb(60,130,185);
+        }
+
+        .brewed-for-divider {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 0 6px;
+        }
+
+        .brewed-for-line {
+          flex: 1;
+          height: 1px;
+          background: rgba(184,168,138,0.6);
+        }
+
+        .brewed-for-text {
+          font-size: 10px;
+          font-weight: 700;
+          color: rgb(90,110,98);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          white-space: nowrap;
+        }
+
         .badges-row {
           display: flex;
           width: 100%;
-          padding: 14px 0 4px;
-          gap: 6px;
+          padding: 6px 0 4px;
+          gap: 4px;
           justify-content: center;
           flex-wrap: nowrap;
+        }
+
+        .badge-circle-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          flex: 1;
+          max-width: 60px;
+        }
+
+        .badge-circle-wrap {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: 2px solid rgb(184,168,138);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          background: rgb(245,239,227);
+        }
+
+        .badge-circle-wrap.earned {
+          border-color: rgb(184,168,138);
+        }
+
+        .badge-circle-wrap.empty {
+          border-color: rgba(184,168,138,0.35);
+          opacity: 0.4;
+        }
+
+        .badge-circle-wrap svg {
+          width: 20px;
+          height: 20px;
+        }
+
+        .badge-count-pip {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: rgb(26,122,106);
+          color: rgb(245,239,227);
+          font-size: 9px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1.5px solid rgb(245,239,227);
+        }
+
+        .badge-circle-label {
+          font-size: 8px;
+          font-weight: 600;
+          color: rgb(90,110,98);
+          text-align: center;
+          line-height: 1.2;
+        }
+
+        .badge-circle-wrap.empty + .badge-circle-label {
+          opacity: 0.4;
         }
 
         .commander-header {
@@ -1126,14 +1230,14 @@ export default function SingleViewPage() {
         {loginOverlayOpen && (
           <div className="login-overlay">
             <div className="login-modal-wrap">
-              <Link href="/profile">
+              <a href="/profile" style={{ textDecoration: 'none' }}>
                 <div className="login-profile-btn">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgb(90,110,98)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                 </div>
-              </Link>
+              </a>
 
               <div className="login-modal">
                 <div className="login-title">Choose your Commander</div>
@@ -1406,6 +1510,13 @@ export default function SingleViewPage() {
               </div>
 
               <div className="expanded-detail">
+                {/* AURA Score */}
+                <div className="expand-aura-row">
+                  <span className="expand-aura-label">AURA</span>
+                  <span className="expand-aura-score">{opp.aura}</span>
+                </div>
+
+                {/* Commander Card */}
                 <div className="commander-card">
                   <div className="commander-header">
                     <div className="commander-header-text">{opp.name.toUpperCase()}</div>
@@ -1457,7 +1568,73 @@ export default function SingleViewPage() {
                     </div>
                   </div>
                 </div>
-                <div className="badges-row"></div>
+
+                {/* Brewed For Divider */}
+                <div className="brewed-for-divider">
+                  <div className="brewed-for-line" />
+                  <span className="brewed-for-text">Brewed For</span>
+                  <div className="brewed-for-line" />
+                </div>
+
+                {/* Badges Row */}
+                <div className="badges-row">
+                  {/* Brilliance */}
+                  <div className="badge-circle-item">
+                    <div className={`badge-circle-wrap ${opp.badges.brilliance > 0 ? 'earned' : 'empty'}`}>
+                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(184,146,46)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M16 3 L18.5 11 L27 12 L21 18 L23 27 L16 22.5 L9 27 L11 18 L5 12 L13.5 11 Z" />
+                      </svg>
+                      {opp.badges.brilliance > 0 && <div className="badge-count-pip">{opp.badges.brilliance}</div>}
+                    </div>
+                    <div className="badge-circle-label">Brilliance</div>
+                  </div>
+                  {/* Flavor */}
+                  <div className="badge-circle-item">
+                    <div className={`badge-circle-wrap ${opp.badges.flavor > 0 ? 'earned' : 'empty'}`}>
+                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(168,74,58)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M16 28 C10 28 6 23 6 17 C6 11 10 5 16 3 C16 9 19 13 23 14 C23 14 27 10 27 17 C27 23 22 28 16 28 Z" />
+                      </svg>
+                      {opp.badges.flavor > 0 && <div className="badge-count-pip">{opp.badges.flavor}</div>}
+                    </div>
+                    <div className="badge-circle-label">Flavor</div>
+                  </div>
+                  {/* Rivalry */}
+                  <div className="badge-circle-item">
+                    <div className={`badge-circle-wrap ${opp.badges.rivalry > 0 ? 'earned' : 'empty'}`}>
+                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 26 L22 10 M22 10 L22 16 M22 10 L28 10" />
+                        <path d="M26 26 L10 10 M10 10 L10 16 M10 10 L4 10" />
+                        <circle cx="16" cy="18" r="3" strokeWidth="1.4" />
+                      </svg>
+                      {opp.badges.rivalry > 0 && <div className="badge-count-pip">{opp.badges.rivalry}</div>}
+                    </div>
+                    <div className="badge-circle-label">Rivalry</div>
+                  </div>
+                  {/* Allegiance */}
+                  <div className="badge-circle-item">
+                    <div className={`badge-circle-wrap ${opp.badges.allegiance > 0 ? 'earned' : 'empty'}`}>
+                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(26,122,106)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M16 3 L28 8 V17 C28 23 22 28 16 30 C10 28 4 23 4 17 V8 Z" />
+                        <path d="M12 16 L15 19 L21 13" strokeWidth="2" />
+                      </svg>
+                      {opp.badges.allegiance > 0 && <div className="badge-count-pip">{opp.badges.allegiance}</div>}
+                    </div>
+                    <div className="badge-circle-label">Allegiance</div>
+                  </div>
+                  {/* Fun */}
+                  <div className="badge-circle-item">
+                    <div className={`badge-circle-wrap ${opp.badges.fun > 0 ? 'earned' : 'empty'}`}>
+                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.8" strokeLinecap="round">
+                        <circle cx="16" cy="16" r="12" />
+                        <circle cx="12" cy="13" r="1.5" fill="rgb(44,62,54)" />
+                        <circle cx="20" cy="13" r="1.5" fill="rgb(44,62,54)" />
+                        <path d="M11 20 C12.5 23 19.5 23 21 20" strokeWidth="1.5" />
+                      </svg>
+                      {opp.badges.fun > 0 && <div className="badge-count-pip">{opp.badges.fun}</div>}
+                    </div>
+                    <div className="badge-circle-label">Fun</div>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -1486,17 +1663,15 @@ export default function SingleViewPage() {
             </div>
             <div className="nav-label">Counters</div>
           </div>
-          <Link href="/gridview">
-            <button className="grid-view-button" onClick={(e) => { e.preventDefault(); handleGridView(); }}>
-              <div className="grid-icon">
-                <div className="grid-square" />
-                <div className="grid-square" />
-                <div className="grid-square" />
-                <div className="grid-square" />
-              </div>
-              <span style={{ fontSize: '11px' }}>Grid</span>
-            </button>
-          </Link>
+          <a href="/gridview-4p" className="grid-view-button" style={{ textDecoration: 'none' }}>
+            <div className="grid-icon">
+              <div className="grid-square" />
+              <div className="grid-square" />
+              <div className="grid-square" />
+              <div className="grid-square" />
+            </div>
+            <span style={{ fontSize: '11px' }}>Grid</span>
+          </a>
         </div>
       </div>
 
