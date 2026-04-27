@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface Player {
   name: string;
@@ -326,9 +327,19 @@ function capitalizeFirstLetter(str: string): string {
 }
 
 export default function RecentGamesPage() {
+  const searchParams = useSearchParams();
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterDeck, setFilterDeck] = useState<string | null>(null);
   const [filterAura, setFilterAura] = useState<'all' | 'gain' | 'loss'>('all');
+
+  useEffect(() => {
+    const deckParam = searchParams.get('deck');
+    if (deckParam) {
+      const allDeckNames = Array.from(new Set(games.flatMap(g => g.players.filter(p => p.name === 'Frederico').map(p => p.commander))));
+      const match = allDeckNames.find(d => d.toLowerCase().startsWith(deckParam.toLowerCase()));
+      if (match) setFilterDeck(match);
+    }
+  }, [searchParams]);
 
   const allDecks = Array.from(new Set(games.flatMap(g => g.players.filter(p => p.name === 'Frederico').map(p => p.commander))));
 
@@ -486,6 +497,29 @@ export default function RecentGamesPage() {
 
         .filter-section {
           margin-bottom: 16px;
+        }
+
+        .filter-select {
+          width: 100%;
+          padding: 10px 14px;
+          border-radius: 10px;
+          border: 1.3px solid rgb(184,168,138);
+          background: rgb(222,212,192);
+          font-family: 'Inter', sans-serif;
+          font-size: 13px;
+          font-weight: 600;
+          color: rgb(44,62,54);
+          cursor: pointer;
+          appearance: none;
+          -webkit-appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%235a6e62' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+        }
+
+        .filter-select:focus {
+          outline: none;
+          border-color: rgb(26,122,106);
         }
 
         .filter-chips {
@@ -1247,25 +1281,23 @@ export default function RecentGamesPage() {
 
               <div className="filter-section">
                 <div className="filter-section-label">Deck</div>
-                <div className="filter-chips">
+                <select
+                  className="filter-select"
+                  value={filterDeck || ''}
+                  onChange={(e) => setFilterDeck(e.target.value || null)}
+                >
+                  <option value="">All Decks</option>
                   {allDecks.map((deck) => (
-                    <div
-                      key={deck}
-                      className={`filter-chip ${filterDeck === deck ? 'selected' : ''}`}
-                      onClick={() => setFilterDeck(filterDeck === deck ? null : deck)}
-                    >
-                      {deck}
-                    </div>
+                    <option key={deck} value={deck}>{deck}</option>
                   ))}
-                </div>
+                </select>
               </div>
 
               <div className="filter-section">
                 <div className="filter-section-label">Aura</div>
                 <div className="filter-chips">
-                  <div className={`filter-chip ${filterAura === 'all' ? 'selected' : ''}`} onClick={() => setFilterAura('all')}>All</div>
-                  <div className={`filter-chip ${filterAura === 'gain' ? 'selected' : ''}`} onClick={() => setFilterAura('gain')}>Gain ↑</div>
-                  <div className={`filter-chip ${filterAura === 'loss' ? 'selected' : ''}`} onClick={() => setFilterAura('loss')}>Loss ↓</div>
+                  <div className={`filter-chip ${filterAura === 'gain' ? 'selected' : ''}`} onClick={() => setFilterAura(filterAura === 'gain' ? 'all' : 'gain')}>Ascending ↑</div>
+                  <div className={`filter-chip ${filterAura === 'loss' ? 'selected' : ''}`} onClick={() => setFilterAura(filterAura === 'loss' ? 'all' : 'loss')}>Descending ↓</div>
                 </div>
               </div>
 

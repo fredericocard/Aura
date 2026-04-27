@@ -391,9 +391,40 @@ export default function DeckAccomplishmentsPage() {
       color: rgba(138,154,142,0.6);
     }
 
-    /* ── Edit Deck Button ── */
-    .edit-deck-btn {
+    /* ── Action Buttons ── */
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       margin: 4px 0 16px;
+    }
+
+    .action-btn {
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      background: rgb(245,239,227);
+      border-radius: 22px;
+      border: 1px solid rgb(184,168,138);
+      box-shadow: 0 6px 16px rgba(26,20,13,0.08);
+      color: rgb(44,62,54);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      width: 100%;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action-btn:active {
+      transform: scale(0.9);
+    }
+
+    .edit-deck-btn {
+      margin: 0;
       padding: 14px;
       text-align: center;
       cursor: pointer;
@@ -729,10 +760,18 @@ export default function DeckAccomplishmentsPage() {
             </div>
           </div>
 
-          {/* Edit Deck Button */}
-          <a href="/edit-deck" className="edit-deck-btn" style={{ textDecoration: 'none', display: 'block' }}>
-            Edit Your Deck
-          </a>
+          {/* Action Buttons */}
+          <div className="action-buttons">
+            <a href="/recent-games?deck=Atraxa" className="action-btn" style={{ textDecoration: 'none' }}>
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M2 4H16M2 9H16M2 14H16" />
+              </svg>
+              Recent Games
+            </a>
+            <a href="/edit-deck" className="edit-deck-btn" style={{ textDecoration: 'none', display: 'block' }}>
+              Edit Your Deck
+            </a>
+          </div>
         </div>
 
         {/* Bottom Nav: Recent Games | Profile | Decks (active) */}
