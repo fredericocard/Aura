@@ -4,6 +4,7 @@
 // ============================================
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 /* ── LIcon — inline Lucide icons ── */
 function LIcon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name: string; size?: number; stroke?: string; width?: number }) {
@@ -156,10 +157,10 @@ function SheetMasthead({ eyebrow, title, subtitle }: { eyebrow: string; title: s
 }
 
 /* ── SSOButton — Google / Apple ── */
-function SSOButton({ provider }: { provider: 'google' | 'apple' }) {
+function SSOButton({ provider, onClick }: { provider: 'google' | 'apple'; onClick?: () => void }) {
   const isApple = provider === 'apple';
   return (
-    <button style={{
+    <button onClick={onClick} style={{
       width: '100%', cursor: 'pointer',
       background: isApple ? '#1A140E' : '#F5EFE2',
       color: isApple ? '#F5EFE2' : '#2B2118',
@@ -208,13 +209,13 @@ function FieldInput({ label, type = 'text', placeholder }: { label: string; type
 }
 
 /* ── SSOView — initial login sheet ── */
-function SSOView({ setView }: { setView: (v: string) => void }) {
+function SSOView({ setView, onLogin }: { setView: (v: string) => void; onLogin: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SheetMasthead eyebrow="The Threshold" title="Step into the pod" subtitle="Sign in to keep your record." />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <SSOButton provider="google" />
-        <SSOButton provider="apple" />
+        <SSOButton provider="google" onClick={onLogin} />
+        <SSOButton provider="apple" onClick={onLogin} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
         <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.14)' }} />
@@ -247,7 +248,7 @@ function SSOView({ setView }: { setView: (v: string) => void }) {
 }
 
 /* ── SignUpView ── */
-function SignUpView({ setView }: { setView: (v: string) => void }) {
+function SignUpView({ setView, onLogin }: { setView: (v: string) => void; onLogin: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SheetMasthead eyebrow="New player" title="Create account" subtitle="Join your first pod." />
@@ -256,7 +257,7 @@ function SignUpView({ setView }: { setView: (v: string) => void }) {
         <FieldInput label="Confirm email" type="email" placeholder="you@table.cards" />
         <FieldInput label="Password" type="password" placeholder="••••••••" />
       </div>
-      <button style={{
+      <button onClick={onLogin} style={{
         background: '#2F5D3A', color: '#F5EFE2',
         border: 'none', borderRadius: 20,
         padding: '14px 18px', cursor: 'pointer',
@@ -278,7 +279,7 @@ function SignUpView({ setView }: { setView: (v: string) => void }) {
 }
 
 /* ── SignInView ── */
-function SignInView({ setView }: { setView: (v: string) => void }) {
+function SignInView({ setView, onLogin }: { setView: (v: string) => void; onLogin: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SheetMasthead eyebrow="Returning" title="Welcome back" subtitle="The pod's been waiting." />
@@ -286,7 +287,7 @@ function SignInView({ setView }: { setView: (v: string) => void }) {
         <FieldInput label="Email" type="email" placeholder="you@table.cards" />
         <FieldInput label="Password" type="password" placeholder="••••••••" />
       </div>
-      <button style={{
+      <button onClick={onLogin} style={{
         background: '#2F5D3A', color: '#F5EFE2',
         border: 'none', borderRadius: 20,
         padding: '14px 18px', cursor: 'pointer',
@@ -308,7 +309,7 @@ function SignInView({ setView }: { setView: (v: string) => void }) {
 }
 
 /* ── LoginSheet — bottom sheet with torn-paper edge ── */
-function LoginSheet({ onClose }: { onClose: () => void }) {
+function LoginSheet({ onClose, onLogin }: { onClose: () => void; onLogin: () => void }) {
   const [view, setView] = useState('sso');
   const [slideUp, setSlideUp] = useState(false);
 
@@ -368,9 +369,9 @@ function LoginSheet({ onClose }: { onClose: () => void }) {
             <LIcon name="x" size={15} width={2} />
           </button>
 
-          {view === 'sso' && <SSOView setView={setView} />}
-          {view === 'signup' && <SignUpView setView={setView} />}
-          {view === 'signin' && <SignInView setView={setView} />}
+          {view === 'sso' && <SSOView setView={setView} onLogin={onLogin} />}
+          {view === 'signup' && <SignUpView setView={setView} onLogin={onLogin} />}
+          {view === 'signin' && <SignInView setView={setView} onLogin={onLogin} />}
         </div>
       </div>
     </div>
@@ -387,6 +388,8 @@ function LoginSheet({ onClose }: { onClose: () => void }) {
 export default function HomePage() {
   const [phase, setPhase] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const timers = [
@@ -541,8 +544,14 @@ export default function HomePage() {
           boxShadow: 'inset 0 1px 0 rgba(43,33,24,0.06), inset 0 -1px 0 rgba(255,255,255,0.4)',
           display: 'flex', gap: 8,
         }}>
-          <ActionTile variant="primary" icon="plus" label="Create a Pod" sub="BEGIN YOUR GAME" onClick={() => setShowLogin(true)} />
-          <ActionTile variant="secondary" icon="scan" label="Join a Pod" sub="SCAN TO ENTER" />
+          <ActionTile variant="primary" icon="plus" label="Create a Pod" sub="BEGIN YOUR GAME" onClick={() => {
+            if (isLoggedIn) {
+              router.push('/create');
+            } else {
+              setShowLogin(true);
+            }
+          }} />
+          <ActionTile variant="secondary" icon="scan" label="Join a Pod" sub="SCAN TO ENTER" onClick={() => router.push('/join')} />
         </div>
 
         {/* Utility row */}
@@ -551,14 +560,18 @@ export default function HomePage() {
           display: 'flex',
           borderTop: '1px solid rgba(43,33,24,0.14)',
         }}>
-          <UtilityItem icon="compass" label="New here?" />
+          <UtilityItem icon="compass" label="New here?" onClick={() => router.push('/howtoplay')} />
           <div style={{ width: 1, background: 'rgba(43,33,24,0.14)' }} />
-          <UtilityItem icon="user" label="Profile" />
+          <UtilityItem icon="user" label="Profile" onClick={() => router.push('/profile')} />
         </div>
       </div>
 
       {/* Login sheet */}
-      {showLogin && <LoginSheet onClose={() => setShowLogin(false)} />}
+      {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={() => {
+        setIsLoggedIn(true);
+        setShowLogin(false);
+        router.push('/create');
+      }} />}
     </div>
   );
 }
