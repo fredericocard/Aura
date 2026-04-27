@@ -24,8 +24,8 @@ export default function GridView2P() {
     2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] }
   });
 
-  const [playerColors, setPlayerColors] = useState({ 1: 'rgb(26,122,106)', 2: 'rgb(168,74,58)' });
-  const [playerClasses] = useState({ 1: 'p1', 2: 'p2' });
+  const [playerColors, setPlayerColors] = useState<Record<number, string>>({ 1: 'rgb(26,122,106)', 2: 'rgb(168,74,58)' });
+  const [playerClasses] = useState<Record<number, string>>({ 1: 'p1', 2: 'p2' });
   const [usedColors, setUsedColors] = useState<string[]>([]);
   const [counters, setCounters] = useState<{ [key: number]: CounterState }>({
     1: { poison: 0, experience: 0, energy: 0 },

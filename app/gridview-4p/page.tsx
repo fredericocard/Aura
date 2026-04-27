@@ -11,14 +11,14 @@ export default function GridView4P() {
     4: { life: 40, name: 'Player 4', commander: null, claimed: false, colors: [], assignedColor: null as string | null }
   });
 
-  const [playerColors] = useState({
+  const [playerColors] = useState<Record<number, string>>({
     1: 'rgb(26,122,106)',
     2: 'rgb(168,74,58)',
     3: 'rgb(42,138,86)',
     4: 'rgb(184,146,46)'
   });
 
-  const [playerClasses] = useState({ 1: 'p1', 2: 'p2', 3: 'p3', 4: 'p4' });
+  const [playerClasses] = useState<Record<number, string>>({ 1: 'p1', 2: 'p2', 3: 'p3', 4: 'p4' });
 
   const [manaColorStyles] = useState({
     W: { grad: [[160, 140, 90], [190, 170, 115], [210, 192, 140]], border: [220, 200, 155], shadow: [160, 140, 90] },
