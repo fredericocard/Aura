@@ -70,18 +70,22 @@ We test on browser and phone, make adjustments, and when it's approved the wiref
 | # | Wireframe | Logic doc | Claude Design | Next.js route | Status |
 |---|-----------|-----------|---------------|---------------|--------|
 | 01 | Landing | n/a | Done | `app/landing/` | Live |
-| 02 | How to Play | `02-how-to-play.docx` | Not started | `app/howtoplay/` | Placeholder |
-| 03 | Create Pod | `03-create-pod.docx` | Not started | `app/create/` | Placeholder |
-| 04 | Join Pod | `04-join-pod.docx` | Not started | `app/join/` | Placeholder |
-| 05 | Grid View | `05-grid-view.docx` | Not started | `app/gridview/` | Placeholder |
-| 06 | Single View | `06-single-view.docx` | Not started | `app/singleview/` | Placeholder |
+| 02 | How to Play | `02-how-to-play.docx` | Not started | `app/howtoplay/` | Live (interim) |
+| 03 | Create Pod | `03-create-pod.docx` | Not started | `app/create/` | Live (interim) |
+| 04 | Join Pod | `04-join-pod.docx` | Not started | `app/join/` | Live (interim) |
+| 05a | Grid View 2P | `05-grid-view.docx` | Not started | `app/gridview-2p/` | Live (interim) |
+| 05b | Grid View 3P | `05-grid-view.docx` | Not started | `app/gridview-3p/` | Live (interim) |
+| 05c | Grid View 4P | `05-grid-view.docx` | Not started | `app/gridview-4p/` | Live (interim) |
+| 05d | Grid View 5P | `05-grid-view.docx` | Not started | `app/gridview-5p/` | Live (interim) |
+| 06 | Single View | `06-single-view.docx` | Not started | `app/singleview/` | Live (interim) |
 | 07 | Game Review | `07-game-review.docx` | Done | `app/review/` | Live |
-| 08 | Game Summary | `08-game-summary.docx` | Not started | `app/gamesummary/` | Placeholder |
-| 09 | Profile | `09-profile.docx` | Not started | `app/profile/` | Placeholder |
-| 10 | Decks | `10-decks.docx` | Not started | `app/decks/` | Placeholder |
-| 11 | Deck Accomplishments | `11-deck-accomplishments.docx` | Not started | `app/deck-accomplishments/` | Placeholder |
-| 12 | Edit Deck | `12-edit-deck.docx` | Not started | `app/edit-deck/` | Placeholder |
-| 13 | Recent Games | `13-recent-games.docx` | Not started | `app/recent-games/` | Placeholder |
+| 08 | Profile | `09-profile.docx` | Not started | `app/profile/` | Live (interim) |
+| 09 | Decks | `10-decks.docx` | Not started | `app/decks/` | Live (interim) |
+| 10 | Deck Accomplishments | `11-deck-accomplishments.docx` | Not started | `app/deck-accomplishments/` | Live (interim) |
+| 11 | Edit Deck | `12-edit-deck.docx` | Not started | `app/edit-deck/` | Live (interim) |
+| 12 | Recent Games | `13-recent-games.docx` | Not started | `app/recent-games/` | Live (interim) |
+
+> **Note:** Game Summary is not a separate page — it's a popup within Game Review. "Live (interim)" means the screen is converted from the HTML wireframe prototype but has not yet been polished by Claude Design.
 
 ---
 
@@ -101,18 +105,20 @@ Aura/
     placeholder.tsx             ← shared placeholder for unfinished screens
     favicon.ico
     landing/page.tsx            ← 01 Landing (live)
-    howtoplay/page.tsx          ← 02 How to Play (placeholder)
-    create/page.tsx             ← 03 Create a Pod (placeholder)
-    join/page.tsx               ← 04 Join a Pod (placeholder)
-    gridview/page.tsx           ← 05 Grid View (placeholder)
-    singleview/page.tsx         ← 06 Single View (placeholder)
+    howtoplay/page.tsx          ← 02 How to Play (live interim)
+    create/page.tsx             ← 03 Create a Pod (live interim)
+    join/page.tsx               ← 04 Join a Pod (live interim)
+    gridview-2p/page.tsx        ← 05a Grid View 2P (live interim)
+    gridview-3p/page.tsx        ← 05b Grid View 3P (live interim)
+    gridview-4p/page.tsx        ← 05c Grid View 4P (live interim)
+    gridview-5p/page.tsx        ← 05d Grid View 5P (live interim)
+    singleview/page.tsx         ← 06 Single View (live interim)
     review/page.tsx             ← 07 Game Review (live)
-    gamesummary/page.tsx        ← 08 Game Summary (placeholder)
-    profile/page.tsx            ← 09 Profile (placeholder)
-    decks/page.tsx              ← 10 Decks (placeholder)
-    deck-accomplishments/page.tsx ← 11 Deck Accomplishments (placeholder)
-    edit-deck/page.tsx          ← 12 Edit Deck (placeholder)
-    recent-games/page.tsx       ← 13 Recent Games (placeholder)
+    profile/page.tsx            ← 08 Profile (live interim)
+    decks/page.tsx              ← 09 Decks (live interim)
+    deck-accomplishments/page.tsx ← 10 Deck Accomplishments (live interim)
+    edit-deck/page.tsx          ← 11 Edit Deck (live interim)
+    recent-games/page.tsx       ← 12 Recent Games (live interim)
 
   design_system/                ← design language (read-only reference)
     STYLE_GUIDE.md              ← full design specification
