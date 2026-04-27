@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -326,7 +326,7 @@ function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export default function RecentGamesPage() {
+function RecentGamesContent() {
   const searchParams = useSearchParams();
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterDeck, setFilterDeck] = useState<string | null>(null);
@@ -1352,5 +1352,13 @@ export default function RecentGamesPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function RecentGamesPage() {
+  return (
+    <Suspense>
+      <RecentGamesContent />
+    </Suspense>
   );
 }
