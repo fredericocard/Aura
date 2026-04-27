@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Aura · Design System Preview</title>
+<link rel="stylesheet" href="tokens/colors_and_type.css"/>
+<style>
+  html, body { margin: 0; padding: 0; background: var(--parchment); }
+  body { font-family: var(--font-ui); color: var(--ink); }
+  .page { max-width: 1600px; margin: 0 auto; padding: 72px 48px 120px; }
+  .page-header { margin-bottom: 64px; padding-bottom: 24px; border-bottom: 1px solid var(--line-strong); }
+  .page-title { font-family: var(--font-display); font-weight: 400; font-size: 64px; letter-spacing: -0.02em; margin: 0 0 8px; line-height: 1; }
+  .page-sub { color: var(--fg-subtle); font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; }
+
+  section { margin-top: 80px; }
+  .section-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--copper); margin: 0 0 8px; }
+  .section-title { font-family: var(--font-display); font-weight: 400; font-size: 40px; letter-spacing: -0.02em; margin: 0 0 8px; line-height: 1.1; }
+  .section-desc { color: var(--fg-muted); font-size: 15px; max-width: 680px; margin: 0 0 32px; line-height: 1.55; }
+
+  .grid { display: grid; gap: 16px; }
+  .card { background: var(--parchment-card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 20px; }
+
+  /* Color swatch */
+  .swatch-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .swatch { background: var(--parchment-card); border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; }
+  .swatch-chip { height: 96px; }
+  .swatch-meta { padding: 14px 16px; }
+  .swatch-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .swatch-token { font-size: 11px; color: var(--fg-subtle); font-family: var(--font-mono); margin-top: 3px; }
+  .swatch-hex { font-size: 11px; color: var(--fg-subtle); font-family: var(--font-mono); margin-top: 1px; }
+
+  /* Type specimen */
+  .type-grid { grid-template-columns: 200px 1fr; gap: 24px 32px; align-items: baseline; }
+  .type-label { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-subtle); padding-top: 8px; }
+  .type-sample { border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+  .type-meta { font-size: 11px; color: var(--fg-subtle); font-family: var(--font-mono); margin-top: 6px; }
+
+  /* Spacing */
+  .spacing-row { display: flex; align-items: center; gap: 24px; margin-bottom: 14px; }
+  .spacing-bar { background: var(--copper); height: 20px; border-radius: 4px; }
+  .spacing-label { font-family: var(--font-mono); font-size: 13px; color: var(--ink-2); min-width: 120px; }
+
+  /* Radius */
+  .radius-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .radius-demo { background: var(--copper-soft); height: 120px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--copper); }
+  .radius-demo-meta { text-align: center; margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+
+  /* Shadow */
+  .shadow-grid { grid-template-columns: repeat(3, 1fr); gap: 28px; }
+  .shadow-demo { background: var(--parchment-card); height: 140px; border-radius: var(--r-card); }
+
+  /* Category tiles */
+  .cat-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .cat-tile { border-radius: var(--r-card); padding: 24px; border: 1.5px solid transparent; }
+  .cat-tile .cat-name { font-family: var(--font-display); font-size: 28px; font-weight: 400; margin: 12px 0 4px; }
+  .cat-tile .cat-meaning { font-size: 13px; color: var(--fg-muted); line-height: 1.4; }
+  .cat-tile .cat-hex { font-size: 11px; font-family: var(--font-mono); margin-top: 10px; }
+  .cat-glyph { width: 56px; height: 56px; border-radius: 999px; background: var(--parchment-card); border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; }
+
+  /* Logo */
+  .logo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .logo-tile { padding: 40px 28px; text-align: center; border-radius: var(--r-card); border: 1px solid var(--line); }
+  .logo-tile.light { background: var(--parchment-card); }
+  .logo-tile.parchment { background: var(--parchment-deep); }
+  .logo-tile.dark { background: var(--ink); color: var(--parchment); }
+  .logo-caption { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; margin-top: 20px; opacity: 0.7; }
+
+  /* Components */
+  .comp-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .comp-label { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-subtle); margin-bottom: 10px; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-weight: 600; font-size: 16px; padding: 16px 24px; border-radius: var(--r-card); cursor: pointer; border: none; }
+  .btn-primary { background: var(--forest); color: var(--parchment); box-shadow: var(--shadow-rest); }
+  .btn-secondary { background: var(--parchment-card); color: var(--ink); border: 1px solid var(--line-strong); }
+  .btn-disabled { background: var(--forest); color: var(--parchment); opacity: 0.4; pointer-events: none; }
+
+  /* Commanders */
+  .commander-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .commander-tile { text-align: center; }
+  .commander-art { width: 100%; aspect-ratio: 1.37; border-radius: 12px; overflow: hidden; border: 2px solid var(--parchment-card); box-shadow: 0 0 0 1px var(--line); }
+  .commander-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .commander-name { font-family: var(--font-display); font-size: 20px; font-weight: 400; margin-top: 12px; color: var(--ink); }
+  .commander-sub { font-size: 12px; color: var(--fg-subtle); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="page-header">
+    <h1 class="page-title">Aura Design System</h1>
+    <p class="page-sub">Everything on one page · use as reference while designing</p>
+  </header>
+
+  <!-- LOGO -->
+  <section>
+    <div class="section-eyebrow">01 · Brand</div>
+    <h2 class="section-title">The mark</h2>
+    <p class="section-desc">The Aura sigil is an ellipse silhouette containing two mirrored triangular "A" slivers and a small seed near the base. Inline SVG, scales cleanly. Use <code>--forest</code> on parchment, <code>--parchment</code> on ink, <code>--gold</code> on deep-ink Memory Card.</p>
+    <div class="logo-grid">
+      <div class="logo-tile light">
+        <svg width="84" height="84" viewBox="0 0 64 64"><circle cx="32" cy="36" r="2.4" fill="var(--forest)"/><defs><clipPath id="c1"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs><g clip-path="url(#c1)"><polygon points="8,60 30,4 31,4 24,60" fill="var(--forest)"/><polygon points="40,60 33,4 34,4 56,60" fill="var(--forest)"/></g></svg>
+        <div class="logo-caption">Forest on parchment</div>
+      </div>
+      <div class="logo-tile parchment">
+        <svg width="84" height="84" viewBox="0 0 64 64"><circle cx="32" cy="36" r="2.4" fill="#2B2118"/><defs><clipPath id="c2"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs><g clip-path="url(#c2)"><polygon points="8,60 30,4 31,4 24,60" fill="#2B2118"/><polygon points="40,60 33,4 34,4 56,60" fill="#2B2118"/></g></svg>
+        <div class="logo-caption">Ink on parchment-deep</div>
+      </div>
+      <div class="logo-tile dark">
+        <svg width="84" height="84" viewBox="0 0 64 64"><circle cx="32" cy="36" r="2.4" fill="var(--gold)"/><defs><clipPath id="c3"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs><g clip-path="url(#c3)"><polygon points="8,60 30,4 31,4 24,60" fill="var(--gold)"/><polygon points="40,60 33,4 34,4 56,60" fill="var(--gold)"/></g></svg>
+        <div class="logo-caption">Gold on ink</div>
+      </div>
+      <div class="logo-tile light" style="display:flex; align-items:center; justify-content:center; gap:14px;">
+        <svg width="52" height="52" viewBox="0 0 64 64"><circle cx="32" cy="36" r="2.4" fill="var(--forest)"/><defs><clipPath id="c4"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs><g clip-path="url(#c4)"><polygon points="8,60 30,4 31,4 24,60" fill="var(--forest)"/><polygon points="40,60 33,4 34,4 56,60" fill="var(--forest)"/></g></svg>
+        <div style="font-family: var(--font-display); font-size: 48px; color: var(--forest); letter-spacing: -0.02em;">Aura</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLORS -->
+  <section>
+    <div class="section-eyebrow">02 · Color</div>
+    <h2 class="section-title">Palette</h2>
+    <p class="section-desc">Parchment surfaces, warm ink text, forest/copper/gold accents. Never pure white, never pure black. Category tints are used only for trait badges.</p>
+
+    <h3 class="ph-micro" style="margin: 24px 0 12px;">Surfaces</h3>
+    <div class="grid swatch-grid">
+      <div class="swatch"><div class="swatch-chip" style="background:#F5EFE2"></div><div class="swatch-meta"><div class="swatch-name">Parchment</div><div class="swatch-token">--parchment</div><div class="swatch-hex">#F5EFE2</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#FAF5EA"></div><div class="swatch-meta"><div class="swatch-name">Parchment card</div><div class="swatch-token">--parchment-card</div><div class="swatch-hex">#FAF5EA</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#EDE4D0"></div><div class="swatch-meta"><div class="swatch-name">Parchment deep</div><div class="swatch-token">--parchment-deep</div><div class="swatch-hex">#EDE4D0</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#FFFFFF; box-shadow: inset 0 0 0 1px var(--line);"></div><div class="swatch-meta"><div class="swatch-name">Paper white</div><div class="swatch-token">--paper-white</div><div class="swatch-hex">#FFFFFF · reserved</div></div></div>
+    </div>
+
+    <h3 class="ph-micro" style="margin: 32px 0 12px;">Ink</h3>
+    <div class="grid swatch-grid">
+      <div class="swatch"><div class="swatch-chip" style="background:#2B2118"></div><div class="swatch-meta"><div class="swatch-name">Ink</div><div class="swatch-token">--ink</div><div class="swatch-hex">#2B2118</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#5C5043"></div><div class="swatch-meta"><div class="swatch-name">Ink 2</div><div class="swatch-token">--ink-2</div><div class="swatch-hex">#5C5043</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#8A7E6F"></div><div class="swatch-meta"><div class="swatch-name">Ink 3</div><div class="swatch-token">--ink-3</div><div class="swatch-hex">#8A7E6F</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#B8AE9E"></div><div class="swatch-meta"><div class="swatch-name">Ink 4</div><div class="swatch-token">--ink-4</div><div class="swatch-hex">#B8AE9E</div></div></div>
+    </div>
+
+    <h3 class="ph-micro" style="margin: 32px 0 12px;">Brand</h3>
+    <div class="grid swatch-grid">
+      <div class="swatch"><div class="swatch-chip" style="background:#2F5D3A"></div><div class="swatch-meta"><div class="swatch-name">Forest</div><div class="swatch-token">--forest</div><div class="swatch-hex">#2F5D3A · primary CTA</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#22472B"></div><div class="swatch-meta"><div class="swatch-name">Forest deep</div><div class="swatch-token">--forest-deep</div><div class="swatch-hex">#22472B</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#B06B2C"></div><div class="swatch-meta"><div class="swatch-name">Copper</div><div class="swatch-token">--copper</div><div class="swatch-hex">#B06B2C · ornate accent</div></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#C99B2F"></div><div class="swatch-meta"><div class="swatch-name">Gold</div><div class="swatch-token">--gold</div><div class="swatch-hex">#C99B2F · keepsake</div></div></div>
+    </div>
+  </section>
+
+  <!-- CATEGORIES -->
+  <section>
+    <div class="section-eyebrow">03 · Categories</div>
+    <h2 class="section-title">Trait colors</h2>
+    <p class="section-desc">Five traits, five colors, forever. Each also has a <code>-soft</code> variant (parchment-mixed fill) for tinted backgrounds. Crimson is special — it signals social friction (rivalry, bracket violations) and should feel weighty. Never reassign these.</p>
+    <div class="grid cat-grid">
+      <div class="cat-tile" style="background:#F6ECD2; color:#C99B2F">
+        <div class="cat-glyph" style="color:#C99B2F">
+          <span style="display:inline-block;width:32px;height:32px;background:#C99B2F;-webkit-mask-image:url(assets/glyphs/brilliance.png);mask-image:url(assets/glyphs/brilliance.png);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+        </div>
+        <div class="cat-name" style="color:#2B2118">Brilliance</div>
+        <div class="cat-meaning">Clarity, clever plays, the smartest move of the night.</div>
+        <div class="cat-hex" style="color:#C99B2F">#C99B2F · --cat-brilliance</div>
+      </div>
+      <div class="cat-tile" style="background:#EADDEE; color:#7E4E8A">
+        <div class="cat-glyph" style="color:#7E4E8A">
+          <span style="display:inline-block;width:32px;height:32px;background:#7E4E8A;-webkit-mask-image:url(assets/glyphs/flavor.png);mask-image:url(assets/glyphs/flavor.png);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+        </div>
+        <div class="cat-name" style="color:#2B2118">Flavour</div>
+        <div class="cat-meaning">Style, creativity, the deck that felt like theatre.</div>
+        <div class="cat-hex" style="color:#7E4E8A">#7E4E8A · --cat-flavor</div>
+      </div>
+      <div class="cat-tile" style="background:#F1D4CF; color:#9E2B2B">
+        <div class="cat-glyph" style="color:#9E2B2B">
+          <span style="display:inline-block;width:32px;height:32px;background:#9E2B2B;-webkit-mask-image:url(assets/glyphs/rivalry.png);mask-image:url(assets/glyphs/rivalry.png);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+        </div>
+        <div class="cat-name" style="color:#2B2118">Rivalry</div>
+        <div class="cat-meaning">The target on your back. The archenemy of the table.</div>
+        <div class="cat-hex" style="color:#9E2B2B">#9E2B2B · --cat-rivalry</div>
+      </div>
+      <div class="cat-tile" style="background:#D6E6E3; color:#2F7A74">
+        <div class="cat-glyph" style="color:#2F7A74">
+          <span style="display:inline-block;width:32px;height:32px;background:#2F7A74;-webkit-mask-image:url(assets/glyphs/allegiance.png);mask-image:url(assets/glyphs/allegiance.png);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+        </div>
+        <div class="cat-name" style="color:#2B2118">Allegiance</div>
+        <div class="cat-meaning">Politics, alliances, the best handshake of the game.</div>
+        <div class="cat-hex" style="color:#2F7A74">#2F7A74 · --cat-allegiance</div>
+      </div>
+      <div class="cat-tile" style="background:#F9DFCD; color:#E07B4A">
+        <div class="cat-glyph" style="color:#E07B4A">
+          <span style="display:inline-block;width:32px;height:32px;background:#E07B4A;-webkit-mask-image:url(assets/glyphs/fun.png);mask-image:url(assets/glyphs/fun.png);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;"></span>
+        </div>
+        <div class="cat-name" style="color:#2B2118">Fun</div>
+        <div class="cat-meaning">Joy, vibe, the one you'd invite back first.</div>
+        <div class="cat-hex" style="color:#E07B4A">#E07B4A · --cat-fun</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section>
+    <div class="section-eyebrow">04 · Type</div>
+    <h2 class="section-title">Typography</h2>
+    <p class="section-desc"><strong>Young Serif</strong> (display, 400) for ceremony: wordmarks, hero numerals, ornate questions, Memory Card names. <strong>Instrument Sans</strong> (UI, 400/500/600/700) for everything else. Two fonts, no exceptions.</p>
+    <div class="grid type-grid">
+      <div class="type-label">Display · 72</div>
+      <div class="type-sample"><div style="font-family: var(--font-display); font-size: 72px; font-weight: 400; letter-spacing: -0.01em; line-height: 1.15; color: var(--ink);">Aura</div><div class="type-meta">Young Serif 400 · 72px · lh 1.15 · tracking −0.01em · .ph-display</div></div>
+
+      <div class="type-label">Hero numeral · 48</div>
+      <div class="type-sample"><div style="font-family: var(--font-display); font-size: 48px; font-weight: 400; color: var(--forest); line-height: 1;">+24</div><div class="type-meta">Young Serif 400 · 48px · --forest · .ph-numeral</div></div>
+
+      <div class="type-label">Ornate question · 26</div>
+      <div class="type-sample"><div style="font-family: var(--font-display); font-size: 26px; font-weight: 400; color: var(--ink); line-height: 1.15;">Who took the flavour win?</div><div class="type-meta">Young Serif 400 · 26px · lh 1.15 · ornate active cards only</div></div>
+
+      <div class="type-label">H1 · 36</div>
+      <div class="type-sample"><div style="font-family: var(--font-ui); font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1.15; letter-spacing: -0.01em;">Review complete</div><div class="type-meta">Instrument Sans 700 · 36px · .ph-h1</div></div>
+
+      <div class="type-label">H2 · 28</div>
+      <div class="type-sample"><div style="font-family: var(--font-ui); font-size: 28px; font-weight: 600; color: var(--ink); line-height: 1.3;">Game History</div><div class="type-meta">Instrument Sans 600 · 28px · .ph-h2</div></div>
+
+      <div class="type-label">H3 · 22</div>
+      <div class="type-sample"><div style="font-family: var(--font-ui); font-size: 22px; font-weight: 600; color: var(--ink); line-height: 1.3;">Pod · Tuesday Night</div><div class="type-meta">Instrument Sans 600 · 22px · .ph-h3</div></div>
+
+      <div class="type-label">Body · 16</div>
+      <div class="type-sample"><div style="font-family: var(--font-ui); font-size: 16px; font-weight: 400; color: var(--ink); line-height: 1.45;">Flag a deck that outpaced the table. Default: everyone was on bracket.</div><div class="type-meta">Instrument Sans 400 · 16px · lh 1.45 · .ph-body</div></div>
+
+      <div class="type-label">Small · 14</div>
+      <div class="type-sample"><div style="font-family: var(--font-ui); font-size: 14px; font-weight: 500; color: var(--ink-2); line-height: 1.3;">Frederico · Omnath, Locus of Creation</div><div class="type-meta">Instrument Sans 500 · 14px · --fg-muted · .ph-small</div></div>
+
+      <div class="type-label">Micro / eyebrow · 12</div>
+      <div class="type-sample"><div style="font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase;">FLAVOUR · 2/6</div><div class="type-meta">Instrument Sans 600 · 12px · uppercase · tracking 0.14em · .ph-micro</div></div>
+
+      <div class="type-label">Stamp · 14</div>
+      <div class="type-sample"><div style="font-family: var(--font-ui); font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: 0.14em; text-transform: uppercase;">WINNER</div><div class="type-meta">Instrument Sans 700 · 14px · uppercase · tracking 0.14em · .ph-stamp</div></div>
+    </div>
+  </section>
+
+  <!-- SPACING -->
+  <section>
+    <div class="section-eyebrow">05 · Spacing</div>
+    <h2 class="section-title">4px base scale</h2>
+    <p class="section-desc">Spacing ramps on 4px. Screen edges 16px. Card internals 20–24px. Card stacks 10px gap. List rows 4px gap.</p>
+    <div>
+      <div class="spacing-row"><div class="spacing-label">--sp-1 · 4px</div><div class="spacing-bar" style="width:4px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-2 · 8px</div><div class="spacing-bar" style="width:8px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-3 · 12px</div><div class="spacing-bar" style="width:12px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-4 · 16px</div><div class="spacing-bar" style="width:16px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-5 · 20px</div><div class="spacing-bar" style="width:20px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-6 · 24px</div><div class="spacing-bar" style="width:24px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-8 · 32px</div><div class="spacing-bar" style="width:32px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-10 · 40px</div><div class="spacing-bar" style="width:40px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-14 · 56px</div><div class="spacing-bar" style="width:56px;"></div></div>
+      <div class="spacing-row"><div class="spacing-label">--sp-18 · 72px</div><div class="spacing-bar" style="width:72px;"></div></div>
+    </div>
+  </section>
+
+  <!-- RADII -->
+  <section>
+    <div class="section-eyebrow">06 · Radii</div>
+    <h2 class="section-title">Corners</h2>
+    <p class="section-desc">Generous but not bubbly. Chips 12px, cards 20px, memory 24px, full for avatars and pills.</p>
+    <div class="grid radius-grid">
+      <div><div class="radius-demo" style="border-radius:12px;">12</div><div class="radius-demo-meta">--r-chip · chips, small buttons</div></div>
+      <div><div class="radius-demo" style="border-radius:20px;">20</div><div class="radius-demo-meta">--r-card · cards, primary buttons</div></div>
+      <div><div class="radius-demo" style="border-radius:24px;">24</div><div class="radius-demo-meta">--r-memory · Memory Card</div></div>
+      <div><div class="radius-demo" style="border-radius:999px;">full</div><div class="radius-demo-meta">--r-full · avatars, pills</div></div>
+    </div>
+  </section>
+
+  <!-- SHADOWS -->
+  <section>
+    <div class="section-eyebrow">07 · Shadows</div>
+    <h2 class="section-title">Warm-tinted depth</h2>
+    <p class="section-desc">Always <code>rgba(43,33,24,*)</code>, never pure black. Shadow is how ceremony is signaled — rest for quiet cards, active for the current focus, memory for the reveal.</p>
+    <div class="grid shadow-grid">
+      <div><div class="shadow-demo" style="box-shadow: var(--shadow-rest);"></div><div class="radius-demo-meta">--shadow-rest · default</div></div>
+      <div><div class="shadow-demo" style="box-shadow: var(--shadow-active);"></div><div class="radius-demo-meta">--shadow-active · focus card</div></div>
+      <div><div class="shadow-demo" style="box-shadow: var(--shadow-memory);"></div><div class="radius-demo-meta">--shadow-memory · Memory Card</div></div>
+    </div>
+  </section>
+
+  <!-- BUTTONS -->
+  <section>
+    <div class="section-eyebrow">08 · Components</div>
+    <h2 class="section-title">Buttons</h2>
+    <p class="section-desc">One primary per screen. Secondary for alternate flows. Disabled = opacity 0.4, no shadow.</p>
+    <div class="grid comp-grid">
+      <div class="card"><div class="comp-label">Primary</div><button class="btn btn-primary" style="width:100%;">Accept Review</button></div>
+      <div class="card"><div class="comp-label">Secondary</div><button class="btn btn-secondary" style="width:100%;">Create an account</button></div>
+      <div class="card"><div class="comp-label">Disabled (awaiting input)</div><button class="btn btn-disabled" style="width:100%;">Accept Review</button></div>
+    </div>
+  </section>
+
+  <!-- LIST ROW -->
+  <section>
+    <div class="section-eyebrow">09 · Components</div>
+    <h2 class="section-title">List row</h2>
+    <p class="section-desc">Parchment-card fill, 1px hairline, 4px colored left-border when it represents a state. Used for Done cards, settings rows, history rows.</p>
+    <div style="max-width: 520px;">
+      <button style="width:100%; text-align:left; cursor:pointer; background:var(--parchment-card); border:1px solid var(--line); border-left:4px solid var(--forest); border-radius:var(--r-card); padding:14px 16px 14px 14px; display:flex; align-items:center; gap:12px; box-shadow: var(--shadow-rest); font-family:var(--font-ui);">
+        <span style="font-size:11px; font-weight:700; letter-spacing:0.06em; color:var(--fg-subtle); font-variant-numeric:tabular-nums; min-width:28px;">1/6</span>
+        <span style="flex:1; font-size:16px; font-weight:600; color:var(--ink);">Who pulled off the wildest play?</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width:26px; height:26px; border-radius:999px; overflow:hidden; border:2px solid var(--parchment-card); box-shadow: 0 0 0 1px var(--line);">
+            <img src="assets/commanders/omnath.jpg" alt="" style="width:100%; height:100%;"/>
+          </div>
+          <span style="font-size:13px; color:var(--fg-muted); font-weight:500;">Omnath</span>
+        </div>
+      </button>
+    </div>
+  </section>
+
+  <!-- COMMANDERS -->
+  <section>
+    <div class="section-eyebrow">10 · Assets</div>
+    <h2 class="section-title">Commander art</h2>
+    <p class="section-desc">Art crops from Scryfall, 626×457. Used in player pickers, Done cards, Memory Cards. In production, fetch by Scryfall ID. The four below are the demo set.</p>
+    <div class="commander-grid">
+      <div class="commander-tile">
+        <div class="commander-art"><img src="assets/commanders/omnath.jpg" alt=""/></div>
+        <div class="commander-name">Omnath</div>
+        <div class="commander-sub">Locus of Creation · Frederico</div>
+      </div>
+      <div class="commander-tile">
+        <div class="commander-art"><img src="assets/commanders/krenko.jpg" alt=""/></div>
+        <div class="commander-name">Krenko</div>
+        <div class="commander-sub">Mob Boss · Manel</div>
+      </div>
+      <div class="commander-tile">
+        <div class="commander-art"><img src="assets/commanders/atraxa.jpg" alt=""/></div>
+        <div class="commander-name">Atraxa</div>
+        <div class="commander-sub">Praetors' Voice · Sofia</div>
+      </div>
+      <div class="commander-tile">
+        <div class="commander-art"><img src="assets/commanders/muldrotha.jpg" alt=""/></div>
+        <div class="commander-name">Muldrotha</div>
+        <div class="commander-sub">The Gravetide · Tomás</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOTION -->
+  <section>
+    <div class="section-eyebrow">11 · Motion</div>
+    <h2 class="section-title">Durations</h2>
+    <p class="section-desc">Always <code>cubic-bezier(.22,.61,.36,1)</code>. No linear, no spring, no bounce.</p>
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+      <div class="card"><div class="comp-label">--dur-fast · 80ms</div><div style="color:var(--ink-2); font-size:14px;">Tap feedback, toggle flip.</div></div>
+      <div class="card"><div class="comp-label">--dur-base · 160ms</div><div style="color:var(--ink-2); font-size:14px;">Hover, selection, opacity fade.</div></div>
+      <div class="card"><div class="comp-label">--dur-slow · 240ms</div><div style="color:var(--ink-2); font-size:14px;">Screen transitions, drawer open.</div></div>
+      <div class="card"><div class="comp-label">--dur-memory · 420ms</div><div style="color:var(--ink-2); font-size:14px;">Memory Card reveal. One moment only.</div></div>
+    </div>
+  </section>
+
+  <footer style="margin-top: 120px; padding-top: 32px; border-top: 1px solid var(--line-strong); color: var(--fg-subtle); font-size: 13px;">
+    Aura Design System · tokens in <code>tokens/colors_and_type.css</code> · components in <code>components/</code> · see <code>STYLE_GUIDE.md</code> for philosophy and <code>WIREFRAME_TRANSLATION.md</code> for the playbook.
+  </footer>
+
+</div>
+</body>
+</html>

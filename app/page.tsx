@@ -1,65 +1,109 @@
-import Image from "next/image";
+"use client";
+
+const screens = [
+  { number: "01", name: "Landing", href: "/landing", status: "live" },
+  { number: "02", name: "How to Play", href: "/howtoplay", status: "coming" },
+  { number: "03", name: "Create a Pod", href: "/create", status: "coming" },
+  { number: "04", name: "Join a Pod", href: "/join", status: "coming" },
+  { number: "05", name: "Grid View", href: "/gridview", status: "coming" },
+  { number: "06", name: "Single View", href: "/singleview", status: "coming" },
+  { number: "07", name: "Game Review", href: "/review", status: "live" },
+  { number: "08", name: "Game Summary", href: "/gamesummary", status: "coming" },
+  { number: "09", name: "Profile", href: "/profile", status: "coming" },
+  { number: "10", name: "Decks", href: "/decks", status: "coming" },
+  { number: "11", name: "Deck Accomplishments", href: "/deck-accomplishments", status: "coming" },
+  { number: "12", name: "Edit Deck", href: "/edit-deck", status: "coming" },
+  { number: "13", name: "Recent Games", href: "/recent-games", status: "coming" },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div style={{
+      minHeight: '100vh',
+      background: '#F5EFE2',
+      fontFamily: "'Instrument Sans', sans-serif",
+      padding: '60px 24px 40px',
+    }}>
+      <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase' as const,
+            color: '#B06B2C',
+            marginBottom: 8,
+          }}>
+            Wireframe Preview
+          </div>
+          <h1 style={{
+            fontFamily: "'Young Serif', serif",
+            fontSize: 36,
+            color: '#2B2118',
+            fontWeight: 400,
+            marginBottom: 4,
+          }}>
+            Aura
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p style={{ fontSize: 14, color: '#8A7E6F' }}>
+            Your Commander Journey Remembered
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {screens.map((s) => (
+            <a
+              key={s.number}
+              href={s.href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: s.status === 'live' ? '#fff' : 'rgba(255,255,255,0.5)',
+                border: s.status === 'live'
+                  ? '1px solid rgba(47,93,58,0.2)'
+                  : '1px solid rgba(43,33,24,0.06)',
+                textDecoration: 'none',
+                transition: 'all 0.15s',
+              }}
+            >
+              <span style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#B8AE9E',
+                fontVariantNumeric: 'tabular-nums',
+                minWidth: 20,
+              }}>
+                {s.number}
+              </span>
+              <span style={{
+                flex: 1,
+                fontSize: 15,
+                fontWeight: 600,
+                color: '#2B2118',
+              }}>
+                {s.name}
+              </span>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase' as const,
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: s.status === 'live'
+                  ? 'rgba(47,93,58,0.1)'
+                  : 'rgba(43,33,24,0.05)',
+                color: s.status === 'live' ? '#2F5D3A' : '#B8AE9E',
+              }}>
+                {s.status === 'live' ? 'Live' : 'Soon'}
+              </span>
+            </a>
+          ))}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,246 @@
+/* ==========================================================================
+   Aura Design Tokens
+   All design decisions flow from here. Import once at the top of any surface.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Young+Serif&display=swap');
+
+:root {
+  /* ----------------------------------------------------------------------
+     COLOR — base palette
+     ---------------------------------------------------------------------- */
+
+  /* Surfaces — warm, parchment-forward. Never pure white. */
+  --parchment:        #F5EFE2;  /* app canvas */
+  --parchment-card:   #FAF5EA;  /* card surfaces */
+  --parchment-deep:   #EDE4D0;  /* recessed / sub-surface */
+  --paper-white:      #FFFFFF;  /* reserved: avatar rims, foil highlights */
+
+  /* Ink — warm near-black */
+  --ink:              #2B2118;  /* primary text */
+  --ink-2:            #5C5043;  /* secondary text */
+  --ink-3:            #8A7E6F;  /* tertiary / meta */
+  --ink-4:            #B8AE9E;  /* placeholder / disabled */
+
+  /* Brand — forest green, burnished copper */
+  --forest:           #2F5D3A;  /* primary CTA, active, aura */
+  --forest-deep:      #22472B;  /* pressed / hover-dark */
+  --forest-soft:      #E5ECE3;  /* tinted backgrounds */
+  --forest-line:      rgba(47,93,58,.35);
+
+  --copper:           #B06B2C;  /* accent, foil, earned-badge */
+  --copper-deep:      #8A5320;
+  --copper-soft:      #F3E3D1;
+  --gold:             #C99B2F;  /* memory-card frame highlight */
+
+  /* Lines */
+  --line:             rgba(43,33,24,.08);
+  --line-strong:      rgba(43,33,24,.14);
+
+  /* ----------------------------------------------------------------------
+     COLOR — category tints
+     Each is used at low saturation; _soft is the parchment-mixed fill.
+     ---------------------------------------------------------------------- */
+  /* ----------------------------------------------------------------------
+     Category / badge accents — one per trait.
+     Each is used at low saturation; _soft is the parchment-mixed fill.
+     ---------------------------------------------------------------------- */
+  --cat-brilliance:       #C99B2F;  /* gold — clarity, clever plays */
+  --cat-brilliance-soft:  #F6ECD2;
+  --cat-flavor:           #7E4E8A;  /* plum — style, creativity, theatre */
+  --cat-flavor-soft:      #EADDEE;
+  --cat-rivalry:       #9E2B2B;  /* crimson — the target on your back */
+  --cat-rivalry-soft:  #F1D4CF;
+  --cat-allegiance:       #2F7A74;  /* teal — politics, alliances */
+  --cat-allegiance-soft:  #D6E6E3;
+  --cat-fun:              #E07B4A;  /* sunny coral — joy, vibe */
+  --cat-fun-soft:         #F9DFCD;
+
+  /* ----------------------------------------------------------------------
+     SEMANTIC COLOR
+     ---------------------------------------------------------------------- */
+  --bg:               var(--parchment);
+  --bg-card:          var(--parchment-card);
+  --bg-sunken:        var(--parchment-deep);
+
+  --fg:               var(--ink);
+  --fg-muted:         var(--ink-2);
+  --fg-subtle:        var(--ink-3);
+  --fg-disabled:      var(--ink-4);
+
+  --accent:           var(--forest);
+  --accent-press:     var(--forest-deep);
+  --accent-soft:      var(--forest-soft);
+
+  --success:          var(--forest);
+  --danger:           var(--cat-rivalry);
+
+  /* ----------------------------------------------------------------------
+     TYPE
+     ---------------------------------------------------------------------- */
+  --font-ui:          'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display:     'Young Serif', ui-serif, Georgia, serif;
+  --font-mono:        ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Size scale (px, anchored at 16 body) */
+  --text-2xs:   12px;
+  --text-xs:    14px;
+  --text-sm:    15px;
+  --text-base:  16px;
+  --text-md:    18px;
+  --text-lg:    22px;
+  --text-xl:    28px;
+  --text-2xl:   36px;
+  --text-3xl:   48px;
+  --text-display: 72px;
+
+  /* Line heights */
+  --lh-tight:   1.15;
+  --lh-snug:    1.3;
+  --lh-body:    1.45;
+
+  /* Tracking */
+  --track-tight:   -0.01em;
+  --track-normal:  0;
+  --track-wide:    0.06em;
+  --track-wider:   0.14em;   /* WINNER banner, trait labels */
+
+  /* ----------------------------------------------------------------------
+     SPACING (4px base)
+     ---------------------------------------------------------------------- */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-14: 56px;
+  --sp-18: 72px;
+
+  /* ----------------------------------------------------------------------
+     RADII
+     ---------------------------------------------------------------------- */
+  --r-chip:    12px;
+  --r-card:    20px;
+  --r-memory:  24px;
+  --r-full:    999px;
+
+  /* ----------------------------------------------------------------------
+     SHADOWS — warm-tinted, never rgba(0,0,0,*)
+     ---------------------------------------------------------------------- */
+  --shadow-rest:   0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12);
+  --shadow-active: 0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22);
+  --shadow-press:  inset 0 2px 4px rgba(43,33,24,.08);
+  --shadow-memory: 0 4px 0 rgba(43,33,24,.06), 0 30px 60px -16px rgba(43,33,24,.35);
+
+  /* ----------------------------------------------------------------------
+     MOTION
+     ---------------------------------------------------------------------- */
+  --ease:           cubic-bezier(.22,.61,.36,1);
+  --dur-fast:       80ms;
+  --dur-base:       160ms;
+  --dur-slow:       240ms;
+  --dur-memory:     420ms;
+}
+
+/* ==========================================================================
+   SEMANTIC TYPE (use these on elements, not the raw vars)
+   ========================================================================== */
+
+.ph-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-display);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--fg);
+}
+
+.ph-h1 {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--fg);
+}
+
+.ph-h2 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--text-xl);
+  line-height: var(--lh-snug);
+  color: var(--fg);
+}
+
+.ph-h3 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  line-height: var(--lh-snug);
+  color: var(--fg);
+}
+
+.ph-body {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: var(--lh-body);
+  color: var(--fg);
+}
+
+.ph-small {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  line-height: var(--lh-snug);
+  color: var(--fg-muted);
+}
+
+.ph-micro {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--text-2xs);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-wide);
+  color: var(--fg-subtle);
+  text-transform: uppercase;
+}
+
+.ph-stamp {
+  /* Ceremonial all-caps — WINNER banner, trait labels */
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-wider);
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.ph-numeral {
+  /* Large aura / score numbers */
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-3xl);
+  line-height: 1;
+  letter-spacing: var(--track-tight);
+  color: var(--forest);
+}
+
+/* ==========================================================================
+   BASE RESET (scoped — apply to your root mount, not global)
+   ========================================================================== */
+
+.ph-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--lh-body);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.ph-root *, .ph-root *::before, .ph-root *::after { box-sizing: border-box; }
+.ph-root button { font: inherit; color: inherit; }
