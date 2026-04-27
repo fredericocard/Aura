@@ -389,6 +389,7 @@ export default function HomePage() {
   const [phase, setPhase] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginRedirect, setLoginRedirect] = useState('/create');
   const router = useRouter();
 
   useEffect(() => {
@@ -548,6 +549,7 @@ export default function HomePage() {
             if (isLoggedIn) {
               router.push('/create');
             } else {
+              setLoginRedirect('/create');
               setShowLogin(true);
             }
           }} />
@@ -562,7 +564,14 @@ export default function HomePage() {
         }}>
           <UtilityItem icon="compass" label="New here?" onClick={() => router.push('/howtoplay')} />
           <div style={{ width: 1, background: 'rgba(43,33,24,0.14)' }} />
-          <UtilityItem icon="user" label="Profile" onClick={() => router.push('/profile')} />
+          <UtilityItem icon="user" label="Profile" onClick={() => {
+            if (isLoggedIn) {
+              router.push('/profile');
+            } else {
+              setLoginRedirect('/profile');
+              setShowLogin(true);
+            }
+          }} />
         </div>
       </div>
 
@@ -570,7 +579,7 @@ export default function HomePage() {
       {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={() => {
         setIsLoggedIn(true);
         setShowLogin(false);
-        router.push('/create');
+        router.push(loginRedirect);
       }} />}
     </div>
   );

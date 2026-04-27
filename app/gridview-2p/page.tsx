@@ -102,16 +102,12 @@ export default function GridView2P() {
     };
   }, []);
 
-  // Update life display
-  const updateLifeDisplay = (playerNum: number) => {
-    const life = players[playerNum].life;
-    const eliminated = life === 0 && !players[playerNum].claimed;
-
-    if (eliminated) {
-      // Show QR
-    } else {
-      // Show normal
-    }
+  // Revive player
+  const revivePlayer = (playerNum: number) => {
+    setPlayers(prev => ({
+      ...prev,
+      [playerNum]: { ...prev[playerNum], life: 1 }
+    }));
   };
 
   // Handle life button change
@@ -123,6 +119,32 @@ export default function GridView2P() {
         life: Math.max(0, Math.min(999, prev[playerNum].life + delta))
       }
     }));
+  };
+
+  // Long press: hold to change life by 5
+  const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
+
+  const startLongPress = (playerNum: number, delta: number) => {
+    // Single tap handled by onClick
+    longPressRef.current.timeout = setTimeout(() => {
+      // First big jump after 500ms hold
+      changeLife(playerNum, delta * 4); // +4 more (total 5 with the initial tap)
+      // Then repeat every 200ms
+      longPressRef.current.interval = setInterval(() => {
+        changeLife(playerNum, delta * 5);
+      }, 200);
+    }, 500);
+  };
+
+  const stopLongPress = () => {
+    if (longPressRef.current.timeout) {
+      clearTimeout(longPressRef.current.timeout);
+      longPressRef.current.timeout = null;
+    }
+    if (longPressRef.current.interval) {
+      clearInterval(longPressRef.current.interval);
+      longPressRef.current.interval = null;
+    }
   };
 
   // Handle join button click
@@ -1284,7 +1306,7 @@ export default function GridView2P() {
       <div className="grid-container">
         {/* Player 2 - Top (Unclaimed, Flipped 180) */}
         <div
-          className={`player-tile tile-top ${players[2].claimed ? 'claimed' : 'unclaimed'}`}
+          className={`player-tile tile-top ${players[2].claimed ? 'claimed' : 'unclaimed'} ${players[2].life === 0 && !players[2].claimed ? 'eliminated' : ''}`}
           style={getTileStyle(2)}
         >
           {!players[2].claimed && (
@@ -1305,131 +1327,123 @@ export default function GridView2P() {
             </button>
           )}
           <div className="tile-content rotate-flip">
-            <div className="tile-normal" id="normal2">
-              <div className="tile-counters">
-                <div className="tile-counter-indicator">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path
-                      d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="tile-counter-number">{counters[2].poison}</span>
-                </div>
-                <div className="tile-counter-indicator">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path
-                      d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M1.3 21.3H21.3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="tile-counter-number">{counters[2].experience}</span>
-                </div>
-                <div className="tile-counter-indicator">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path
-                      d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="tile-counter-number">{counters[2].energy}</span>
-                </div>
-              </div>
-              <div className="life-display">
-                <button className="life-minus-btn" onClick={() => changeLife(2, -1)}>−</button>
-                <div className={`life-number ${players[2].life <= 10 ? 'critical' : ''}`}>
-                  {players[2].life}
-                </div>
-                <button className="life-plus-btn" onClick={() => changeLife(2, 1)}>+</button>
-              </div>
-              <div className="commander-dash">Player 2</div>
-            </div>
-            <div className="tile-qr">
-              <div className="qr-label">Scan to review game</div>
-              <div className="qr-box">
-                <div className="qr-pattern">
-                  <div className="qr-center">
-                    <div className="qr-badge" style={{ background: 'linear-gradient(135deg,rgb(168,74,58),rgb(184,146,46))' }}>P</div>
+            {/* Not logged in + life = 0: show QR + Revive */}
+            {players[2].life === 0 && !players[2].claimed ? (
+              <div className="tile-qr active">
+                <div className="qr-label">Scan to review game</div>
+                <div className="qr-box">
+                  <div className="qr-pattern">
+                    <div className="qr-center">
+                      <div className="qr-badge" style={{ background: 'linear-gradient(135deg,rgb(168,74,58),rgb(184,146,46))' }}>P</div>
+                    </div>
                   </div>
                 </div>
+                <div className="qr-player-label">Player 2 — eliminated</div>
+                <button className="revive-btn" onClick={() => revivePlayer(2)}>Revive</button>
               </div>
-              <div className="qr-player-label">Player 2 — eliminated</div>
-              <button className="revive-btn" onClick={() => changeLife(2, 40)}>Revive</button>
-            </div>
+            ) : (
+              <div className="tile-normal">
+                <div className="tile-counters">
+                  <div className="tile-counter-indicator">
+                    <svg viewBox="0 0 23 23" fill="none">
+                      <path d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="tile-counter-number">{counters[2].poison}</span>
+                  </div>
+                  <div className="tile-counter-indicator">
+                    <svg viewBox="0 0 23 23" fill="none">
+                      <path d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M1.3 21.3H21.3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="tile-counter-number">{counters[2].experience}</span>
+                  </div>
+                  <div className="tile-counter-indicator">
+                    <svg viewBox="0 0 23 23" fill="none">
+                      <path d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="tile-counter-number">{counters[2].energy}</span>
+                  </div>
+                </div>
+                {/* Logged in + life = 0: show life number + revive only */}
+                {players[2].life === 0 && players[2].claimed ? (
+                  <>
+                    <div className="life-number critical">{players[2].life}</div>
+                    <button className="revive-btn" onClick={() => revivePlayer(2)}>Revive</button>
+                  </>
+                ) : (
+                  <div className="life-display">
+                    <button className="life-minus-btn" onClick={() => changeLife(2, -1)} onMouseDown={() => startLongPress(2, -1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(2, -1)} onTouchEnd={stopLongPress}>−</button>
+                    <div className={`life-number ${players[2].life <= 10 ? 'critical' : ''}`}>{players[2].life}</div>
+                    <button className="life-plus-btn" onClick={() => changeLife(2, 1)} onMouseDown={() => startLongPress(2, 1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(2, 1)} onTouchEnd={stopLongPress}>+</button>
+                  </div>
+                )}
+                <div className="commander-dash">{players[2].claimed ? players[2].commander : 'Player 2'}</div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Player 1 - Bottom (Claimed, Normal) */}
         <div
-          className={`player-tile tile-bottom ${players[1].claimed ? 'claimed' : 'unclaimed'}`}
+          className={`player-tile tile-bottom ${players[1].claimed ? 'claimed' : 'unclaimed'} ${players[1].life === 0 && !players[1].claimed ? 'eliminated' : ''}`}
           style={getTileStyle(1)}
         >
           <div className="tile-content">
-            <div className="tile-normal">
-              <div className="tile-counters">
-                <div className="tile-counter-indicator">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path
-                      d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="tile-counter-number">{counters[1].poison}</span>
+            {/* Not logged in + life = 0: show QR + Revive */}
+            {players[1].life === 0 && !players[1].claimed ? (
+              <div className="tile-qr active">
+                <div className="qr-label">Scan to review game</div>
+                <div className="qr-box">
+                  <div className="qr-pattern">
+                    <div className="qr-center">
+                      <div className="qr-badge" style={{ background: 'linear-gradient(135deg,rgb(26,122,106),rgb(184,146,46))' }}>P</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="tile-counter-indicator">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path
-                      d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M1.3 21.3H21.3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="tile-counter-number">{counters[1].experience}</span>
-                </div>
-                <div className="tile-counter-indicator">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path
-                      d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="tile-counter-number">{counters[1].energy}</span>
-                </div>
+                <div className="qr-player-label">Player 1 — eliminated</div>
+                <button className="revive-btn" onClick={() => revivePlayer(1)}>Revive</button>
               </div>
-              <div className="life-display">
-                <button className="life-minus-btn" onClick={() => changeLife(1, -1)}>−</button>
-                <div className={`life-number ${players[1].life <= 10 ? 'critical' : ''}`}>
-                  {players[1].life}
+            ) : (
+              <div className="tile-normal">
+                <div className="tile-counters">
+                  <div className="tile-counter-indicator">
+                    <svg viewBox="0 0 23 23" fill="none">
+                      <path d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="tile-counter-number">{counters[1].poison}</span>
+                  </div>
+                  <div className="tile-counter-indicator">
+                    <svg viewBox="0 0 23 23" fill="none">
+                      <path d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M1.3 21.3H21.3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="tile-counter-number">{counters[1].experience}</span>
+                  </div>
+                  <div className="tile-counter-indicator">
+                    <svg viewBox="0 0 23 23" fill="none">
+                      <path d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="tile-counter-number">{counters[1].energy}</span>
+                  </div>
                 </div>
-                <button className="life-plus-btn" onClick={() => changeLife(1, 1)}>+</button>
+                {/* Logged in + life = 0: show life number + revive only */}
+                {players[1].life === 0 && players[1].claimed ? (
+                  <>
+                    <div className="life-number critical">{players[1].life}</div>
+                    <button className="revive-btn" onClick={() => revivePlayer(1)}>Revive</button>
+                  </>
+                ) : (
+                  <div className="life-display">
+                    <button className="life-minus-btn" onClick={() => changeLife(1, -1)} onMouseDown={() => startLongPress(1, -1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(1, -1)} onTouchEnd={stopLongPress}>−</button>
+                    <div className={`life-number ${players[1].life <= 10 ? 'critical' : ''}`}>{players[1].life}</div>
+                    <button className="life-plus-btn" onClick={() => changeLife(1, 1)} onMouseDown={() => startLongPress(1, 1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(1, 1)} onTouchEnd={stopLongPress}>+</button>
+                  </div>
+                )}
+                <div className="tile-commander">{players[1].commander}</div>
               </div>
-              <div className="tile-commander">{players[1].commander}</div>
-            </div>
+            )}
           </div>
         </div>
       </div>

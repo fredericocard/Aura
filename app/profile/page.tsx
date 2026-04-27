@@ -737,25 +737,19 @@ export default function ProfilePage() {
 
           {/* Create / Join Pod */}
           <div className="pod-actions">
-            <button
-              className="pod-btn pod-btn-create"
-              onClick={() => showToastMessage('Create Pod — Coming Soon')}
-            >
+            <Link href="/create" className="pod-btn pod-btn-create" style={{ textDecoration: 'none' }}>
               <svg viewBox="0 0 18 18" fill="none" stroke="rgb(245,239,227)" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M9 2L9 16M2 9L16 9"/>
               </svg>
               <span className="pod-btn-label">Create a Pod</span>
-            </button>
-            <button
-              className="pod-btn pod-btn-join"
-              onClick={() => showToastMessage('Join Pod — Coming Soon')}
-            >
+            </Link>
+            <Link href="/join" className="pod-btn pod-btn-join" style={{ textDecoration: 'none' }}>
               <svg viewBox="0 0 18 18" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.5" strokeLinecap="round">
                 <rect x="2" y="2" width="14" height="14" rx="2"/>
                 <path d="M6 9L9 12L12 6"/>
               </svg>
               <span className="pod-btn-label">Join a Pod</span>
-            </button>
+            </Link>
           </div>
 
           {/* Most Rated Decks */}
@@ -763,10 +757,10 @@ export default function ProfilePage() {
             <div className="section-header">
               <span className="section-title">Your Decks</span>
               <div className="section-divider"></div>
-              <span className="section-link">View all ›</span>
+              <Link href="/decks" className="section-link" style={{ textDecoration: 'none' }}>View all ›</Link>
             </div>
             <div className="rated-deck-list">
-              <div className="rated-deck-row">
+              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
                 <div className="rated-deck-img">
                   <img src="https://cards.scryfall.io/art_crop/front/c/3/c34ae834-775e-447a-a330-0270c227c667.jpg" alt="Atraxa"/>
                   <div className="rated-deck-img-fade"></div>
@@ -775,8 +769,8 @@ export default function ProfilePage() {
                   <div className="rated-deck-name">Atraxa Superfriends</div>
                   <div className="rated-deck-aura"><span className="aura-value">72</span> Beloved</div>
                 </div>
-              </div>
-              <div className="rated-deck-row">
+              </Link>
+              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
                 <div className="rated-deck-img">
                   <img src="https://cards.scryfall.io/art_crop/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg" alt="Korvold"/>
                   <div className="rated-deck-img-fade"></div>
@@ -785,8 +779,8 @@ export default function ProfilePage() {
                   <div className="rated-deck-name">Korvold Sac</div>
                   <div className="rated-deck-aura"><span className="aura-value">55</span> Brewed</div>
                 </div>
-              </div>
-              <div className="rated-deck-row">
+              </Link>
+              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
                 <div className="rated-deck-img">
                   <img src="https://cards.scryfall.io/art_crop/front/3/b/3bd81ae6-e628-447a-a36b-597e63ede295.jpg" alt="Yuriko"/>
                   <div className="rated-deck-img-fade"></div>
@@ -795,8 +789,8 @@ export default function ProfilePage() {
                   <div className="rated-deck-name">Yuriko Ninjas</div>
                   <div className="rated-deck-aura"><span className="aura-value">88</span> Mythic</div>
                 </div>
-              </div>
-              <div className="rated-deck-row">
+              </Link>
+              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
                 <div className="rated-deck-img">
                   <img src="https://cards.scryfall.io/art_crop/front/c/6/c654737d-34ac-42ff-ae27-3a3bbb930fc1.jpg" alt="Muldrotha"/>
                   <div className="rated-deck-img-fade"></div>
@@ -805,8 +799,8 @@ export default function ProfilePage() {
                   <div className="rated-deck-name">Muldrotha Value</div>
                   <div className="rated-deck-aura"><span className="aura-value">34</span> Sideboard</div>
                 </div>
-              </div>
-              <div className="rated-deck-row">
+              </Link>
+              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
                 <div className="rated-deck-img">
                   <img src="https://cards.scryfall.io/art_crop/front/c/d/cd9fec9d-23c8-4d35-97c1-9499527198fb.jpg" alt="Krenko"/>
                   <div className="rated-deck-img-fade"></div>
@@ -815,7 +809,7 @@ export default function ProfilePage() {
                   <div className="rated-deck-name">Krenko Goblins</div>
                   <div className="rated-deck-aura"><span className="aura-value">12</span> Exiled</div>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
 
@@ -823,17 +817,14 @@ export default function ProfilePage() {
 
         {/* Bottom Nav: Recent Games | Profile (active) | Decks */}
         <div className="bottom-nav">
-          <button
-            className="nav-item"
-            onClick={() => showToastMessage('Recent Games — Coming Soon')}
-          >
+          <Link href="/recent-games" className="nav-item" style={{ textDecoration: 'none' }}>
             <div className="nav-icon">
               <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M2 4H16M2 9H16M2 14H16"/>
               </svg>
             </div>
             <div className="nav-label">Recent Games</div>
-          </button>
+          </Link>
 
           <button className="nav-item active">
             <div className="nav-icon">
@@ -845,16 +836,14 @@ export default function ProfilePage() {
             <div className="nav-label">Profile</div>
           </button>
 
-          <Link href="/decks">
-            <button className="nav-item">
-              <div className="nav-icon">
-                <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
-                  <rect x="3" y="1" width="12" height="14" rx="2"/>
-                  <path d="M6 17H15C16 17 17 16 17 15V5" opacity="0.5" strokeWidth="1.2"/>
-                </svg>
-              </div>
-              <div className="nav-label">Decks</div>
-            </button>
+          <Link href="/decks" className="nav-item" style={{ textDecoration: 'none' }}>
+            <div className="nav-icon">
+              <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
+                <rect x="3" y="1" width="12" height="14" rx="2"/>
+                <path d="M6 17H15C16 17 17 16 17 15V5" opacity="0.5" strokeWidth="1.2"/>
+              </svg>
+            </div>
+            <div className="nav-label">Decks</div>
           </Link>
         </div>
       </div>
