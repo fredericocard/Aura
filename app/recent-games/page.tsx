@@ -349,8 +349,6 @@ function RecentGamesContent() {
         const me = g.players.find(p => p.name === 'Frederico');
         if (!me || me.commander !== filterDeck) return false;
       }
-      if (filterAura === 'gain') return g.aura >= 0;
-      if (filterAura === 'loss') return g.aura < 0;
       return true;
     })
     .sort((a, b) => {
