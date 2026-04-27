@@ -102,39 +102,8 @@ export default function GridView2P() {
     };
   }, []);
 
-  // Revive player
-  const revivePlayer = (playerNum: number) => {
-    setPlayers(prev => ({
-      ...prev,
-      [playerNum]: { ...prev[playerNum], life: 1 }
-    }));
-  };
-
-  // Handle life button change
-  const changeLife = (playerNum: number, delta: number) => {
-    setPlayers(prev => ({
-      ...prev,
-      [playerNum]: {
-        ...prev[playerNum],
-        life: Math.max(0, Math.min(999, prev[playerNum].life + delta))
-      }
-    }));
-  };
-
-  // Long press: hold to change life by 5
+  // Long press ref and cleanup (must be before changeLife so it can call stopLongPress)
   const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
-
-  const startLongPress = (playerNum: number, delta: number) => {
-    // Single tap handled by onClick
-    longPressRef.current.timeout = setTimeout(() => {
-      // First big jump after 500ms hold
-      changeLife(playerNum, delta * 4); // +4 more (total 5 with the initial tap)
-      // Then repeat every 200ms
-      longPressRef.current.interval = setInterval(() => {
-        changeLife(playerNum, delta * 5);
-      }, 200);
-    }, 500);
-  };
 
   const stopLongPress = () => {
     if (longPressRef.current.timeout) {
@@ -145,6 +114,35 @@ export default function GridView2P() {
       clearInterval(longPressRef.current.interval);
       longPressRef.current.interval = null;
     }
+  };
+
+  // Revive player
+  const revivePlayer = (playerNum: number) => {
+    setPlayers(prev => ({
+      ...prev,
+      [playerNum]: { ...prev[playerNum], life: 1 }
+    }));
+  };
+
+  // Handle life button change — stops long press when life hits 0
+  const changeLife = (playerNum: number, delta: number) => {
+    setPlayers(prev => {
+      const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
+      if (newLife === 0) stopLongPress();
+      return {
+        ...prev,
+        [playerNum]: { ...prev[playerNum], life: newLife }
+      };
+    });
+  };
+
+  const startLongPress = (playerNum: number, delta: number) => {
+    longPressRef.current.timeout = setTimeout(() => {
+      changeLife(playerNum, delta * 4);
+      longPressRef.current.interval = setInterval(() => {
+        changeLife(playerNum, delta * 5);
+      }, 200);
+    }, 500);
   };
 
   // Handle join button click

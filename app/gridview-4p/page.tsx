@@ -112,10 +112,17 @@ export default function GridView4P() {
   };
 
   const handleLifeChange = (playerNum: number, delta: number) => {
-    setPlayers(prev => ({
-      ...prev,
-      [playerNum]: { ...prev[playerNum], life: Math.max(0, Math.min(999, prev[playerNum].life + delta)) }
-    }));
+    setPlayers(prev => {
+      const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
+      if (newLife === 0) {
+        if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
+        if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
+      }
+      return {
+        ...prev,
+        [playerNum]: { ...prev[playerNum], life: newLife }
+      };
+    });
   };
 
   const showToast = (msg: string) => {

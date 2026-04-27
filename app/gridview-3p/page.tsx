@@ -122,11 +122,20 @@ export default function GridView3P() {
     }));
   };
 
+  const stopLongPress = () => {
+    if (longPressRef.current.timeout) { clearTimeout(longPressRef.current.timeout); longPressRef.current.timeout = null; }
+    if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
+  };
+
   const handleLifeDelta = (playerNum: PlayerNum, delta: number) => {
-    setPlayers(prev => ({
-      ...prev,
-      [playerNum]: { ...prev[playerNum], life: Math.max(0, Math.min(999, prev[playerNum].life + delta)) }
-    }));
+    setPlayers(prev => {
+      const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
+      if (newLife === 0) stopLongPress();
+      return {
+        ...prev,
+        [playerNum]: { ...prev[playerNum], life: newLife }
+      };
+    });
   };
 
   const revivePlayer = (playerNum: PlayerNum) => {
@@ -143,11 +152,6 @@ export default function GridView3P() {
         handleLifeDelta(playerNum, delta * 5);
       }, 200);
     }, 500);
-  };
-
-  const stopLongPress = () => {
-    if (longPressRef.current.timeout) { clearTimeout(longPressRef.current.timeout); longPressRef.current.timeout = null; }
-    if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
   };
 
   const openJoinModal = (slot: PlayerNum) => {

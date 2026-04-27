@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function SingleViewPage() {
   // Life counter state
@@ -49,9 +49,30 @@ export default function SingleViewPage() {
     { name: 'Urza', color: 'U' },
   ];
 
+  // Long press ref
+  const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
+
+  const stopLongPress = () => {
+    if (longPressRef.current.timeout) { clearTimeout(longPressRef.current.timeout); longPressRef.current.timeout = null; }
+    if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
+  };
+
   // Life control functions
   const adjustLife = (delta: number) => {
-    setLife(prev => Math.max(0, prev + delta));
+    setLife(prev => {
+      const newLife = Math.max(0, prev + delta);
+      if (newLife === 0) stopLongPress();
+      return newLife;
+    });
+  };
+
+  const startLongPress = (delta: number) => {
+    longPressRef.current.timeout = setTimeout(() => {
+      adjustLife(delta * 4);
+      longPressRef.current.interval = setInterval(() => {
+        adjustLife(delta * 5);
+      }, 200);
+    }, 500);
   };
 
   const handleRevive = () => {
@@ -1553,8 +1574,8 @@ export default function SingleViewPage() {
           <div className="life-number">{life}</div>
           {life > 0 ? (
             <div className="life-controls">
-              <button className="control-button" onClick={() => adjustLife(-1)}>−</button>
-              <button className="control-button" onClick={() => adjustLife(1)}>+</button>
+              <button className="control-button" onClick={() => adjustLife(-1)} onMouseDown={() => startLongPress(-1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(-1)} onTouchEnd={stopLongPress}>−</button>
+              <button className="control-button" onClick={() => adjustLife(1)} onMouseDown={() => startLongPress(1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(1)} onTouchEnd={stopLongPress}>+</button>
             </div>
           ) : (
             <div className="life-controls" style={{ justifyContent: 'center' }}>
