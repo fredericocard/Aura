@@ -14,8 +14,7 @@ const screens = [
   { number: "08", name: "Profile", href: "/profile", status: "live" },
   { number: "09", name: "Decks", href: "/decks", status: "live" },
   { number: "10", name: "Deck Accomplishments", href: "/deck-accomplishments", status: "live" },
-  { number: "11", name: "Edit Deck", href: "/edit-deck", status: "live" },
-  { number: "12", name: "Recent Games", href: "/recent-games", status: "live" },
+  { number: "11", name: "Recent Games", href: "/recent-games", status: "live" },
 ];
 
 export default function Home() {
