@@ -13,6 +13,8 @@ interface AuthState {
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signInAsGuest: () => Promise<{ error: string | null }>;
+  promoteGuest: (email: string, password: string, displayName?: string) => Promise<{ error: string | null }>;
+  promoteGuestWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -61,6 +63,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  // Promote anonymous guest to full account with email/password
+  // Uses updateUser which keeps the same user ID — all guest data stays linked
+  const promoteGuest = async (email: string, password: string, displayName?: string) => {
+    const { error } = await supabase.auth.updateUser({
+      email,
+      password,
+      data: { display_name: displayName || email.split('@')[0] },
+    });
+    if (!error) {
+      // Update the profile row to mark as full account
+      const userId = user?.id;
+      if (userId) {
+        await supabase.from('profiles').update({
+          account_type: 'full',
+          email,
+          display_name: displayName || email.split('@')[0],
+        }).eq('id', userId);
+      }
+    }
+    return { error: error?.message ?? null };
+  };
+
+  // Promote anonymous guest via Google SSO (links identity to existing anon user)
+  const promoteGuestWithGoogle = async () => {
+    const { error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin + '/review' : undefined,
+      },
+    });
+    return { error: error?.message ?? null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -78,6 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signIn,
       signInAsGuest,
+      promoteGuest,
+      promoteGuestWithGoogle,
       signOut,
     }}>
       {children}

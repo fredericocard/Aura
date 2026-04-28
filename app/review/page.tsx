@@ -5,6 +5,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from '../../lib/auth-context';
 
 const PLAYERS = [
   { id: 'frederico', name: 'Frederico', short: 'Omnath', art: '/assets/commanders/omnath.jpg' },
@@ -297,6 +298,211 @@ function KeepsakeCard() {
   );
 }
 
+/* ── GuestPromotionOverlay — sign-up gate before Game Card ── */
+function GuestPromotionOverlay({ onComplete, onSkip }: { onComplete: () => void; onSkip: () => void }) {
+  const { promoteGuest, promoteGuestWithGoogle } = useAuth();
+  const [view, setView] = useState<'main' | 'email'>('main');
+  const [email, setEmail] = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleEmailPromotion = async () => {
+    setError('');
+    if (!email || !password) { setError('Please fill in all fields'); return; }
+    if (email !== confirmEmail) { setError('Emails do not match'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+
+    setSubmitting(true);
+    const { error: authError } = await promoteGuest(email, password);
+    setSubmitting(false);
+
+    if (authError) {
+      setError(authError);
+    } else {
+      setSuccess(true);
+      setTimeout(onComplete, 1200);
+    }
+  };
+
+  const handleGooglePromotion = async () => {
+    const { error: authError } = await promoteGuestWithGoogle();
+    if (authError) setError(authError);
+    // Google SSO redirects — on return, auth state updates and isGuest becomes false
+  };
+
+  const fieldStyle = {
+    width: '100%',
+    background: '#F5EFE2',
+    border: '1px solid rgba(43,33,24,0.14)',
+    borderRadius: 12,
+    padding: '12px 14px',
+    fontSize: 15,
+    color: '#2B2118',
+    fontFamily: "'Instrument Sans', sans-serif",
+    outline: 'none',
+  } as const;
+
+  const labelStyle = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase' as const,
+    color: '#8A7E6F',
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100,
+      background: 'rgba(10,6,4,0.78)',
+      backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+      display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+      padding: '24px 20px',
+      fontFamily: "'Instrument Sans', sans-serif",
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 380,
+        background: '#FAF5EA',
+        borderRadius: 24,
+        padding: '28px 24px 24px',
+        boxShadow: '0 30px 60px -20px rgba(10,6,4,0.55), 0 12px 24px -8px rgba(43,33,24,0.35)',
+        position: 'relative',
+      }}>
+        {/* Close / skip button */}
+        <button onClick={onSkip} aria-label="Skip" style={{
+          position: 'absolute', top: 14, right: 14,
+          width: 30, height: 30, borderRadius: 999,
+          border: '1px solid rgba(43,33,24,0.08)',
+          background: '#EDE4D0', color: '#5C5043', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, fontWeight: 700, lineHeight: 1,
+        }}>
+          <Icon name="chevron-down" size={15} />
+        </button>
+
+        {success ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 999, background: '#2F5D3A', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="check" size={24} stroke="#F5EFE2" width={2.5} />
+            </div>
+            <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontSize: 24, color: '#2B2118', marginBottom: 6 }}>You&apos;re in</div>
+            <div style={{ fontSize: 13, color: '#5C5043' }}>Your game history is saved. Loading your Game Card...</div>
+          </div>
+        ) : view === 'main' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                <AuraMark size={24} color="#B06B2C" />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6 }}>Your Game Card awaits</div>
+              <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontSize: 26, color: '#2B2118', lineHeight: 1.05 }}>Keep your story</div>
+              <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>Sign up to save your Game Card, badges, and Aura score forever.</div>
+            </div>
+
+            {/* Google SSO */}
+            <button onClick={handleGooglePromotion} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#F5EFE2', color: '#2B2118',
+              border: '1px solid rgba(43,33,24,0.14)',
+              borderRadius: 20, padding: '13px 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              fontSize: 15, fontWeight: 600,
+              fontFamily: "'Instrument Sans', sans-serif",
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+              Continue with Google
+            </button>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.14)' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#8A7E6F', letterSpacing: '0.18em', textTransform: 'uppercase' }}>or</span>
+              <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.14)' }} />
+            </div>
+
+            {/* Email sign-up button */}
+            <button onClick={() => setView('email')} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#2F5D3A', color: '#F5EFE2',
+              border: 'none', borderRadius: 20, padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+              fontFamily: "'Instrument Sans', sans-serif",
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              Sign up with email
+            </button>
+
+            {/* Skip link */}
+            <button onClick={onSkip} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#8A7E6F', fontSize: 13, fontWeight: 500,
+              fontFamily: "'Instrument Sans', sans-serif",
+              padding: '6px 0', textAlign: 'center', width: '100%',
+            }}>
+              Skip for now — view card as guest
+            </button>
+          </div>
+        ) : (
+          /* Email sign-up form */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ textAlign: 'center', marginBottom: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                <AuraMark size={24} color="#B06B2C" />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6 }}>New player</div>
+              <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontSize: 26, color: '#2B2118', lineHeight: 1.05 }}>Create account</div>
+            </div>
+
+            {error && (
+              <div style={{ background: 'rgba(158,43,43,0.08)', border: '1px solid rgba(158,43,43,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#9E2B2B', textAlign: 'center' }}>{error}</div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={labelStyle}>Email</span>
+                <input type="email" placeholder="you@table.cards" value={email} onChange={e => setEmail(e.target.value)} style={fieldStyle} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={labelStyle}>Confirm email</span>
+                <input type="email" placeholder="you@table.cards" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} style={fieldStyle} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={labelStyle}>Password</span>
+                <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} style={fieldStyle} />
+              </label>
+            </div>
+
+            <button onClick={handleEmailPromotion} disabled={submitting} style={{
+              background: submitting ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
+              border: 'none', borderRadius: 20, padding: '14px 18px',
+              cursor: submitting ? 'default' : 'pointer',
+              fontSize: 15, fontWeight: 600, marginTop: 4,
+              boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+              fontFamily: "'Instrument Sans', sans-serif",
+            }}>{submitting ? 'Creating...' : 'Create account'}</button>
+
+            <button onClick={() => { setView('main'); setError(''); }} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#5C5043', fontSize: 13, fontWeight: 600,
+              fontFamily: "'Instrument Sans', sans-serif",
+              padding: '4px 0', textAlign: 'center',
+            }}>Back</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MemoryCardOverlay({ onClose }: { onClose: () => void }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,6,4,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 20px', fontFamily: "'Instrument Sans', sans-serif" }}>
@@ -317,10 +523,12 @@ function MemoryCardOverlay({ onClose }: { onClose: () => void }) {
 }
 
 export default function ReviewPage() {
+  const { isGuest } = useAuth();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [activeIdx, setActiveIdx] = useState(0);
   const [bracketAnswer, setBracketAnswer] = useState<string | null>(null);
   const [showMemory, setShowMemory] = useState(false);
+  const [showPromotion, setShowPromotion] = useState(false);
   const activeCardRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const doneCardRef = useRef<HTMLDivElement>(null);
@@ -426,8 +634,28 @@ export default function ReviewPage() {
       </div>
 
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 32px', background: 'linear-gradient(to top, #F5EFE2 60%, rgba(245,239,226,0))', pointerEvents: 'none', zIndex: 5 }}>
-        <button disabled={!allAnswered} onClick={() => { scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); setShowMemory(true); }} style={{ pointerEvents: 'auto', width: '100%', border: 'none', background: '#B06B2C', color: '#F5EFE2', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 16, padding: '16px 20px', borderRadius: 20, boxShadow: allAnswered ? '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)' : 'none', opacity: allAnswered ? 1 : 0.4, cursor: allAnswered ? 'pointer' : 'not-allowed', transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>Accept Review</button>
+        <button disabled={!allAnswered} onClick={() => {
+          scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+          if (isGuest) {
+            setShowPromotion(true);
+          } else {
+            setShowMemory(true);
+          }
+        }} style={{ pointerEvents: 'auto', width: '100%', border: 'none', background: '#B06B2C', color: '#F5EFE2', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 16, padding: '16px 20px', borderRadius: 20, boxShadow: allAnswered ? '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)' : 'none', opacity: allAnswered ? 1 : 0.4, cursor: allAnswered ? 'pointer' : 'not-allowed', transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>Accept Review</button>
       </div>
+
+      {showPromotion && (
+        <GuestPromotionOverlay
+          onComplete={() => {
+            setShowPromotion(false);
+            setShowMemory(true);
+          }}
+          onSkip={() => {
+            setShowPromotion(false);
+            setShowMemory(true);
+          }}
+        />
+      )}
 
       {showMemory && <MemoryCardOverlay onClose={() => setShowMemory(false)} />}
     </div>
