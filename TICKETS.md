@@ -3,11 +3,11 @@
 | Kanban | To Do | In Progress | Done |
 | :---- | :---- | :---- | :---- |
 | **Ticket** |  |  | AF-B01 |
-| **Ticket** | AF-B02 |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** | AF-B03 |  |  |
-| **Ticket** | AF-B04 |  |  |
-| **Ticket** | AF-B05 |  |  |
+| **Ticket** |  |  | AF-B02 |
+| **Ticket** |  |  | AF-B03 |
+| **Ticket** |  |  | AF-B04 |
+| **Ticket** |  |  | AF-B05 |
+| **Ticket** | AF-B06 |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
@@ -47,58 +47,87 @@
 
 ---
 
-## AF-B02 · Guest-to-account promotion
+## AF-B02 · Guest-to-account promotion ✅
 
 **User story:** As a guest who saw my Game Card and wants to keep it, I want to sign up and have everything I did as a guest carry over.
 
 **Acceptance criteria:**
 
-* [ ] A guest can be promoted to a full account in a single flow without re-entering data
-* [ ] The guest's commander registrations, votes, game participation, and any earned badges transfer to the new account
-* [ ] The promotion is safe to retry — calling it twice produces the same result as calling it once
-* [ ] After promotion, the guest record is no longer queryable but is retained for audit
+* [x] A guest can be promoted to a full account in a single flow without re-entering data
+* [x] The guest's commander registrations, votes, game participation, and any earned badges transfer to the new account — *Supabase updateUser keeps same user ID, no data migration needed*
+* [x] The promotion is safe to retry — calling it twice produces the same result as calling it once
+* [x] After promotion, the guest record is no longer queryable but is retained for audit — *profile row updated to account_type="full"*
+
+**What was built:**
+- GuestPromotionOverlay on review page (sign-up gate before Game Card)
+- promoteGuest() — email/password promotion via supabase.auth.updateUser()
+- promoteGuestWithGoogle() — Google SSO via supabase.auth.linkIdentity()
+- Profile row auto-updates to account_type="full" on promotion
+- Skip option lets guests view Game Card without signing up
+- Overlay triggers for all non-logged-in users (guest or no session)
 
 **Blocked by:** AF-B01 ✅ **Enables:** Game Card guest preview flow
 
 ---
 
-## AF-B03 · Commander registration
+## AF-B03 · Commander registration ✅
 
 **Acceptance criteria:**
 
-* [ ] A user can register a commander on their account
-* [ ] Each registration produces a distinct deck record, even if the commander name is repeated
-* [ ] A registration captures the commander's identity, the user who owns it, and a timestamp
-* [ ] A user can read all of their own registered commanders; other users cannot see them
+* [x] A user can register a commander on their account
+* [x] Each registration produces a distinct deck record, even if the commander name is repeated
+* [x] A registration captures the commander's identity, the user who owns it, and a timestamp
+* [x] A user can read all of their own registered commanders; other users cannot see them
+
+**What was built:**
+- Supabase decks table with RLS policies (select/insert/update/delete own only)
+- lib/commanders.ts — registerCommander(), getMyCommanders(), deleteCommander()
+- Decks page wired to real Supabase data (no more hardcoded sample decks)
+- Scryfall search popup registers to database with art URL + color identity
 
 **Blocked by:** AF-B01 ✅ **Enables:** AF-B04, AF-B05, AF-B12
 
 ---
 
-## AF-B04 · Commander validation against the card database
+## AF-B04 · Commander validation against the card database ✅
 
 **Acceptance criteria:**
 
-* [ ] A commander name resolves to a real card in the Scryfall database before registration completes
-* [ ] Only cards eligible to be commanders under the rules of the format are accepted
-* [ ] Card details (art URL, full name, color identity) are cached locally
-* [ ] If Scryfall is unreachable, registration falls back to cached data
+* [x] A commander name resolves to a real card in the Scryfall database before registration completes
+* [x] Only cards eligible to be commanders under the rules of the format are accepted
+* [x] Card details (art URL, full name, color identity) are cached locally
+* [x] If Scryfall is unreachable, registration falls back to cached data
 
-**Blocked by:** AF-B03 **Enables:** Commander picker UI
+**What was built:**
+- Supabase scryfall_cache table (public read, authenticated write)
+- lib/scryfall.ts — validateCommander(), searchCommanders(), checkCommanderEligibility()
+- Cache-first lookup with 7-day freshness window
+- Fallback to stale cache if Scryfall is unreachable
+- Canonical Scryfall name stored (not user input)
+- Commander eligibility check: legendary creature OR "can be your commander" oracle text
+
+**Blocked by:** AF-B03 ✅ **Enables:** Commander picker UI
 
 ---
 
-## AF-B05 · Bracket declaration
+## AF-B05 · Bracket declaration ✅
 
 **Acceptance criteria:**
 
-* [ ] Bracket is required at commander registration time and defaults to Bracket 2
-* [ ] A bracket is one of five values defined by the official bracket system
-* [ ] AURA score is initialised at 50 the moment a bracket is declared
-* [ ] The bracket can be changed later (see AF-B21)
-* [ ] The system records when the current bracket was set
+* [x] Bracket is required at commander registration time and defaults to Bracket 2
+* [x] A bracket is one of five values defined by the official bracket system
+* [x] AURA score is initialised at 50 the moment a bracket is declared
+* [x] The bracket can be changed later (see AF-B21) — *updateBracket() ready*
+* [x] The system records when the current bracket was set
 
-**Blocked by:** AF-B03 **Enables:** AF-B12, AF-B21
+**What was built:**
+- SQL migration: bracket defaults to 2, constrained 1–5, trigger auto-sets bracket_set_at
+- Bracket picker overlay UI on Decks page (two-step flow: pick commander → pick bracket)
+- BRACKETS array with labels and descriptions for all 5 values
+- updateBracket() function ready for AF-B21
+- Backfill of existing null-bracket decks to 2
+
+**Blocked by:** AF-B03 ✅ **Enables:** AF-B12, AF-B21
 
 ---
 
@@ -112,7 +141,7 @@
 * [ ] State transitions are recorded with timestamps
 * [ ] A pod that hasn't seen activity in 6 hours is automatically moved to abandoned
 
-**Blocked by:** AF-B03 **Enables:** AF-B07, AF-B09, AF-B11
+**Blocked by:** AF-B03 ✅ **Enables:** AF-B07, AF-B09, AF-B11
 
 ---
 
