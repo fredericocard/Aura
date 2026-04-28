@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { registerCommander, getMyCommanders, type Deck } from '../../lib/commanders';
+import { useAuth } from '../../lib/auth-context';
 
 interface ScryfallCard {
   name: string;
@@ -9,13 +11,6 @@ interface ScryfallCard {
   card_faces?: { image_uris?: { art_crop: string } }[];
   color_identity: string[];
 }
-
-const SAMPLE_DECKS = [
-  { id: 'omnath', name: 'Omnath, Locus of Creation', art: 'https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg', colors: ['G','W','U','R'], aura: 72, bracket: 3 },
-  { id: 'atraxa', name: "Atraxa, Praetors' Voice", art: 'https://cards.scryfall.io/art_crop/front/d/0/d0d33d52-3d28-4f2d-b7f6-92571f2f0e0e.jpg', colors: ['W','U','B','G'], aura: 64, bracket: 4 },
-  { id: 'krenko', name: 'Krenko, Mob Boss', art: 'https://cards.scryfall.io/art_crop/front/c/d/cd9fef1d-fbdc-4e44-9740-d214f712e067.jpg', colors: ['R'], aura: 48, bracket: 2 },
-  { id: 'muldrotha', name: 'Muldrotha, the Gravetide', art: 'https://cards.scryfall.io/art_crop/front/c/6/c654737d-34ac-42ff-ae27-3a3bbb930fc1.jpg', colors: ['B','G','U'], aura: 35, bracket: null },
-];
 
 const AURA_TIERS = [
   { min: 0,  max: 19,  name: 'Exiled' },
@@ -39,6 +34,9 @@ function tierFor(score: number) {
 }
 
 export default function Page() {
+  const { isLoggedIn } = useAuth();
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [loadingDecks, setLoadingDecks] = useState(true);
   const [showNewDeck, setShowNewDeck] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ScryfallCard[]>([]);
@@ -46,6 +44,15 @@ export default function Page() {
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+
+  // Fetch real decks from Supabase
+  useEffect(() => {
+    if (!isLoggedIn) { setLoadingDecks(false); return; }
+    getMyCommanders().then(({ data }) => {
+      setDecks(data);
+      setLoadingDecks(false);
+    });
+  }, [isLoggedIn]);
 
   const displayToast = (msg: string) => {
     setToastMsg(msg);
@@ -82,12 +89,33 @@ export default function Page() {
     return '';
   };
 
-  const handleSelectCommander = (card: ScryfallCard) => {
+  const handleSelectCommander = async (card: ScryfallCard) => {
+    const { data: newDeck, error } = await registerCommander(card.name);
+    if (error) {
+      displayToast(`Error: ${error}`);
+      return;
+    }
+    // Update the deck with Scryfall art and color identity
+    if (newDeck) {
+      const artUrl = getCardArt(card);
+      const colorId = card.color_identity.join('');
+      const { supabase } = await import('../../lib/supabase');
+      await supabase.from('decks').update({
+        commander_art_url: artUrl || null,
+        color_identity: colorId || null,
+      }).eq('id', newDeck.id);
+
+      // Add to local state with updated fields
+      setDecks(prev => [{
+        ...newDeck,
+        commander_art_url: artUrl || null,
+        color_identity: colorId || null,
+      }, ...prev]);
+    }
     displayToast(`${card.name} added!`);
     setShowNewDeck(false);
     setSearchQuery('');
     setSearchResults([]);
-    window.location.href = '/deck-accomplishments';
   };
 
   const openNewDeck = () => {
@@ -102,7 +130,7 @@ export default function Page() {
     setSearchResults([]);
   };
 
-  const totalAura = SAMPLE_DECKS.reduce((sum, d) => sum + d.aura, 0);
+  const totalAura = decks.reduce((sum, d) => sum + (d.aura_score || 0), 0);
 
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Young+Serif&display=swap');
@@ -544,7 +572,7 @@ export default function Page() {
           <div className="hero-eyebrow">The Library</div>
           <div className="hero-title">Decks</div>
           <div className="hero-subtitle">
-            {SAMPLE_DECKS.length} commanders · summed Aura{' '}
+            {decks.length} commander{decks.length !== 1 ? 's' : ''} · summed Aura{' '}
             <span className="hero-aura-value">{totalAura}</span>
           </div>
         </div>
@@ -552,18 +580,31 @@ export default function Page() {
         {/* Content */}
         <div className="content">
           <div className="deck-list">
-            {SAMPLE_DECKS.map(d => {
-              const tier = tierFor(d.aura);
+            {loadingDecks && (
+              <div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>Loading your decks...</div>
+            )}
+            {!loadingDecks && decks.map(d => {
+              const aura = Math.round(d.aura_score || 50);
+              const tier = tierFor(aura);
+              const colors = d.color_identity ? d.color_identity.split('') : [];
               return (
-                <Link key={d.id} href="/deck-accomplishments" className="deck-row">
+                <Link key={d.id} href={`/deck-accomplishments?id=${d.id}`} className="deck-row">
                   <div className="deck-art">
-                    <img src={d.art} alt={d.name} />
+                    {d.commander_art_url ? (
+                      <img src={d.commander_art_url} alt={d.commander_name} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E6F', fontSize: 20 }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                   <div className="deck-info">
-                    <div className="deck-name">{d.name}</div>
+                    <div className="deck-name">{d.commander_name}</div>
                     <div className="deck-meta">
                       <span className="mana-dots">
-                        {d.colors.map((c, j) => (
+                        {colors.map((c, j) => (
                           <span key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
                         ))}
                       </span>
@@ -571,7 +612,6 @@ export default function Page() {
                     </div>
                   </div>
                   <div className="deck-aura">
-                    {/* Aura mark */}
                     <svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true">
                       <circle cx="32" cy="36" r="2.4" fill="#2F5D3A" />
                       <clipPath id={`ac-${d.id}`}><ellipse cx="32" cy="32" rx="22" ry="26" /></clipPath>
@@ -580,7 +620,7 @@ export default function Page() {
                         <polygon points="40,60 33,4 34,4 56,60" fill="#2F5D3A" />
                       </g>
                     </svg>
-                    <span className="aura-number">{d.aura}</span>
+                    <span className="aura-number">{aura}</span>
                     <span className="deck-chevron">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="15 18 9 12 15 6" />
