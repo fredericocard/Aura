@@ -3,14 +3,18 @@
 import Link from 'next/link';
 
 export default function Page() {
+  const code = ['A', 'R', 'C', '', '7', 'X', '2', 'K'];
+
   const styles = `
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Young+Serif&display=swap');
+
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
       height: 100%;
       overflow: hidden;
-      font-family: 'Inter', sans-serif;
-      background: #e8dcc8;
+      font-family: 'Instrument Sans', sans-serif;
+      background: #F5EFE2;
     }
 
     .app {
@@ -20,229 +24,256 @@ export default function Page() {
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      padding: 0 24px;
-      padding-top: env(safe-area-inset-top, 16px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      position: relative;
       overflow: hidden;
     }
 
     /* ── Header ── */
     .header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 0;
+      gap: 8px;
+      padding: 52px 12px 12px;
+      background: rgba(245,239,226,0.85);
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+      border-bottom: 1px solid rgba(43,33,24,0.08);
       flex-shrink: 0;
     }
 
     .header-back {
-      color: rgb(90,110,98);
-      font-size: 22px;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: #2B2118;
       cursor: pointer;
-      line-height: 1;
-      transition: all 0.2s ease;
-      width: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
+      text-decoration: none;
+      transition: all 0.2s ease;
     }
 
     .header-back:active { transform: scale(0.85); }
 
     .header-title {
-      font-size: 18px;
+      flex: 1;
       font-weight: 700;
-      color: rgb(44,62,54);
+      font-size: 20px;
+      letter-spacing: -0.01em;
+      color: #2B2118;
     }
 
     /* ── Content ── */
     .content {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      padding: 8px 0 16px;
+      overflow: auto;
+      padding: 8px 20px 120px;
     }
 
-    /* ── QR Scanner Area ── */
-    .scanner-area {
-      width: 100%;
-      height: 220px;
-      background: linear-gradient(135deg, rgb(245,239,227), rgb(222,212,192));
-      border-radius: 16px;
-      border: 2px dashed rgba(26,122,106,0.4);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
+    /* ── Scanner Viewport ── */
+    .scanner-viewport {
       position: relative;
+      aspect-ratio: 1 / 1;
+      background: linear-gradient(180deg, #1A140E 0%, #0A0604 100%);
+      border-radius: 24px;
       overflow: hidden;
-      flex-shrink: 0;
+      box-shadow: 0 2px 0 rgba(43,33,24,0.05), 0 18px 36px -12px rgba(43,33,24,0.22);
+      margin-top: 8px;
     }
 
+    /* Frame corners */
+    .corner {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+    }
+
+    .corner-tl { top: 18px; left: 18px; border-top: 3px solid #B06B2C; border-left: 3px solid #B06B2C; border-top-left-radius: 12px; }
+    .corner-tr { top: 18px; right: 18px; border-top: 3px solid #B06B2C; border-right: 3px solid #B06B2C; border-top-right-radius: 12px; }
+    .corner-bl { bottom: 18px; left: 18px; border-bottom: 3px solid #B06B2C; border-left: 3px solid #B06B2C; border-bottom-left-radius: 12px; }
+    .corner-br { bottom: 18px; right: 18px; border-bottom: 3px solid #B06B2C; border-right: 3px solid #B06B2C; border-bottom-right-radius: 12px; }
+
+    /* Scan line */
     .scan-line {
       position: absolute;
-      top: 40%;
-      left: 24px;
-      right: 24px;
+      left: 30px;
+      right: 30px;
+      top: 50%;
       height: 2px;
-      background: linear-gradient(90deg, transparent, rgb(26,122,106), transparent);
-      box-shadow: 0 0 12px rgb(26,122,106);
-      animation: scanLine 2s ease-in-out infinite;
+      background: linear-gradient(90deg, transparent, #B06B2C, transparent);
+      box-shadow: 0 0 12px rgba(176,107,44,0.6);
+      animation: scanPulse 2.5s ease-in-out infinite;
     }
 
-    @keyframes scanLine {
-      0%, 100% { top: 30%; opacity: 0.3; }
-      50% { top: 65%; opacity: 1; }
+    @keyframes scanPulse {
+      0%, 100% { top: 35%; opacity: 0.4; }
+      50% { top: 60%; opacity: 1; }
     }
 
-    .scanner-icon {
-      margin-bottom: 8px;
-      position: relative;
-      z-index: 1;
+    /* Camera grid */
+    .camera-grid {
+      position: absolute;
+      inset: 30px;
+      background-image:
+        linear-gradient(rgba(245,239,226,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245,239,226,0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.6;
     }
 
-    .scanner-text {
-      color: rgb(90,110,98);
-      font-size: 13px;
-      position: relative;
-      z-index: 1;
+    .scanner-label {
+      position: absolute;
+      bottom: 18px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: rgba(245,239,226,0.75);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
     }
 
-    /* ── Divider ── */
+    /* ── Or Enter Code Divider ── */
     .or-divider {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin: 4px 0 20px;
+      gap: 10px;
+      margin: 22px 0 14px;
     }
 
     .or-divider-line {
       flex: 1;
       height: 1px;
-      background: rgba(184,168,138,0.55);
+      background: rgba(43,33,24,0.14);
     }
 
     .or-divider-text {
-      color: rgb(138,154,142);
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: #8A7E6F;
+      text-transform: uppercase;
     }
 
     /* ── Code Input ── */
-    .code-input-row {
+    .code-row {
       display: flex;
       gap: 6px;
-      margin-bottom: 24px;
-      flex-shrink: 0;
+      justify-content: center;
     }
 
     .code-char {
-      flex: 1;
+      width: 36px;
       height: 48px;
-      background: rgb(222,212,192);
-      border-radius: 8px;
-      border: 1px solid rgb(184,168,138);
+      background: #FAF5EA;
+      border: 1px solid rgba(43,33,24,0.14);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      font-weight: 700;
-      color: rgb(44,62,54);
+      font-family: 'Young Serif', serif;
+      font-size: 22px;
+      color: #2B2118;
+      font-variant-numeric: tabular-nums;
     }
 
     .code-char.filled {
-      border-color: rgb(26,122,106);
+      border: 1.5px solid #B06B2C;
     }
 
-    .code-char.dash {
-      background: transparent;
-      border: none;
-      color: rgb(138,154,142);
-      font-weight: 400;
+    .code-dash {
+      align-self: center;
+      font-family: 'Young Serif', serif;
+      font-size: 28px;
+      color: #8A7E6F;
     }
 
-    .code-char.empty {
-      color: rgb(138,154,142);
+    /* ── Sticky CTA ── */
+    .cta-wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 14px 16px 32px;
+      background: linear-gradient(to top, #F5EFE2 60%, rgba(245,239,226,0));
+      z-index: 5;
     }
 
-    /* ── Join Button ── */
     .join-btn {
-      padding: 16px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-      border: 1.5px solid rgb(56,158,133);
-      color: rgb(245,239,227);
-      font-family: 'Inter', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      text-align: center;
+      width: 100%;
+      border: none;
       cursor: pointer;
+      background: #2F5D3A;
+      color: #F5EFE2;
+      font-family: 'Instrument Sans', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 16px 20px;
+      border-radius: 20px;
+      box-shadow: 0 1px 0 rgba(43,33,24,0.04), 0 6px 18px -8px rgba(43,33,24,0.12);
       transition: all 0.2s ease;
-      box-shadow: 0 4px 12px rgba(26,120,105,0.35);
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      display: block;
+      text-align: center;
       text-decoration: none;
     }
 
     .join-btn:active { transform: scale(0.97); }
-
-    .join-btn svg {
-      width: 16px;
-      height: 16px;
-    }
   `;
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className="app">
+        {/* Header */}
         <div className="header">
-          <Link href="/landing" className="header-back">‹</Link>
-          <div className="header-title">Join a Pod</div>
+          <Link href="/landing" className="header-back">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </Link>
+          <div className="header-title">Join a pod</div>
         </div>
 
+        {/* Content */}
         <div className="content">
-          <div className="scanner-area">
-            <div className="scan-line"></div>
-            <div className="scanner-icon">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgb(26,122,106)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
-              </svg>
-            </div>
-            <span className="scanner-text">Point camera at QR code</span>
+          {/* Scanner Viewport */}
+          <div className="scanner-viewport">
+            <div className="corner corner-tl" />
+            <div className="corner corner-tr" />
+            <div className="corner corner-bl" />
+            <div className="corner corner-br" />
+            <div className="scan-line" />
+            <div className="camera-grid" />
+            <div className="scanner-label">Point camera at QR code</div>
           </div>
 
+          {/* Or Enter Code */}
           <div className="or-divider">
-            <div className="or-divider-line"></div>
+            <div className="or-divider-line" />
             <span className="or-divider-text">or enter code</span>
-            <div className="or-divider-line"></div>
+            <div className="or-divider-line" />
           </div>
 
-          <div className="code-input-row">
-            <div className="code-char filled">A</div>
-            <div className="code-char filled">R</div>
-            <div className="code-char filled">C</div>
-            <div className="code-char dash">–</div>
-            <div className="code-char filled">7</div>
-            <div className="code-char empty">_</div>
-            <div className="code-char empty">_</div>
-            <div className="code-char empty">_</div>
+          {/* Code Input */}
+          <div className="code-row">
+            {code.map((c, i) => c === '' ? (
+              <div key={i} className="code-dash">—</div>
+            ) : (
+              <div key={i} className={`code-char ${i < 3 ? 'filled' : ''}`}>{c}</div>
+            ))}
           </div>
+        </div>
 
-          <Link href="/singleview" className="join-btn">
-            <svg viewBox="0 0 16 16" fill="none" stroke="rgb(245,239,227)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 2H3a1 1 0 0 0-1 1v3"/>
-              <path d="M10 14h3a1 1 0 0 0 1-1v-3"/>
-              <path d="M14 6V3a1 1 0 0 0-1-1h-3"/>
-              <path d="M2 10v3a1 1 0 0 0 1 1h3"/>
-            </svg>
-            Join Pod
-          </Link>
+        {/* Sticky Join Button */}
+        <div className="cta-wrap">
+          <Link href="/singleview" className="join-btn">Join Pod</Link>
         </div>
       </div>
     </>
