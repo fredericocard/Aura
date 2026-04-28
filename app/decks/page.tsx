@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { registerCommander, getMyCommanders, type Deck } from '../../lib/commanders';
+import { registerCommander, getMyCommanders, BRACKETS, type Deck } from '../../lib/commanders';
 import { useAuth } from '../../lib/auth-context';
-import { validateCommander, searchCommanders } from '../../lib/scryfall';
+import { validateCommander, searchCommanders, type CardData } from '../../lib/scryfall';
 
 interface ScryfallCard {
   name: string;
@@ -45,6 +45,9 @@ export default function Page() {
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [pendingCard, setPendingCard] = useState<CardData | null>(null);
+  const [selectedBracket, setSelectedBracket] = useState(2);
+  const [registering, setRegistering] = useState(false);
 
   // Fetch real decks from Supabase
   useEffect(() => {
@@ -97,31 +100,41 @@ export default function Page() {
       return;
     }
 
-    // Register the deck using the canonical Scryfall name
-    const { data: newDeck, error } = await registerCommander(validated.cardName);
+    // Show bracket picker step
+    setPendingCard(validated);
+    setSelectedBracket(2); // default
+    setShowNewDeck(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const handleConfirmRegistration = async () => {
+    if (!pendingCard) return;
+    setRegistering(true);
+
+    const { data: newDeck, error } = await registerCommander(pendingCard.cardName, selectedBracket);
     if (error) {
       displayToast(`Error: ${error}`);
+      setRegistering(false);
       return;
     }
 
-    // Update the deck with cached card details
     if (newDeck) {
       const { supabase } = await import('../../lib/supabase');
       await supabase.from('decks').update({
-        commander_art_url: validated.artUrl,
-        color_identity: validated.colorIdentity || null,
+        commander_art_url: pendingCard.artUrl,
+        color_identity: pendingCard.colorIdentity || null,
       }).eq('id', newDeck.id);
 
       setDecks(prev => [{
         ...newDeck,
-        commander_art_url: validated.artUrl,
-        color_identity: validated.colorIdentity || null,
+        commander_art_url: pendingCard.artUrl,
+        color_identity: pendingCard.colorIdentity || null,
       }, ...prev]);
     }
-    displayToast(`${validated.cardName} added!`);
-    setShowNewDeck(false);
-    setSearchQuery('');
-    setSearchResults([]);
+    displayToast(`${pendingCard.cardName} added at Bracket ${selectedBracket}!`);
+    setPendingCard(null);
+    setRegistering(false);
   };
 
   const openNewDeck = () => {
@@ -718,6 +731,78 @@ export default function Page() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bracket Picker Overlay */}
+      {pendingCard && (
+        <div className="search-overlay" onClick={() => setPendingCard(null)}>
+          <div className="search-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            {/* Commander preview */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+              <div className="deck-art" style={{ width: 52, height: 52, borderRadius: 14 }}>
+                {pendingCard.artUrl ? (
+                  <img src={pendingCard.artUrl} alt={pendingCard.cardName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EDE4D0', borderRadius: 14, color: '#8A7E6F' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /></svg>
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "'Young Serif', serif", fontSize: 18, color: '#2B2118', lineHeight: 1.15 }}>{pendingCard.cardName}</div>
+                <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
+                  {(pendingCard.colorIdentity || '').split('').map((c, j) => (
+                    <span key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Bracket picker */}
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 10 }}>Declare bracket</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {BRACKETS.map(b => (
+                <button key={b.value} onClick={() => setSelectedBracket(b.value)} style={{
+                  width: '100%', textAlign: 'left', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 12px', borderRadius: 14,
+                  background: selectedBracket === b.value ? '#EDE4D0' : 'transparent',
+                  border: selectedBracket === b.value ? '1.5px solid #B06B2C' : '1px solid rgba(43,33,24,0.08)',
+                  fontFamily: "'Instrument Sans', sans-serif",
+                  transition: 'all 0.15s ease',
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 999,
+                    background: selectedBracket === b.value ? '#B06B2C' : '#F5EFE2',
+                    color: selectedBracket === b.value ? '#F5EFE2' : '#8A7E6F',
+                    border: selectedBracket === b.value ? 'none' : '1px solid rgba(43,33,24,0.14)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: "'Young Serif', serif", fontSize: 15, fontWeight: 400,
+                  }}>{b.value}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#2B2118' }}>{b.label}</div>
+                    <div style={{ fontSize: 11, color: '#8A7E6F', marginTop: 1 }}>{b.desc}</div>
+                  </div>
+                  {selectedBracket === b.value && (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B06B2C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Confirm button */}
+            <button onClick={handleConfirmRegistration} disabled={registering} style={{
+              width: '100%', marginTop: 16, cursor: registering ? 'default' : 'pointer',
+              background: registering ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
+              border: 'none', borderRadius: 20, padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+              fontFamily: "'Instrument Sans', sans-serif",
+            }}>{registering ? 'Registering...' : 'Register Commander'}</button>
           </div>
         </div>
       )}

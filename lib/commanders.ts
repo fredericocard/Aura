@@ -13,25 +13,52 @@ export interface Deck {
   updated_at: string;
 }
 
+/** Valid bracket values (1–5) per the official bracket system */
+export const BRACKETS = [
+  { value: 1, label: 'Bracket 1', desc: 'Precons & very casual' },
+  { value: 2, label: 'Bracket 2', desc: 'Casual — most decks live here' },
+  { value: 3, label: 'Bracket 3', desc: 'Focused & optimised' },
+  { value: 4, label: 'Bracket 4', desc: 'High power & cEDH-adjacent' },
+  { value: 5, label: 'Bracket 5', desc: 'cEDH — competitive' },
+];
+
 /**
  * Register a new commander deck on the current user's account.
  * Same commander name can be registered multiple times (different builds).
- * Returns the new deck record or an error message.
+ * Bracket defaults to 2 if not provided. AURA starts at 50.
  */
-export async function registerCommander(commanderName: string): Promise<{ data: Deck | null; error: string | null }> {
+export async function registerCommander(commanderName: string, bracket: number = 2): Promise<{ data: Deck | null; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not signed in' };
+
+  if (bracket < 1 || bracket > 5) return { data: null, error: 'Bracket must be between 1 and 5' };
 
   const { data, error } = await supabase
     .from('decks')
     .insert({
       user_id: user.id,
       commander_name: commanderName.trim(),
+      bracket,
     })
     .select()
     .single();
 
   return { data: data as Deck | null, error: error?.message ?? null };
+}
+
+/**
+ * Update a deck's bracket. Records the timestamp automatically via trigger.
+ * AURA score is NOT reset on bracket change (that's by design).
+ */
+export async function updateBracket(deckId: string, bracket: number): Promise<{ error: string | null }> {
+  if (bracket < 1 || bracket > 5) return { error: 'Bracket must be between 1 and 5' };
+
+  const { error } = await supabase
+    .from('decks')
+    .update({ bracket })
+    .eq('id', deckId);
+
+  return { error: error?.message ?? null };
 }
 
 /**
