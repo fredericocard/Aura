@@ -523,7 +523,7 @@ function MemoryCardOverlay({ onClose }: { onClose: () => void }) {
 }
 
 export default function ReviewPage() {
-  const { isGuest } = useAuth();
+  const { isGuest, isLoggedIn } = useAuth();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [activeIdx, setActiveIdx] = useState(0);
   const [bracketAnswer, setBracketAnswer] = useState<string | null>(null);
@@ -636,7 +636,7 @@ export default function ReviewPage() {
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 32px', background: 'linear-gradient(to top, #F5EFE2 60%, rgba(245,239,226,0))', pointerEvents: 'none', zIndex: 5 }}>
         <button disabled={!allAnswered} onClick={() => {
           scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-          if (isGuest) {
+          if (!isLoggedIn) {
             setShowPromotion(true);
           } else {
             setShowMemory(true);
