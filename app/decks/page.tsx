@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { registerCommander, getMyCommanders, type Deck } from '../../lib/commanders';
 import { useAuth } from '../../lib/auth-context';
+import { validateCommander, searchCommanders } from '../../lib/scryfall';
 
 interface ScryfallCard {
   name: string;
@@ -63,14 +64,9 @@ export default function Page() {
   const searchScryfall = (query: string) => {
     if (query.length < 2) { setSearchResults([]); return; }
     setSearching(true);
-    fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}+is%3Acommander&order=name&unique=cards`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.data) {
-          setSearchResults(data.data.slice(0, 8));
-        } else {
-          setSearchResults([]);
-        }
+    searchCommanders(query)
+      .then(results => {
+        setSearchResults(results);
         setSearching(false);
       })
       .catch(() => { setSearchResults([]); setSearching(false); });
@@ -90,29 +86,39 @@ export default function Page() {
   };
 
   const handleSelectCommander = async (card: ScryfallCard) => {
-    const { data: newDeck, error } = await registerCommander(card.name);
+    // Validate against Scryfall + cache the card data
+    const { data: validated, error: valError } = await validateCommander(card.name);
+    if (valError || !validated) {
+      displayToast(valError || 'Could not validate commander');
+      return;
+    }
+    if (!validated.isValidCommander) {
+      displayToast(`${validated.cardName} can't be used as a commander`);
+      return;
+    }
+
+    // Register the deck using the canonical Scryfall name
+    const { data: newDeck, error } = await registerCommander(validated.cardName);
     if (error) {
       displayToast(`Error: ${error}`);
       return;
     }
-    // Update the deck with Scryfall art and color identity
+
+    // Update the deck with cached card details
     if (newDeck) {
-      const artUrl = getCardArt(card);
-      const colorId = card.color_identity.join('');
       const { supabase } = await import('../../lib/supabase');
       await supabase.from('decks').update({
-        commander_art_url: artUrl || null,
-        color_identity: colorId || null,
+        commander_art_url: validated.artUrl,
+        color_identity: validated.colorIdentity || null,
       }).eq('id', newDeck.id);
 
-      // Add to local state with updated fields
       setDecks(prev => [{
         ...newDeck,
-        commander_art_url: artUrl || null,
-        color_identity: colorId || null,
+        commander_art_url: validated.artUrl,
+        color_identity: validated.colorIdentity || null,
       }, ...prev]);
     }
-    displayToast(`${card.name} added!`);
+    displayToast(`${validated.cardName} added!`);
     setShowNewDeck(false);
     setSearchQuery('');
     setSearchResults([]);
