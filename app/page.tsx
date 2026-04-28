@@ -12,7 +12,7 @@ const screens = [
   { number: "06", name: "Single View", href: "/singleview", status: "waiting" },
   { number: "07", name: "Game Review", href: "/review", status: "live" },
   { number: "08", name: "Profile", href: "/profile", status: "waiting" },
-  { number: "09", name: "Decks", href: "/decks", status: "waiting" },
+  { number: "09", name: "Decks", href: "/decks", status: "live" },
   { number: "10", name: "Deck Accomplishments", href: "/deck-accomplishments", status: "waiting" },
   { number: "11", name: "Recent Games", href: "/recent-games", status: "waiting" },
 ];

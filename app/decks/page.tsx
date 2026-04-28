@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 interface ScryfallCard {
   name: string;
@@ -9,14 +10,42 @@ interface ScryfallCard {
   color_identity: string[];
 }
 
+const SAMPLE_DECKS = [
+  { id: 'omnath', name: 'Omnath, Locus of Creation', art: 'https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg', colors: ['G','W','U','R'], aura: 72, bracket: 3 },
+  { id: 'atraxa', name: "Atraxa, Praetors' Voice", art: 'https://cards.scryfall.io/art_crop/front/d/0/d0d33d52-3d28-4f2d-b7f6-92571f2f0e0e.jpg', colors: ['W','U','B','G'], aura: 64, bracket: 4 },
+  { id: 'krenko', name: 'Krenko, Mob Boss', art: 'https://cards.scryfall.io/art_crop/front/c/d/cd9fef1d-fbdc-4e44-9740-d214f712e067.jpg', colors: ['R'], aura: 48, bracket: 2 },
+  { id: 'muldrotha', name: 'Muldrotha, the Gravetide', art: 'https://cards.scryfall.io/art_crop/front/c/6/c654737d-34ac-42ff-ae27-3a3bbb930fc1.jpg', colors: ['B','G','U'], aura: 35, bracket: null },
+];
+
+const AURA_TIERS = [
+  { min: 0,  max: 19,  name: 'Exiled' },
+  { min: 20, max: 39,  name: 'Sideboard' },
+  { min: 40, max: 59,  name: 'Brewed' },
+  { min: 60, max: 79,  name: 'Beloved' },
+  { min: 80, max: 100, name: 'Mythic' },
+];
+
+const MANA_COLORS: Record<string, string> = {
+  W: '#E9DEB6',
+  U: '#5B7E9E',
+  B: '#3F352E',
+  R: '#B0593E',
+  G: '#5B7B45',
+  C: '#A89F8E',
+};
+
+function tierFor(score: number) {
+  return AURA_TIERS.find(t => score >= t.min && score <= t.max) || AURA_TIERS[0];
+}
+
 export default function Page() {
-  const [showToast, setShowToast] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
   const [showNewDeck, setShowNewDeck] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ScryfallCard[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
 
   const displayToast = (msg: string) => {
     setToastMsg(msg);
@@ -53,31 +82,38 @@ export default function Page() {
     return '';
   };
 
-  const manaColors: Record<string, string> = {
-    W: '#f5efe3',
-    U: '#2d7fa0',
-    B: '#3a3a3a',
-    R: '#a84a3a',
-    G: '#2a8a56',
-  };
-
   const handleSelectCommander = (card: ScryfallCard) => {
     displayToast(`${card.name} added!`);
     setShowNewDeck(false);
     setSearchQuery('');
     setSearchResults([]);
-    // In production this would navigate to deck-accomplishments with the new deck
     window.location.href = '/deck-accomplishments';
   };
 
+  const openNewDeck = () => {
+    setShowNewDeck(true);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const closeNewDeck = () => {
+    setShowNewDeck(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const totalAura = SAMPLE_DECKS.reduce((sum, d) => sum + d.aura, 0);
+
   const styles = `
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Young+Serif&display=swap');
+
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
       height: 100%;
       overflow: hidden;
-      font-family: 'Inter', sans-serif;
-      background: #e8dcc8;
+      font-family: 'Instrument Sans', sans-serif;
+      background: #F5EFE2;
     }
 
     .app {
@@ -87,387 +123,413 @@ export default function Page() {
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      padding: 0 24px;
-      padding-top: env(safe-area-inset-top, 16px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      overflow: hidden;
-    }
-
-    /* ── Header ── */
-    .decks-header {
-      padding: 16px 0 8px;
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .back-btn {
-      position: absolute;
-      left: 0;
-      top: 16px;
-      color: rgb(90,110,98);
-      font-size: 22px;
-      cursor: pointer;
-      background: none;
-      border: none;
-      font-family: inherit;
-      line-height: 1;
-      transition: all 0.2s ease;
-    }
-
-    .back-btn:active {
-      transform: scale(0.9);
-    }
-
-    .title-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .title-text {
-      font-size: 20px;
-      font-weight: 700;
-      color: rgb(44,62,54);
-    }
-
-    /* ── Scrollable Deck List ── */
-    .deck-list {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 8px 0;
-    }
-
-    /* ── Deck Card ── */
-    .deck-card {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      margin-bottom: 10px;
-      cursor: pointer;
-      background: rgb(245,239,227);
-      border-radius: 22px;
-      border: 1px solid rgb(184,168,138);
       overflow: hidden;
-      box-shadow: 0 6px 16px rgba(26,20,13,0.08);
+    }
+
+    /* ── Hero Header ── */
+    .hero-header {
+      padding: 52px 20px 18px;
+      background: linear-gradient(180deg, #F3E3D1 0%, #F5EFE2 100%);
+      flex-shrink: 0;
+    }
+
+    .hero-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #B06B2C;
+    }
+
+    .hero-add-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      background: #FAF5EA;
+      border: 1px solid rgba(43,33,24,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #B06B2C;
+      cursor: pointer;
       transition: all 0.2s ease;
+    }
+
+    .hero-add-btn:active { transform: scale(0.9); }
+
+    .hero-title {
+      font-family: 'Young Serif', serif;
+      font-size: 28px;
+      color: #2B2118;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+    }
+
+    .hero-subtitle {
+      font-size: 12px;
+      color: #5C5043;
+      margin-top: 4px;
+    }
+
+    .hero-aura-value {
+      color: #2F5D3A;
+      font-weight: 700;
+    }
+
+    /* ── Content ── */
+    .content {
+      flex: 1;
+      overflow: auto;
+      padding: 14px 16px 100px;
+    }
+
+    .deck-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ── Deck Row ── */
+    .deck-row {
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      background: #FAF5EA;
+      border: 1px solid rgba(43,33,24,0.08);
+      border-radius: 20px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 0 rgba(43,33,24,0.04), 0 6px 18px -8px rgba(43,33,24,0.12);
       text-decoration: none;
       color: inherit;
+      transition: all 0.2s ease;
     }
 
-    .deck-card:active {
-      transform: scale(0.9);
-    }
+    .deck-row:active { transform: scale(0.98); }
 
     .deck-art {
-      width: 72px;
-      height: 64px;
-      flex-shrink: 0;
-      position: relative;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
       overflow: hidden;
-      background: rgb(222,212,192);
+      flex-shrink: 0;
+      box-shadow: 0 0 0 1px rgba(43,33,24,0.08);
+      background: #EDE4D0;
     }
 
     .deck-art img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-    }
-
-    .deck-art-fade {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, transparent 50%, rgba(245,239,227,0.9) 100%);
+      object-position: 50% 25%;
     }
 
     .deck-info {
       flex: 1;
-      padding: 12px 14px;
+      min-width: 0;
     }
 
-    .deck-commander {
-      color: rgb(44,62,54);
-      font-size: 14px;
-      font-weight: 700;
+    .deck-name {
+      font-family: 'Young Serif', serif;
+      font-size: 17px;
+      color: #2B2118;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .deck-mana {
+    .deck-meta {
       display: flex;
-      gap: 4px;
-      margin-top: 5px;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .mana-dots {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
     }
 
     .mana-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px rgba(43,33,24,0.18);
     }
 
-    .deck-chevron {
-      color: rgb(26,122,106);
-      font-size: 18px;
+    .tier-label {
+      font-size: 11px;
+      color: #8A7E6F;
       font-weight: 600;
-      padding-right: 16px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .deck-aura {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       flex-shrink: 0;
     }
 
-    /* ── New Deck Button ── */
-    .new-deck-btn {
+    .aura-number {
+      font-family: 'Young Serif', serif;
+      font-size: 22px;
+      color: #2F5D3A;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .deck-chevron {
+      color: #B8AE9E;
+      margin-left: 4px;
+    }
+
+    /* ── Add New Card ── */
+    .add-card {
+      border: 1.5px dashed rgba(43,33,24,0.14);
+      border-radius: 20px;
+      padding: 20px 14px;
+      text-align: center;
+      color: #5C5043;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 100%;
+      font-family: 'Instrument Sans', sans-serif;
+    }
+
+    .add-card:active { transform: scale(0.98); }
+
+    .add-icon-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: #FAF5EA;
+      border: 1px solid rgba(43,33,24,0.14);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      padding: 12px 24px;
-      margin: 4px auto 0;
-      width: fit-content;
-      background: rgb(245,239,227);
-      border-radius: 22px;
-      border: 1px solid rgb(184,168,138);
-      box-shadow: 0 6px 16px rgba(26,20,13,0.08);
-      cursor: pointer;
-      color: rgb(44,62,54);
-      font-size: 14px;
-      font-weight: 600;
-      font-family: inherit;
-      transition: all 0.2s ease;
+      color: #8A7E6F;
     }
 
-    .new-deck-btn:active {
-      transform: scale(0.9);
-    }
-
-    .new-deck-plus {
+    .add-label {
+      font-family: 'Young Serif', serif;
       font-size: 16px;
-      color: rgb(26,122,106);
-      font-weight: 700;
+      color: #2B2118;
+    }
+
+    .add-hint {
+      font-size: 12px;
+      color: #5C5043;
     }
 
     /* ── Bottom Nav ── */
     .bottom-nav {
-      margin-top: auto;
-      margin-bottom: 16px;
-      padding-top: 16px;
-      height: 84px;
-      border-radius: 26px;
-      border-top: 1px solid rgba(184,168,138,0.5);
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding-bottom: 28px;
+      padding-top: 8px;
+      background: rgba(245,239,226,0.92);
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+      border-top: 1px solid rgba(43,33,24,0.08);
       display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
+      justify-content: space-around;
+      z-index: 30;
     }
 
     .nav-item {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
-      cursor: pointer;
-      flex: 1;
-      padding: 10px 6px;
-      border-radius: 18px;
-      background: transparent;
-      transition: all 0.2s ease;
-      border: none;
-      font-family: inherit;
+      gap: 3px;
+      padding: 6px 0;
       text-decoration: none;
-      color: inherit;
+      transition: all 0.2s ease;
     }
 
-    /* Active state — current page, permanent teal gradient */
-    .nav-item.active {
-      background: linear-gradient(135deg, rgb(21,138,114) 0%, rgb(26,122,106) 100%);
-      border: 1px solid rgb(56,158,133);
-      box-shadow: 0 4px 12px rgba(26,120,105,0.45);
-    }
-
-    .nav-item.active .nav-label {
-      color: rgb(245,239,227);
-      font-weight: 700;
-    }
-
-    .nav-item.active .nav-icon-svg {
-      stroke: rgb(245,239,227);
-    }
-
-    /* Press state for inactive items */
-    .nav-item:not(.active):active {
-      transform: scale(0.9);
-      background: linear-gradient(135deg, rgb(21,138,114) 0%, rgb(26,122,106) 100%);
-    }
-
-    .nav-item:not(.active):active .nav-label {
-      color: rgb(245,239,227);
-    }
-
-    .nav-item:not(.active):active .nav-icon-svg {
-      stroke: rgb(245,239,227);
-    }
-
-    /* Active nav item press — subtle scale */
-    .nav-item.active:active {
-      transform: scale(0.95);
-    }
-
-    .nav-icon {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .nav-icon-svg {
-      stroke: rgb(90,110,98);
-      fill: none;
-      transition: stroke 0.2s ease;
-    }
+    .nav-item:active { transform: scale(0.9); }
 
     .nav-label {
-      font-weight: 500;
-      font-size: 12px;
-      color: rgb(90,110,98);
-      transition: color 0.2s ease;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
-    /* ── New Deck Popup ── */
-    .newdeck-overlay {
+    .nav-inactive {
+      color: #8A7E6F;
+    }
+
+    .nav-active {
+      color: #2F5D3A;
+    }
+
+    /* ── Commander Search Popup ── */
+    .search-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 500;
+      background: rgba(43,33,24,0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 70;
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 60px;
+      padding: 80px 20px;
     }
 
-    .newdeck-popup {
-      width: calc(100% - 48px);
-      max-width: 380px;
-      max-height: calc(100vh - 120px);
-      background: rgb(245,239,227);
-      border: 1.3px solid rgb(184,168,138);
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+    .search-card {
+      background: #FAF5EA;
+      border-radius: 24px;
+      padding: 22px 20px;
+      width: 100%;
+      max-width: 360px;
+      max-height: calc(100vh - 160px);
       display: flex;
       flex-direction: column;
+      box-shadow: 0 4px 0 rgba(43,33,24,0.06), 0 30px 60px -16px rgba(43,33,24,0.35);
+      border: 1px solid rgba(43,33,24,0.14);
+      animation: popIn 0.3s ease;
     }
 
-    .newdeck-header {
+    @keyframes popIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .search-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 14px;
     }
 
-    .newdeck-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: rgb(44,62,54);
-    }
-
-    .newdeck-close {
-      background: none;
-      border: none;
+    .search-title {
+      font-family: 'Young Serif', serif;
       font-size: 20px;
-      color: rgb(90,110,98);
-      cursor: pointer;
+      color: #2B2118;
     }
 
-    .newdeck-search {
+    .search-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: #8A7E6F;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-close:active { transform: scale(0.85); }
+
+    .search-input {
       width: 100%;
+      background: #F5EFE2;
+      border: 1px solid rgba(43,33,24,0.14);
+      border-radius: 16px;
       padding: 12px 14px;
-      border-radius: 12px;
-      border: 1.3px solid rgb(184,168,138);
-      background: rgb(222,212,192);
-      font-family: 'Inter', sans-serif;
+      font-family: 'Instrument Sans', sans-serif;
       font-size: 14px;
-      color: rgb(44,62,54);
+      color: #2B2118;
       outline: none;
       margin-bottom: 12px;
     }
 
-    .newdeck-search:focus {
-      border-color: rgb(26,122,106);
+    .search-input:focus {
+      border-color: #2F5D3A;
     }
 
-    .newdeck-search::placeholder {
-      color: rgb(138,154,142);
+    .search-input::placeholder {
+      color: #B8AE9E;
     }
 
-    .newdeck-results {
+    .search-results {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
 
-    .newdeck-result {
+    .search-result {
       display: flex;
       align-items: center;
       gap: 10px;
       padding: 8px 6px;
-      border-radius: 12px;
+      border-radius: 14px;
       cursor: pointer;
-      transition: background 0.15s ease;
       border: none;
       background: none;
       width: 100%;
       text-align: left;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Instrument Sans', sans-serif;
+      transition: background 0.15s ease;
     }
 
-    .newdeck-result:active {
-      background: rgba(26,122,106,0.08);
+    .search-result:active {
+      background: rgba(47,93,58,0.08);
     }
 
-    .newdeck-result-art {
-      width: 48px;
-      height: 42px;
-      border-radius: 8px;
+    .search-result-art {
+      width: 44px;
+      height: 38px;
+      border-radius: 10px;
       overflow: hidden;
       flex-shrink: 0;
-      background: rgb(222,212,192);
+      background: #EDE4D0;
     }
 
-    .newdeck-result-art img {
+    .search-result-art img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
 
-    .newdeck-result-info {
+    .search-result-info {
       flex: 1;
       min-width: 0;
     }
 
-    .newdeck-result-name {
-      font-size: 13px;
+    .search-result-name {
+      font-size: 14px;
       font-weight: 600;
-      color: rgb(44,62,54);
+      color: #2B2118;
       line-height: 1.2;
     }
 
-    .newdeck-result-mana {
+    .search-result-mana {
       display: flex;
       gap: 3px;
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
-    .newdeck-mana-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .newdeck-hint {
+    .search-hint {
       text-align: center;
-      padding: 20px;
-      color: rgb(138,154,142);
+      padding: 24px;
+      color: #B8AE9E;
       font-size: 13px;
     }
 
@@ -477,12 +539,12 @@ export default function Page() {
       bottom: 100px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: rgb(44,62,54);
-      color: rgb(245,239,227);
+      background: #2B2118;
+      color: #F5EFE2;
       padding: 10px 20px;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       opacity: 0;
       pointer-events: none;
       transition: all 0.3s ease;
@@ -499,135 +561,141 @@ export default function Page() {
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className="app">
-        {/* Header */}
-        <div className="decks-header">
-          <div className="title-row">
-            <span className="title-text">Your Decks</span>
+        {/* Hero Header */}
+        <div className="hero-header">
+          <div className="hero-top-row">
+            <div className="hero-eyebrow">The Library</div>
+            <button className="hero-add-btn" onClick={openNewDeck}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+          <div className="hero-title">Decks</div>
+          <div className="hero-subtitle">
+            {SAMPLE_DECKS.length} commanders · summed Aura{' '}
+            <span className="hero-aura-value">{totalAura}</span>
           </div>
         </div>
 
-        {/* Deck List */}
-        <div className="deck-list">
-          {/* Deck 1: Atraxa Superfriends */}
-          <a href="/deck-accomplishments" className="deck-card">
-            <div className="deck-art">
-              <img src="https://cards.scryfall.io/art_crop/front/c/3/c34ae834-775e-447a-a330-0270c227c667.jpg" alt="Atraxa" />
-              <div className="deck-art-fade"></div>
-            </div>
-            <div className="deck-info">
-              <div className="deck-commander">Atraxa, Praetors' Voice</div>
-              <div className="deck-mana">
-                <div className="mana-dot" style={{background:'#f5efe3',border:'1px solid rgb(184,168,138)'}}></div>
-                <div className="mana-dot" style={{background:'#2d7fa0'}}></div>
-                <div className="mana-dot" style={{background:'#3a3a3a'}}></div>
-                <div className="mana-dot" style={{background:'#2a8a56'}}></div>
-              </div>
-            </div>
-            <span className="deck-chevron">&#8250;</span>
-          </a>
+        {/* Content */}
+        <div className="content">
+          <div className="deck-list">
+            {SAMPLE_DECKS.map(d => {
+              const tier = tierFor(d.aura);
+              return (
+                <Link key={d.id} href="/deck-accomplishments" className="deck-row">
+                  <div className="deck-art">
+                    <img src={d.art} alt={d.name} />
+                  </div>
+                  <div className="deck-info">
+                    <div className="deck-name">{d.name}</div>
+                    <div className="deck-meta">
+                      <span className="mana-dots">
+                        {d.colors.map((c, j) => (
+                          <span key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
+                        ))}
+                      </span>
+                      <span className="tier-label">{tier.name}</span>
+                    </div>
+                  </div>
+                  <div className="deck-aura">
+                    {/* Aura mark */}
+                    <svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true">
+                      <circle cx="32" cy="36" r="2.4" fill="#2F5D3A" />
+                      <clipPath id={`ac-${d.id}`}><ellipse cx="32" cy="32" rx="22" ry="26" /></clipPath>
+                      <g clipPath={`url(#ac-${d.id})`}>
+                        <polygon points="8,60 30,4 31,4 24,60" fill="#2F5D3A" />
+                        <polygon points="40,60 33,4 34,4 56,60" fill="#2F5D3A" />
+                      </g>
+                    </svg>
+                    <span className="aura-number">{d.aura}</span>
+                    <span className="deck-chevron">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
 
-          {/* Deck 2: Korvold Sac */}
-          <a href="/deck-accomplishments" className="deck-card">
-            <div className="deck-art">
-              <img src="https://cards.scryfall.io/art_crop/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg" alt="Korvold" />
-              <div className="deck-art-fade"></div>
-            </div>
-            <div className="deck-info">
-              <div className="deck-commander">Korvold, Fae-Cursed King</div>
-              <div className="deck-mana">
-                <div className="mana-dot" style={{background:'#3a3a3a'}}></div>
-                <div className="mana-dot" style={{background:'#a84a3a'}}></div>
-                <div className="mana-dot" style={{background:'#2a8a56'}}></div>
+            {/* Add new commander card */}
+            <button className="add-card" onClick={openNewDeck}>
+              <div className="add-icon-circle">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
               </div>
-            </div>
-            <span className="deck-chevron">&#8250;</span>
-          </a>
-
-          {/* Deck 3: Yuriko Ninjas */}
-          <a href="/deck-accomplishments" className="deck-card">
-            <div className="deck-art">
-              <img src="https://cards.scryfall.io/art_crop/front/3/b/3bd81ae6-e628-447a-a36b-597e63ede295.jpg" alt="Yuriko" />
-              <div className="deck-art-fade"></div>
-            </div>
-            <div className="deck-info">
-              <div className="deck-commander">Yuriko, the Tiger's Shadow</div>
-              <div className="deck-mana">
-                <div className="mana-dot" style={{background:'#2d7fa0'}}></div>
-                <div className="mana-dot" style={{background:'#3a3a3a'}}></div>
-              </div>
-            </div>
-            <span className="deck-chevron">&#8250;</span>
-          </a>
-
-          {/* New Deck button */}
-          <button className="new-deck-btn" onClick={() => setShowNewDeck(true)}>
-            <span className="new-deck-plus">+</span> New Deck
-          </button>
+              <div className="add-label">Add a commander</div>
+              <div className="add-hint">Search Scryfall or paste a decklist URL</div>
+            </button>
+          </div>
         </div>
 
-        {/* Bottom Nav: Recent Games | Profile | Decks (active) */}
+        {/* Bottom Nav */}
         <div className="bottom-nav">
-          <a href="/recent-games" className="nav-item">
-            <div className="nav-icon">
-              <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M2 4H16M2 9H16M2 14H16"/>
-              </svg>
-            </div>
-            <div className="nav-label">Recent Games</div>
-          </a>
-
-          <a href="/profile" className="nav-item">
-            <div className="nav-icon">
-              <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
-                <circle cx="9" cy="6" r="3.5"/>
-                <path d="M2.5 17C2.5 13 5 11 9 11C13 11 15.5 13 15.5 17"/>
-              </svg>
-            </div>
+          <Link href="/recent-games" className="nav-item nav-inactive">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m12.83 2.18-9 4a2 2 0 0 0 0 3.64l9 4a2 2 0 0 0 1.66 0l9-4a2 2 0 0 0 0-3.64l-9-4a2 2 0 0 0-1.66 0z" />
+              <path d="m2 12.5 9.2 4.1a2 2 0 0 0 1.6 0L22 12.5" />
+              <path d="m2 17.5 9.2 4.1a2 2 0 0 0 1.6 0L22 17.5" />
+            </svg>
+            <div className="nav-label">Recent</div>
+          </Link>
+          <Link href="/profile" className="nav-item nav-inactive">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
             <div className="nav-label">Profile</div>
-          </a>
-
-          <div className="nav-item active">
-            <div className="nav-icon">
-              <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
-                <rect x="3" y="1" width="12" height="14" rx="2"/>
-                <path d="M6 17H15C16 17 17 16 17 15V5" opacity="0.5" strokeWidth="1.2"/>
-              </svg>
-            </div>
+          </Link>
+          <div className="nav-item nav-active">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+              <path d="M19 3v3M20.5 4.5h-3M5 18v3M6.5 19.5h-3" />
+            </svg>
             <div className="nav-label">Decks</div>
           </div>
         </div>
       </div>
 
-      {/* New Deck Popup */}
+      {/* Commander Search Popup */}
       {showNewDeck && (
-        <div className="newdeck-overlay" onClick={() => { setShowNewDeck(false); setSearchQuery(''); setSearchResults([]); }}>
-          <div className="newdeck-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="newdeck-header">
-              <div className="newdeck-title">Choose Commander</div>
-              <button className="newdeck-close" onClick={() => { setShowNewDeck(false); setSearchQuery(''); setSearchResults([]); }}>✕</button>
+        <div className="search-overlay" onClick={closeNewDeck}>
+          <div className="search-card" onClick={(e) => e.stopPropagation()}>
+            <div className="search-header">
+              <div className="search-title">Choose Commander</div>
+              <button className="search-close" onClick={closeNewDeck}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
             <input
-              className="newdeck-search"
+              className="search-input"
               type="text"
               placeholder="Search commanders..."
               value={searchQuery}
               onChange={(e) => handleSearchInput(e.target.value)}
               autoFocus
             />
-            <div className="newdeck-results">
-              {searching && <div className="newdeck-hint">Searching...</div>}
-              {!searching && searchQuery.length < 2 && <div className="newdeck-hint">Type a commander name to search</div>}
-              {!searching && searchQuery.length >= 2 && searchResults.length === 0 && <div className="newdeck-hint">No commanders found</div>}
+            <div className="search-results">
+              {searching && <div className="search-hint">Searching...</div>}
+              {!searching && searchQuery.length < 2 && <div className="search-hint">Type a commander name to search</div>}
+              {!searching && searchQuery.length >= 2 && searchResults.length === 0 && <div className="search-hint">No commanders found</div>}
               {searchResults.map((card, i) => (
-                <button key={i} className="newdeck-result" onClick={() => handleSelectCommander(card)}>
-                  <div className="newdeck-result-art">
+                <button key={i} className="search-result" onClick={() => handleSelectCommander(card)}>
+                  <div className="search-result-art">
                     {getCardArt(card) && <img src={getCardArt(card)} alt={card.name} />}
                   </div>
-                  <div className="newdeck-result-info">
-                    <div className="newdeck-result-name">{card.name}</div>
-                    <div className="newdeck-result-mana">
+                  <div className="search-result-info">
+                    <div className="search-result-name">{card.name}</div>
+                    <div className="search-result-mana">
                       {card.color_identity.map((c, j) => (
-                        <div key={j} className="newdeck-mana-dot" style={{ background: manaColors[c] || '#8a8a8a', border: c === 'W' ? '1px solid rgb(184,168,138)' : 'none' }} />
+                        <span key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
                       ))}
                     </div>
                   </div>
