@@ -5,6 +5,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../lib/auth-context';
 
 /* ── LIcon — inline Lucide icons ── */
 function LIcon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name: string; size?: number; stroke?: string; width?: number }) {
@@ -43,7 +44,6 @@ function SunCircle({ size = 360, opacity = 0.14 }: { size?: number; opacity?: nu
   return (
     <svg width={size} height={size} viewBox="0 0 360 360" aria-hidden="true" style={{ opacity, width: size }}>
       <g stroke="rgba(43,33,24,0.35)" strokeWidth="0.7" fill="none">
-        {/* Radiating lines — all equal length, evenly spaced */}
         {Array.from({ length: 24 }).map((_, i) => {
           const a = (i / 24) * Math.PI * 2;
           const r1 = 55, r2 = 170;
@@ -51,7 +51,6 @@ function SunCircle({ size = 360, opacity = 0.14 }: { size?: number; opacity?: nu
             x1={cx + Math.cos(a) * r1} y1={cy + Math.sin(a) * r1}
             x2={cx + Math.cos(a) * r2} y2={cy + Math.sin(a) * r2} />;
         })}
-        {/* Concentric circles */}
         <circle cx={cx} cy={cy} r="55" />
         <circle cx={cx} cy={cy} r="100" strokeDasharray="1.5 4" />
         <circle cx={cx} cy={cy} r="140" strokeDasharray="1 5" />
@@ -189,22 +188,44 @@ function SSOButton({ provider, onClick }: { provider: 'google' | 'apple'; onClic
 }
 
 /* ── FieldInput — form fields for sign up / sign in ── */
-function FieldInput({ label, type = 'text', placeholder }: { label: string; type?: string; placeholder?: string }) {
+function FieldInput({ label, type = 'text', placeholder, value, onChange }: { label: string; type?: string; placeholder?: string; value: string; onChange: (v: string) => void }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span style={{
         fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: '#8A7E6F',
       }}>{label}</span>
-      <input type={type} placeholder={placeholder} style={{
-        width: '100%',
-        background: '#F5EFE2',
-        border: '1px solid rgba(43,33,24,0.14)',
-        borderRadius: 12, padding: '12px 14px',
-        fontSize: 15, color: '#2B2118',
-        fontFamily: "'Instrument Sans', sans-serif", outline: 'none',
-      }} />
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: '100%',
+          background: '#F5EFE2',
+          border: '1px solid rgba(43,33,24,0.14)',
+          borderRadius: 12, padding: '12px 14px',
+          fontSize: 15, color: '#2B2118',
+          fontFamily: "'Instrument Sans', sans-serif", outline: 'none',
+        }}
+      />
     </label>
+  );
+}
+
+/* ── ErrorBanner ── */
+function ErrorBanner({ message }: { message: string }) {
+  if (!message) return null;
+  return (
+    <div style={{
+      background: 'rgba(158,43,43,0.08)',
+      border: '1px solid rgba(158,43,43,0.2)',
+      borderRadius: 12,
+      padding: '10px 14px',
+      fontSize: 13,
+      color: '#9E2B2B',
+      textAlign: 'center',
+    }}>{message}</div>
   );
 }
 
@@ -248,23 +269,66 @@ function SSOView({ setView, onLogin }: { setView: (v: string) => void; onLogin: 
 }
 
 /* ── SignUpView ── */
-function SignUpView({ setView, onLogin }: { setView: (v: string) => void; onLogin: () => void }) {
+function SignUpView({ setView }: { setView: (v: string) => void }) {
+  const { signUp } = useAuth();
+  const [email, setEmail] = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
+
+  const handleSignUp = async () => {
+    setError('');
+    if (!email || !password) { setError('Please fill in all fields'); return; }
+    if (email !== confirmEmail) { setError('Emails do not match'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+
+    setSubmitting(true);
+    const { error: authError } = await signUp(email, password);
+    setSubmitting(false);
+
+    if (authError) {
+      setError(authError);
+    } else {
+      setSuccess(true);
+    }
+  };
+
+  if (success) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <SheetMasthead eyebrow="Almost there" title="Check your email" subtitle="We sent a confirmation link. Click it to activate your account, then come back and log in." />
+        <button onClick={() => setView('signin')} style={{
+          background: '#2F5D3A', color: '#F5EFE2',
+          border: 'none', borderRadius: 20,
+          padding: '14px 18px', cursor: 'pointer',
+          fontSize: 15, fontWeight: 600, marginTop: 4,
+          boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+          fontFamily: "'Instrument Sans', sans-serif",
+        }}>Go to Log in</button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SheetMasthead eyebrow="New player" title="Create account" subtitle="Join your first pod." />
+      <ErrorBanner message={error} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-        <FieldInput label="Email" type="email" placeholder="you@table.cards" />
-        <FieldInput label="Confirm email" type="email" placeholder="you@table.cards" />
-        <FieldInput label="Password" type="password" placeholder="••••••••" />
+        <FieldInput label="Email" type="email" placeholder="you@table.cards" value={email} onChange={setEmail} />
+        <FieldInput label="Confirm email" type="email" placeholder="you@table.cards" value={confirmEmail} onChange={setConfirmEmail} />
+        <FieldInput label="Password" type="password" placeholder="••••••••" value={password} onChange={setPassword} />
       </div>
-      <button onClick={onLogin} style={{
-        background: '#2F5D3A', color: '#F5EFE2',
+      <button onClick={handleSignUp} disabled={submitting} style={{
+        background: submitting ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
         border: 'none', borderRadius: 20,
-        padding: '14px 18px', cursor: 'pointer',
+        padding: '14px 18px', cursor: submitting ? 'default' : 'pointer',
         fontSize: 15, fontWeight: 600, marginTop: 4,
         boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
         fontFamily: "'Instrument Sans', sans-serif",
-      }}>Create account</button>
+      }}>{submitting ? 'Creating...' : 'Create account'}</button>
       <div style={{ textAlign: 'center', fontSize: 13, color: '#5C5043' }}>
         Already have an account?{' '}
         <button onClick={() => setView('signin')} style={{
@@ -279,22 +343,44 @@ function SignUpView({ setView, onLogin }: { setView: (v: string) => void; onLogi
 }
 
 /* ── SignInView ── */
-function SignInView({ setView, onLogin }: { setView: (v: string) => void; onLogin: () => void }) {
+function SignInView({ setView }: { setView: (v: string) => void }) {
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
+
+  const handleSignIn = async () => {
+    setError('');
+    if (!email || !password) { setError('Please fill in all fields'); return; }
+
+    setSubmitting(true);
+    const { error: authError } = await signIn(email, password);
+    setSubmitting(false);
+
+    if (authError) {
+      setError(authError);
+    }
+    // Auth state change will be picked up by the context automatically
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SheetMasthead eyebrow="Returning" title="Welcome back" subtitle="The pod's been waiting." />
+      <ErrorBanner message={error} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-        <FieldInput label="Email" type="email" placeholder="you@table.cards" />
-        <FieldInput label="Password" type="password" placeholder="••••••••" />
+        <FieldInput label="Email" type="email" placeholder="you@table.cards" value={email} onChange={setEmail} />
+        <FieldInput label="Password" type="password" placeholder="••••••••" value={password} onChange={setPassword} />
       </div>
-      <button onClick={onLogin} style={{
-        background: '#2F5D3A', color: '#F5EFE2',
+      <button onClick={handleSignIn} disabled={submitting} style={{
+        background: submitting ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
         border: 'none', borderRadius: 20,
-        padding: '14px 18px', cursor: 'pointer',
+        padding: '14px 18px', cursor: submitting ? 'default' : 'pointer',
         fontSize: 15, fontWeight: 600, marginTop: 4,
         boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
         fontFamily: "'Instrument Sans', sans-serif",
-      }}>Log in</button>
+      }}>{submitting ? 'Logging in...' : 'Log in'}</button>
       <div style={{ textAlign: 'center', fontSize: 13, color: '#5C5043' }}>
         Don&apos;t have an account?{' '}
         <button onClick={() => setView('signup')} style={{
@@ -309,13 +395,21 @@ function SignInView({ setView, onLogin }: { setView: (v: string) => void; onLogi
 }
 
 /* ── LoginSheet — bottom sheet with torn-paper edge ── */
-function LoginSheet({ onClose, onLogin }: { onClose: () => void; onLogin: () => void }) {
+function LoginSheet({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState('sso');
   const [slideUp, setSlideUp] = useState(false);
+  const { isLoggedIn } = useAuth();
 
   useEffect(() => {
     setTimeout(() => setSlideUp(true), 30);
   }, []);
+
+  // Auto-close when user successfully logs in
+  useEffect(() => {
+    if (isLoggedIn) {
+      handleClose();
+    }
+  }, [isLoggedIn]);
 
   const handleClose = () => {
     setSlideUp(false);
@@ -369,39 +463,41 @@ function LoginSheet({ onClose, onLogin }: { onClose: () => void; onLogin: () => 
             <LIcon name="x" size={15} width={2} />
           </button>
 
-          {view === 'sso' && <SSOView setView={setView} onLogin={onLogin} />}
-          {view === 'signup' && <SignUpView setView={setView} onLogin={onLogin} />}
-          {view === 'signin' && <SignInView setView={setView} onLogin={onLogin} />}
+          {view === 'sso' && <SSOView setView={setView} onLogin={() => {}} />}
+          {view === 'signup' && <SignUpView setView={setView} />}
+          {view === 'signin' && <SignInView setView={setView} />}
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Landing Page — choreographed entrance ──
-   Phase 1: logo + "Aura" appear centered on screen (splash feel)
-   Phase 2: compass rose blooms behind them
-   Phase 3: logo + "Aura" travel up together, splash text fades, big wordmark fades in
-   Phase 4: hairline, tagline, pull-quote appear
-   Phase 5: buttons rise from the bottom
-*/
+/* ── Landing Page ── */
 export default function HomePage() {
   const [phase, setPhase] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginRedirect, setLoginRedirect] = useState('/create');
   const router = useRouter();
+  const { isLoggedIn, isGuest, user, signOut, loading } = useAuth();
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 200),    // logo + "Aura" appear centered
-      setTimeout(() => setPhase(2), 700),    // circle blooms behind
-      setTimeout(() => setPhase(3), 2600),   // logo travels up, text transforms
-      setTimeout(() => setPhase(4), 3600),   // details fade in
-      setTimeout(() => setPhase(5), 4200),   // buttons rise
+      setTimeout(() => setPhase(1), 200),
+      setTimeout(() => setPhase(2), 700),
+      setTimeout(() => setPhase(3), 2600),
+      setTimeout(() => setPhase(4), 3600),
+      setTimeout(() => setPhase(5), 4200),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
+
+  // When login completes, redirect
+  useEffect(() => {
+    if (isLoggedIn && showLogin) {
+      setShowLogin(false);
+      router.push(loginRedirect);
+    }
+  }, [isLoggedIn]);
 
   const ease = 'cubic-bezier(.22,.61,.36,1)';
 
@@ -418,12 +514,11 @@ export default function HomePage() {
       padding: '60px 22px 22px',
     }}>
 
-      {/* ── SPLASH LOCKUP ── logo + "Aura" centered, then travels up ── */}
+      {/* ── SPLASH LOCKUP ── */}
       <div style={{
         position: 'absolute', left: 0, right: 0,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
         zIndex: 10,
-        // Starts at center of screen, moves to top
         top: phase >= 3 ? 60 : '50%',
         transform: phase >= 3 ? 'translateY(0)' : 'translateY(-50%)',
         transition: `top 1100ms ${ease}, transform 1100ms ${ease}`,
@@ -431,7 +526,6 @@ export default function HomePage() {
         pointerEvents: 'none',
       }}>
         <AuraMark size={phase >= 3 ? 40 : 96} color="#2F5D3A" />
-        {/* Splash "Aura" text — fades out as it moves up */}
         <div style={{
           fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400,
           fontSize: phase >= 3 ? 34 : 48, letterSpacing: '-0.02em',
@@ -439,7 +533,6 @@ export default function HomePage() {
           opacity: phase >= 3 ? 0 : 1,
           transition: `opacity 600ms ${ease}, font-size 1100ms ${ease}`,
         }}>Aura</div>
-        {/* Splash tagline — below "Aura" */}
         <div style={{
           fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
           color: '#8A7E6F', fontWeight: 600, marginTop: 8,
@@ -448,15 +541,12 @@ export default function HomePage() {
         }}>Shape Your Aura</div>
       </div>
 
-      {/* ── UPPER BAND ── final wordmark area ── */}
+      {/* ── UPPER BAND ── */}
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: 14, position: 'relative', zIndex: 2,
       }}>
-        {/* Spacer for the logo that will land here */}
         <div style={{ height: 40 }} />
-
-        {/* "Aura" wordmark — smaller */}
         <div style={{
           fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400,
           fontSize: 54, letterSpacing: '-0.02em',
@@ -464,22 +554,15 @@ export default function HomePage() {
           opacity: phase >= 4 ? 1 : 0,
           transition: `opacity 600ms ${ease} 80ms`,
         }}>Aura</div>
-
-        {/* Hairline rule with green diamond */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, width: 200, marginTop: -2,
           opacity: phase >= 4 ? 1 : 0,
           transition: `opacity 600ms ${ease}`,
         }}>
           <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.18)' }} />
-          <div style={{
-            width: 6, height: 6, transform: 'rotate(45deg)',
-            background: '#2F5D3A',
-          }} />
+          <div style={{ width: 6, height: 6, transform: 'rotate(45deg)', background: '#2F5D3A' }} />
           <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.18)' }} />
         </div>
-
-        {/* Tagline */}
         <div style={{
           fontFamily: "'Young Serif', Georgia, serif",
           fontStyle: 'italic', fontWeight: 400,
@@ -494,13 +577,12 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── MIDDLE BAND ── compass rose ── */}
+      {/* ── MIDDLE BAND ── */}
       <div style={{
         flex: 1, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '4px 0 4px',
       }}>
-        {/* Compass rose — blooms in phase 2 */}
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
           transform: `translate(-50%, -50%) scale(${phase >= 2 ? 1 : 0.5})`,
@@ -509,8 +591,6 @@ export default function HomePage() {
         }}>
           <SunCircle size={340} opacity={1} />
         </div>
-
-        {/* Pull-quote — appears in phase 4 */}
         <div style={{
           position: 'relative', zIndex: 2, textAlign: 'center',
           maxWidth: 220,
@@ -530,14 +610,13 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── LOWER BAND ── action plinth — rises in phase 5 ── */}
+      {/* ── LOWER BAND ── */}
       <div style={{
         position: 'relative', zIndex: 2,
         opacity: phase >= 5 ? 1 : 0,
         transform: phase >= 5 ? 'translateY(0)' : 'translateY(24px)',
         transition: `opacity 500ms ${ease}, transform 500ms ${ease}`,
       }}>
-        {/* Sunken plinth */}
         <div style={{
           background: '#EDE4D0',
           borderRadius: 22,
@@ -555,8 +634,6 @@ export default function HomePage() {
           }} />
           <ActionTile variant="secondary" icon="scan" label="Join a Pod" sub="SCAN TO ENTER" onClick={() => router.push('/join')} />
         </div>
-
-        {/* Utility row */}
         <div style={{
           marginTop: 8,
           display: 'flex',
@@ -564,7 +641,7 @@ export default function HomePage() {
         }}>
           <UtilityItem icon="compass" label="New here?" onClick={() => router.push('/howtoplay')} />
           <div style={{ width: 1, background: 'rgba(43,33,24,0.14)' }} />
-          <UtilityItem icon="user" label="Profile" onClick={() => {
+          <UtilityItem icon="user" label={isLoggedIn ? 'Profile' : 'Sign in'} onClick={() => {
             if (isLoggedIn) {
               router.push('/profile');
             } else {
@@ -576,11 +653,7 @@ export default function HomePage() {
       </div>
 
       {/* Login sheet */}
-      {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={() => {
-        setIsLoggedIn(true);
-        setShowLogin(false);
-        router.push(loginRedirect);
-      }} />}
+      {showLogin && <LoginSheet onClose={() => setShowLogin(false)} />}
     </div>
   );
 }
