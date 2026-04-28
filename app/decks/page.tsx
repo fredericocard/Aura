@@ -134,36 +134,14 @@ export default function Page() {
       flex-shrink: 0;
     }
 
-    .hero-top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-
     .hero-eyebrow {
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.16em;
       text-transform: uppercase;
       color: #B06B2C;
+      margin-bottom: 6px;
     }
-
-    .hero-add-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 999px;
-      background: #FAF5EA;
-      border: 1px solid rgba(43,33,24,0.08);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #B06B2C;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .hero-add-btn:active { transform: scale(0.9); }
 
     .hero-title {
       font-family: 'Young Serif', serif;
@@ -563,15 +541,7 @@ export default function Page() {
       <div className="app">
         {/* Hero Header */}
         <div className="hero-header">
-          <div className="hero-top-row">
-            <div className="hero-eyebrow">The Library</div>
-            <button className="hero-add-btn" onClick={openNewDeck}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          </div>
+          <div className="hero-eyebrow">The Library</div>
           <div className="hero-title">Decks</div>
           <div className="hero-subtitle">
             {SAMPLE_DECKS.length} commanders · summed Aura{' '}
