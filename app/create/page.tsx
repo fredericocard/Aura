@@ -3,38 +3,44 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+const SAMPLE_DECKS = [
+  { id: 'omnath', name: 'Omnath, Locus of Creation', art: 'https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg', colors: ['G','W','U','R'] },
+  { id: 'atraxa', name: "Atraxa, Praetors' Voice", art: 'https://cards.scryfall.io/art_crop/front/d/0/d0d33d52-3d28-4f2d-b7f6-92571f2f0e0e.jpg', colors: ['W','U','B','G'] },
+  { id: 'krenko', name: 'Krenko, Mob Boss', art: 'https://cards.scryfall.io/art_crop/front/c/d/cd9fef1d-fbdc-4e44-9740-d214f712e067.jpg', colors: ['R'] },
+];
+
+const MANA_COLORS: Record<string, string> = {
+  W: '#E9DEB6',
+  U: '#5B7E9E',
+  B: '#3F352E',
+  R: '#B0593E',
+  G: '#5B7B45',
+};
+
 export default function Page() {
-  const [podName, setPodName] = useState('Friday Night MTG');
+  const [podName, setPodName] = useState('Friday Night Pod');
   const [selectedPlayers, setSelectedPlayers] = useState(4);
   const [selectedDeck, setSelectedDeck] = useState(0);
   const [showQr, setShowQr] = useState(false);
 
-  const decks = [
-    {
-      emoji: '🦋',
-      name: 'Atraxa Superfriends',
-      mana: ['w', 'u', 'b', 'g'],
-    },
-    {
-      emoji: '🐉',
-      name: 'Korvold Sac',
-      mana: ['b', 'r', 'g'],
-    },
-    {
-      emoji: '🥷',
-      name: 'Yuriko Ninjas',
-      mana: ['u', 'b'],
-    },
-  ];
+  // Generate decorative QR pattern
+  const qrCells = Array.from({ length: 121 }).map((_, i) => {
+    const r = Math.floor(i / 11), c = i % 11;
+    const corner = (r < 3 && c < 3) || (r < 3 && c > 7) || (r > 7 && c < 3);
+    const filled = corner || (Math.sin(i * 1.7) + Math.cos(i * 0.9)) > 0.2;
+    return filled;
+  });
 
   const styles = `
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Young+Serif&display=swap');
+
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
       height: 100%;
       overflow: hidden;
-      font-family: 'Inter', sans-serif;
-      background: #e8dcc8;
+      font-family: 'Instrument Sans', sans-serif;
+      background: #F5EFE2;
     }
 
     .app {
@@ -44,131 +50,117 @@ export default function Page() {
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      padding: 0 24px;
-      padding-top: env(safe-area-inset-top, 16px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      position: relative;
       overflow: hidden;
     }
 
     /* ── Header ── */
     .header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 0;
+      gap: 8px;
+      padding: 52px 12px 12px;
+      background: rgba(245,239,226,0.85);
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+      border-bottom: 1px solid rgba(43,33,24,0.08);
       flex-shrink: 0;
     }
 
     .header-back {
-      color: rgb(90,110,98);
-      font-size: 22px;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: #2B2118;
       cursor: pointer;
-      line-height: 1;
-      transition: all 0.2s ease;
-      width: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
+      text-decoration: none;
+      transition: all 0.2s ease;
     }
 
     .header-back:active { transform: scale(0.85); }
 
     .header-title {
-      font-size: 18px;
+      flex: 1;
       font-weight: 700;
-      color: rgb(44,62,54);
+      font-size: 20px;
+      letter-spacing: -0.01em;
+      color: #2B2118;
     }
 
     /* ── Content ── */
     .content {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      padding: 4px 0 16px;
+      overflow: auto;
+      padding: 8px 16px 120px;
     }
 
-    /* ── Section Label ── */
-    .section-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .section-label-text {
-      font-size: 14px;
+    /* ── Eyebrow Label ── */
+    .eyebrow {
+      font-size: 11px;
       font-weight: 700;
-      color: rgb(44,62,54);
-      flex-shrink: 0;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #8A7E6F;
+      padding: 6px 4px 8px;
     }
 
-    .section-label-line {
-      flex: 1;
-      height: 1px;
-      background: rgba(184,168,138,0.55);
+    .eyebrow-top {
+      padding: 18px 4px 8px;
     }
 
     /* ── Pod Name Input ── */
     .pod-name-input {
       width: 100%;
-      padding: 12px 14px;
-      background: rgb(222,212,192);
-      border: 1px solid rgb(184,168,138);
-      border-radius: 12px;
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      color: rgb(44,62,54);
+      background: #FAF5EA;
+      border: 1px solid rgba(43,33,24,0.14);
+      border-radius: 20px;
+      padding: 14px 16px;
+      font-family: 'Young Serif', serif;
+      font-size: 18px;
+      color: #2B2118;
       outline: none;
-      margin-bottom: 18px;
-    }
-
-    .pod-name-input::placeholder {
-      color: rgb(138,154,142);
     }
 
     .pod-name-input:focus {
-      border-color: rgb(56,158,133);
+      border-color: #2F5D3A;
     }
 
-    /* ── Player Count Selector ── */
+    /* ── Player Count ── */
     .player-selector {
       display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 18px;
+      gap: 8px;
     }
 
-    .player-circle {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .player-tile {
+      flex: 1;
+      padding: 14px 0;
+      text-align: center;
+      background: #FAF5EA;
+      border: 1px solid rgba(43,33,24,0.14);
+      border-radius: 14px;
+      font-family: 'Young Serif', serif;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+      color: #2B2118;
       cursor: pointer;
       transition: all 0.2s ease;
-      background: rgb(245,239,227);
-      border: 1.5px solid rgb(184,168,138);
     }
 
-    .player-circle:active { transform: scale(0.9); }
+    .player-tile:active { transform: scale(0.95); }
 
-    .player-circle.selected {
-      background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-      border: 1.5px solid rgb(56,158,133);
-      box-shadow: 0 4px 12px rgba(26,120,105,0.35);
-    }
-
-    .player-circle-num {
-      font-size: 18px;
-      font-weight: 700;
-      color: rgb(90,110,98);
-    }
-
-    .player-circle.selected .player-circle-num {
-      color: rgb(245,239,227);
+    .player-tile.selected {
+      background: #2F5D3A;
+      color: #F5EFE2;
+      border: none;
+      box-shadow: 0 1px 0 rgba(43,33,24,0.04), 0 6px 18px -8px rgba(43,33,24,0.12);
     }
 
     /* ── Deck List ── */
@@ -176,19 +168,17 @@ export default function Page() {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      flex: 1;
-      overflow: hidden;
     }
 
     .deck-row {
+      background: #FAF5EA;
+      border: 1px solid rgba(43,33,24,0.08);
+      border-radius: 20px;
+      padding: 10px 12px;
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 14px;
-      background: rgb(245,239,227);
-      border-radius: 14px;
-      border: 1.5px solid rgb(184,168,138);
-      box-shadow: 0 6px 16px rgba(26,20,13,0.08);
+      box-shadow: 0 1px 0 rgba(43,33,24,0.04), 0 6px 18px -8px rgba(43,33,24,0.12);
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -196,27 +186,23 @@ export default function Page() {
     .deck-row:active { transform: scale(0.98); }
 
     .deck-row.selected {
-      background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-      border-color: rgb(56,158,133);
-      box-shadow: 0 4px 12px rgba(26,120,105,0.35);
+      background: #E5ECE3;
+      border: 1.5px solid #2F5D3A;
     }
 
-    .deck-emoji {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: rgb(222,212,192);
-      border: 1px solid rgba(184,168,138,0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
+    .deck-art {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      overflow: hidden;
       flex-shrink: 0;
     }
 
-    .deck-row.selected .deck-emoji {
-      background: rgba(245,239,227,0.15);
-      border-color: rgba(245,239,227,0.3);
+    .deck-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 25%;
     }
 
     .deck-info {
@@ -225,13 +211,13 @@ export default function Page() {
     }
 
     .deck-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: rgb(44,62,54);
-    }
-
-    .deck-row.selected .deck-name {
-      color: rgb(245,239,227);
+      font-family: 'Young Serif', serif;
+      font-size: 16px;
+      color: #2B2118;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .deck-mana {
@@ -241,178 +227,167 @@ export default function Page() {
     }
 
     .mana-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px rgba(43,33,24,0.18);
     }
-
-    .mana-dot.w { background: rgb(222,212,192); border: 1px solid rgb(184,168,138); }
-    .mana-dot.u { background: rgb(45,127,160); }
-    .mana-dot.b { background: rgb(58,58,58); }
-    .mana-dot.r { background: rgb(168,74,58); }
-    .mana-dot.g { background: rgb(42,138,86); }
 
     .deck-check {
-      color: rgb(184,146,46);
-      font-size: 16px;
-      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(43,33,24,0.14);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
-    /* ── Create Button ── */
+    .deck-check.selected {
+      border: none;
+      background: #2F5D3A;
+    }
+
+    /* ── Sticky CTA ── */
+    .cta-wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 14px 16px 32px;
+      background: linear-gradient(to top, #F5EFE2 60%, rgba(245,239,226,0));
+      z-index: 5;
+    }
+
     .create-btn {
-      margin-top: auto;
-      padding: 16px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-      border: 1.5px solid rgb(56,158,133);
-      color: rgb(245,239,227);
-      font-family: 'Inter', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      text-align: center;
+      width: 100%;
+      border: none;
       cursor: pointer;
+      background: #2F5D3A;
+      color: #F5EFE2;
+      font-family: 'Instrument Sans', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 16px 20px;
+      border-radius: 20px;
+      box-shadow: 0 1px 0 rgba(43,33,24,0.04), 0 6px 18px -8px rgba(43,33,24,0.12);
       transition: all 0.2s ease;
-      box-shadow: 0 4px 12px rgba(26,120,105,0.35);
-      flex-shrink: 0;
     }
 
     .create-btn:active { transform: scale(0.97); }
 
-    /* ── QR Popup Overlay ── */
+    /* ── QR Popup ── */
     .qr-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.55);
-      display: none;
+      z-index: 70;
+      background: rgba(43,33,24,0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      padding: 28px;
     }
-
-    .qr-overlay.active { display: flex; }
 
     .qr-card {
-      width: calc(100% - 48px);
-      max-width: 340px;
-      background: rgb(245,239,227);
-      border: 1.3px solid rgb(184,168,138);
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-      animation: scaleIn 0.25s ease;
+      background: #FAF5EA;
+      border-radius: 24px;
+      padding: 24px 22px 22px;
+      width: 100%;
+      max-width: 320px;
+      position: relative;
+      box-shadow: 0 4px 0 rgba(43,33,24,0.06), 0 30px 60px -16px rgba(43,33,24,0.35);
+      border: 1px solid #B06B2C;
+      animation: popIn 0.3s ease;
     }
 
-    @keyframes scaleIn {
+    @keyframes popIn {
       from { transform: scale(0.9); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
 
-    .qr-close-row {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 12px;
-    }
-
-    .qr-close {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: rgb(222,212,192);
-      border: 1px solid rgb(184,168,138);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: rgb(90,110,98);
-      font-size: 16px;
+    .qr-dismiss {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      color: #8A7E6F;
+      background: none;
+      border: none;
       cursor: pointer;
-      line-height: 1;
+      padding: 4px;
     }
 
-    .qr-close:active { transform: scale(0.9); }
+    .qr-dismiss:active { transform: scale(0.85); }
 
     .qr-header {
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+    }
+
+    .qr-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #B06B2C;
     }
 
     .qr-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: rgb(44,62,54);
-      margin-bottom: 4px;
-    }
-
-    .qr-subtitle {
-      font-size: 13px;
-      color: rgb(90,110,98);
-    }
-
-    .qr-box {
-      width: 160px;
-      height: 160px;
-      margin: 0 auto 16px;
-      background: #fff;
-      border-radius: 16px;
-      border: 1.5px solid rgb(184,168,138);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    .qr-pattern {
-      width: 130px;
-      height: 130px;
-      background: repeating-conic-gradient(rgb(44,62,54) 0% 25%, #fff 0% 50%) 50% / 13px 13px;
-      border-radius: 6px;
-    }
-
-    .qr-badge {
-      position: absolute;
-      background: rgb(26,122,106);
-      border-radius: 6px;
-      padding: 3px 8px;
-    }
-
-    .qr-badge span {
-      color: rgb(245,239,227);
-      font-size: 10px;
-      font-weight: 700;
-    }
-
-    .qr-code-section {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-
-    .qr-code-label {
-      font-size: 11px;
-      color: rgb(138,154,142);
-      margin-bottom: 4px;
-    }
-
-    .qr-code-value {
-      font-family: monospace;
+      font-family: 'Young Serif', serif;
       font-size: 22px;
-      font-weight: 700;
-      color: rgb(44,62,54);
-      letter-spacing: 4px;
+      color: #2B2118;
+      margin-top: 4px;
+      line-height: 1.15;
+    }
+
+    .qr-grid-wrap {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+      padding: 12px;
+      background: #FFFFFF;
+      border-radius: 14px;
+      box-shadow: 0 0 0 1px rgba(43,33,24,0.08);
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      grid-template-rows: repeat(11, 1fr);
+      gap: 1.5px;
+    }
+
+    .qr-cell {
+      border-radius: 1px;
+    }
+
+    .qr-cell.filled { background: #2B2118; }
+
+    .qr-code-text {
+      text-align: center;
+      margin-top: 14px;
+      font-family: 'Young Serif', serif;
+      font-size: 28px;
+      letter-spacing: 0.14em;
+      color: #B06B2C;
+      font-variant-numeric: tabular-nums;
     }
 
     .qr-enter-btn {
       width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-      border: 1.5px solid rgb(56,158,133);
-      color: rgb(245,239,227);
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      text-align: center;
+      margin-top: 16px;
+      border: none;
       cursor: pointer;
+      background: #2F5D3A;
+      color: #F5EFE2;
+      font-family: 'Instrument Sans', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 14px 20px;
+      border-radius: 20px;
+      box-shadow: 0 1px 0 rgba(43,33,24,0.04), 0 6px 18px -8px rgba(43,33,24,0.12);
       transition: all 0.2s ease;
       display: block;
+      text-align: center;
       text-decoration: none;
     }
 
@@ -422,116 +397,111 @@ export default function Page() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-
       <div className="app">
         {/* Header */}
         <div className="header">
           <Link href="/landing" className="header-back">
-            ‹
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
           </Link>
-          <div className="header-title">Create Pod</div>
+          <div className="header-title">Create a pod</div>
         </div>
 
         {/* Content */}
         <div className="content">
           {/* Pod Name */}
-          <div className="section-label">
-            <span className="section-label-text">Pod Name</span>
-            <div className="section-label-line" />
-          </div>
+          <div className="eyebrow">Pod Name</div>
           <input
             className="pod-name-input"
             type="text"
-            placeholder="Enter pod name..."
             value={podName}
             onChange={(e) => setPodName(e.target.value)}
+            placeholder="Enter pod name..."
           />
 
           {/* Player Count */}
-          <div className="section-label">
-            <span className="section-label-text">Number of Players</span>
-            <div className="section-label-line" />
-          </div>
+          <div className="eyebrow eyebrow-top">Number of Players</div>
           <div className="player-selector">
-            {[2, 3, 4, 5].map((num) => (
+            {[2, 3, 4, 5].map(n => (
               <div
-                key={num}
-                className={`player-circle ${selectedPlayers === num ? 'selected' : ''}`}
-                onClick={() => setSelectedPlayers(num)}
+                key={n}
+                className={`player-tile ${selectedPlayers === n ? 'selected' : ''}`}
+                onClick={() => setSelectedPlayers(n)}
               >
-                <span className="player-circle-num">{num}</span>
+                {n}
               </div>
             ))}
           </div>
 
           {/* Deck Selection */}
-          <div className="section-label">
-            <span className="section-label-text">Choose Your Deck</span>
-            <div className="section-label-line" />
-          </div>
+          <div className="eyebrow eyebrow-top">Select Your Deck</div>
           <div className="deck-list">
-            {decks.map((deck, idx) => (
+            {SAMPLE_DECKS.map((d, i) => (
               <div
-                key={idx}
-                className={`deck-row ${selectedDeck === idx ? 'selected' : ''}`}
-                onClick={() => setSelectedDeck(idx)}
+                key={d.id}
+                className={`deck-row ${selectedDeck === i ? 'selected' : ''}`}
+                onClick={() => setSelectedDeck(i)}
               >
-                <div className="deck-emoji">{deck.emoji}</div>
+                <div className="deck-art">
+                  <img src={d.art} alt={d.name} />
+                </div>
                 <div className="deck-info">
-                  <div className="deck-name">{deck.name}</div>
+                  <div className="deck-name">{d.name}</div>
                   <div className="deck-mana">
-                    {deck.mana.map((color, i) => (
-                      <div key={i} className={`mana-dot ${color}`} />
+                    {d.colors.map((c, j) => (
+                      <div key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
                     ))}
                   </div>
                 </div>
-                {selectedDeck === idx && <span className="deck-check">✓</span>}
+                <div className={`deck-check ${selectedDeck === i ? 'selected' : ''}`}>
+                  {selectedDeck === i && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F5EFE2" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Create Button */}
-          <div className="create-btn" onClick={() => setShowQr(true)}>
-            Create Pod
-          </div>
+        {/* Sticky CTA */}
+        <div className="cta-wrap">
+          <button className="create-btn" onClick={() => setShowQr(true)}>Create Pod</button>
         </div>
       </div>
 
       {/* QR Popup */}
-      <div
-        className={`qr-overlay ${showQr ? 'active' : ''}`}
-        onClick={() => setShowQr(false)}
-      >
-        <div className="qr-card" onClick={(e) => e.stopPropagation()}>
-          <div className="qr-close-row">
-            <div
-              className="qr-close"
-              onClick={() => setShowQr(false)}
-              role="button"
-              tabIndex={0}
-            >
-              &#10005;
+      {showQr && (
+        <div className="qr-overlay" onClick={() => setShowQr(false)}>
+          <div className="qr-card" onClick={(e) => e.stopPropagation()}>
+            <button className="qr-dismiss" onClick={() => setShowQr(false)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            <div className="qr-header">
+              <div className="qr-eyebrow">Pod Created</div>
+              <div className="qr-title">Share this code so others can join</div>
             </div>
-          </div>
-          <div className="qr-header">
-            <div className="qr-title">Pod Created!</div>
-            <div className="qr-subtitle">Share this code so others can join</div>
-          </div>
-          <div className="qr-box">
-            <div className="qr-pattern" />
-            <div className="qr-badge">
-              <span>PodHub</span>
+
+            {/* Decorative QR */}
+            <div className="qr-grid-wrap">
+              {qrCells.map((filled, i) => (
+                <div key={i} className={`qr-cell ${filled ? 'filled' : ''}`} />
+              ))}
             </div>
+
+            <div className="qr-code-text">ARC—7X2K</div>
+
+            <Link href={`/gridview-${selectedPlayers}p`} className="qr-enter-btn">
+              Enter Pod
+            </Link>
           </div>
-          <div className="qr-code-section">
-            <div className="qr-code-label">Pod Code</div>
-            <div className="qr-code-value">ARC-7X2K</div>
-          </div>
-          <Link href="/gridview-4p" className="qr-enter-btn">
-            Enter Pod
-          </Link>
         </div>
-      </div>
+      )}
     </>
   );
 }
