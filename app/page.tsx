@@ -2,19 +2,19 @@
 
 const screens = [
   { number: "01", name: "Landing", href: "/landing", status: "live" },
-  { number: "02", name: "How to Play", href: "/howtoplay", status: "live" },
+  { number: "02", name: "How to Play", href: "/howtoplay", status: "waiting" },
   { number: "03", name: "Create a Pod", href: "/create", status: "live" },
   { number: "04", name: "Join a Pod", href: "/join", status: "live" },
-  { number: "05a", name: "Grid View — 2 Players", href: "/gridview-2p", status: "live" },
-  { number: "05b", name: "Grid View — 3 Players", href: "/gridview-3p", status: "live" },
-  { number: "05c", name: "Grid View — 4 Players", href: "/gridview-4p", status: "live" },
-  { number: "05d", name: "Grid View — 5 Players", href: "/gridview-5p", status: "live" },
-  { number: "06", name: "Single View", href: "/singleview", status: "live" },
+  { number: "05a", name: "Grid View — 2 Players", href: "/gridview-2p", status: "waiting" },
+  { number: "05b", name: "Grid View — 3 Players", href: "/gridview-3p", status: "waiting" },
+  { number: "05c", name: "Grid View — 4 Players", href: "/gridview-4p", status: "waiting" },
+  { number: "05d", name: "Grid View — 5 Players", href: "/gridview-5p", status: "waiting" },
+  { number: "06", name: "Single View", href: "/singleview", status: "waiting" },
   { number: "07", name: "Game Review", href: "/review", status: "live" },
-  { number: "08", name: "Profile", href: "/profile", status: "live" },
-  { number: "09", name: "Decks", href: "/decks", status: "live" },
-  { number: "10", name: "Deck Accomplishments", href: "/deck-accomplishments", status: "live" },
-  { number: "11", name: "Recent Games", href: "/recent-games", status: "live" },
+  { number: "08", name: "Profile", href: "/profile", status: "waiting" },
+  { number: "09", name: "Decks", href: "/decks", status: "waiting" },
+  { number: "10", name: "Deck Accomplishments", href: "/deck-accomplishments", status: "waiting" },
+  { number: "11", name: "Recent Games", href: "/recent-games", status: "waiting" },
 ];
 
 export default function Home() {
@@ -99,7 +99,7 @@ export default function Home() {
                   : 'rgba(43,33,24,0.05)',
                 color: s.status === 'live' ? '#2F5D3A' : '#B8AE9E',
               }}>
-                {s.status === 'live' ? 'Live' : 'Soon'}
+                {s.status === 'live' ? 'Live' : 'Waiting for design'}
               </span>
             </a>
           ))}
