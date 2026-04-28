@@ -231,11 +231,21 @@ function ErrorBanner({ message }: { message: string }) {
 
 /* ── SSOView — initial login sheet ── */
 function SSOView({ setView, onLogin }: { setView: (v: string) => void; onLogin: () => void }) {
+  const handleGoogleSSO = async () => {
+    const { supabase } = await import('../../lib/supabase');
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin + '/landing' : undefined,
+      },
+    });
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SheetMasthead eyebrow="The Threshold" title="Step into the pod" subtitle="Sign in to keep your record." />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <SSOButton provider="google" onClick={onLogin} />
+        <SSOButton provider="google" onClick={handleGoogleSSO} />
         <SSOButton provider="apple" onClick={onLogin} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
