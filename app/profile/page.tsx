@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useAuth } from '../../lib/auth-context';
 
 export default function ProfilePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -9,6 +10,7 @@ export default function ProfilePage() {
   const [nameInputValue, setNameInputValue] = useState('Frederico');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const { signOut } = useAuth();
 
   const showToastMessage = (msg: string) => {
     setToastMessage(msg);
@@ -880,9 +882,10 @@ export default function ProfilePage() {
               </button>
               <button
                 className="settings-item danger"
-                onClick={() => {
+                onClick={async () => {
+                  await signOut();
                   setSettingsOpen(false);
-                  showToastMessage('Logged Out');
+                  window.location.href = '/landing';
                 }}
               >
                 <div className="settings-item-icon">
