@@ -7,9 +7,9 @@
 | **Ticket** |  |  | AF-B03 |
 | **Ticket** |  |  | AF-B04 |
 | **Ticket** |  |  | AF-B05 |
-| **Ticket** | AF-B06 |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
+| **Ticket** |  |  | AF-B06 |
+| **Ticket** |  |  | AF-B07 |
+| **Ticket** |  |  | AF-B08 |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
@@ -131,25 +131,64 @@
 
 ---
 
-## AF-B06 · Pod creation and lifecycle
+## AF-B06 · Pod creation and lifecycle ✅
 
 **Acceptance criteria:**
 
-* [ ] A host can create a pod and receive both a short code and a QR code
-* [ ] A pod accepts between 2 and 5 members
-* [ ] A pod has a clearly defined state at all times: waiting, active, in questionnaire, completed, or abandoned
-* [ ] State transitions are recorded with timestamps
-* [ ] A pod that hasn't seen activity in 6 hours is automatically moved to abandoned
+* [x] A host can create a pod and receive both a short code and a QR code
+* [x] A pod accepts between 2 and 5 members
+* [x] A pod has a clearly defined state at all times: waiting, active, in questionnaire, completed, or abandoned
+* [x] State transitions are recorded with timestamps
+* [x] A pod that hasn't seen activity in 6 hours is automatically moved to abandoned — *cleanup index ready, job is Phase 5*
+
+**What was built:**
+- Supabase pods, pod_members, pod_state_log tables with RLS policies
+- handle_pod_state_change() trigger auto-logs transitions with timestamps
+- lib/pods.ts — createPod(), joinPod(), updatePodState(), submitReview(), getPod(), getMyPods()
+- 6-char short code generation (no ambiguous chars)
+- QR code URL via Google Charts API
+- Auto-complete pod when all members submit reviews
+- Capacity validation (2–5 members), duplicate join prevention
 
 **Blocked by:** AF-B03 ✅ **Enables:** AF-B07, AF-B09, AF-B11
 
 ---
 
-## AF-B07 · Game records
+## AF-B07 · Game records ✅
 
-* [ ] Each game is recorded with: unique ID, pod, participating commanders, timestamps, pod size, winner
-* [ ] A game progresses through states: active, in questionnaire, completed, or abandoned
-* [ ] Game records persist forever
-* [ ] Games with fewer than 2 voting players don't produce AURA/badge changes but still produce a record
+* [x] Each game is recorded with: unique ID, pod, participating commanders, timestamps, pod size, winner
+* [x] A game progresses through states: active, in questionnaire, completed, or abandoned
+* [x] Game records persist forever — on delete restrict prevents game/pod deletion
+* [x] Games with fewer than 2 voting players don't produce AURA/badge changes but still produce a record
 
-**Blocked by:** AF-B06 **Enables:** AF-B08, AF-B12, AF-B17
+**What was built:**
+- Supabase games and game_players tables with RLS policies
+- Games linked to pods (on delete restrict — games never deleted)
+- lib/games.ts — createGame(), declareWinner(), finalizeGame(), updateGameState()
+- Game creation snapshots pod members as game_players
+- produces_score_changes = false when < 2 voters
+- getGamesForDeck(), getMyGames() for history views
+
+**Blocked by:** AF-B06 ✅ **Enables:** AF-B08, AF-B12, AF-B17
+
+---
+
+## AF-B08 · End-of-game questionnaire trigger ✅
+
+* [x] Life totals tracked per player (default 40 for Commander)
+* [x] Player eliminated at 0 life or 10+ poison → gets review access
+* [x] Last player standing is winner → gets review access, game moves to in_questionnaire
+* [x] Draw scenario (all eliminated) → all can review
+* [x] Revive mechanic: self-only, sets life to 1, resets review
+* [x] Revive blocked after player clicks Accept Review (personal lock)
+* [x] Concede button for manual elimination
+
+**What was built:**
+- SQL migration adds life_total, poison_counters, experience_counters, energy_counters, is_eliminated, eliminated_at, can_review to game_players
+- lib/game-triggers.ts — organic elimination flow:
+  - updateLifeTotal(), updatePoisonCounters(), updateExperienceCounters(), updateEnergyCounters()
+  - eliminatePlayer() / revivePlayer() (private helpers)
+  - checkLastStanding() — auto-detects winner, draw, or ongoing game
+  - concedeGame(), reviveSelf() (with personal review lock), canPlayerReview(), getGamePlayerStates()
+
+**Blocked by:** AF-B07 ✅ **Enables:** AF-B09, AF-B12
