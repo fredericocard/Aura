@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { computeGameTally } from './vote-tally';
-
-export type BadgeKey = 'fun' | 'rivalry' | 'allegiance' | 'brilliance' | 'flavor';
+import type { BadgeKey } from './votes';
+export type { BadgeKey };
 
 export const ALL_BADGES: BadgeKey[] = ['brilliance', 'flavor', 'rivalry', 'allegiance', 'fun'];
 

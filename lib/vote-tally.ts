@@ -1,10 +1,7 @@
 import { supabase } from './supabase';
 
-export type BadgeKey = 'fun' | 'rivalry' | 'allegiance' | 'brilliance' | 'flavor';
-export type QuestionKey = BadgeKey | 'bracket_check';
-
-export const BADGE_QUESTIONS: BadgeKey[] = ['fun', 'rivalry', 'allegiance', 'brilliance', 'flavor'];
-export const SINGLE_SELECT_QUESTIONS: QuestionKey[] = [...BADGE_QUESTIONS];
+import { BadgeKey, QuestionKey, BADGE_QUESTIONS, SINGLE_SELECT_QUESTIONS } from './votes';
+export type { BadgeKey, QuestionKey };
 
 // ─── Result types ───────────────────────────────────────────
 
