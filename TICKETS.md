@@ -10,7 +10,7 @@
 | **Ticket** |  |  | AF-B06 |
 | **Ticket** |  |  | AF-B07 |
 | **Ticket** |  |  | AF-B08 |
-| **Ticket** |  |  |  |
+| **Ticket** |  |  | AF-B09 |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
@@ -192,3 +192,28 @@
   - concedeGame(), reviveSelf() (with personal review lock), canPlayerReview(), getGamePlayerStates()
 
 **Blocked by:** AF-B07 ✅ **Enables:** AF-B09, AF-B12
+
+---
+
+## AF-B09 · Vote capture for the six post-game questions ✅
+
+**Acceptance criteria:**
+
+* [x] Each vote captures: the game it belongs to, the voter, the question, the commander(s) voted for, and a timestamp
+* [x] Single-select questions (q1–q4, allegiance) accept exactly one vote per voter per question
+* [x] Allegiance is single-select and cannot vote for yourself
+* [x] Bracket Check records either a "no flag" answer or one or more flagged commanders
+* [x] Votes are mutable until BOTH a winner is declared AND the voter clicks Accept Review
+* [x] Once locked, votes cannot be changed or deleted
+
+**What was built:**
+- SQL migration: game_votes table with partial unique indexes (single-select vs bracket_check)
+- RLS: voters insert/update/delete own votes, all participants read all votes
+- lib/votes.ts:
+  - castVote() — upsert single-select, checks immutability (winner + review_submitted_at)
+  - castBracketCheck() — replaces all bracket flags (no-flag or list of deck IDs)
+  - clearVote() — undo a single-select pick
+  - getMyVotes(), getGameVotes(), getVoteSummary()
+  - isVoteLocked() — checks winner_player_id + review_submitted_at
+
+**Blocked by:** AF-B07 ✅, AF-B08 ✅ **Enables:** AF-B12, AF-B13, AF-B17
