@@ -76,17 +76,17 @@ export async function computeGameTally(gameId: string): Promise<{
     .select('id, commander_name')
     .in('id', deckIds) as { data: any };
 
-  const deckNameMap = new Map((decks ?? []).map((d: any) => [d.id, d.commander_name]));
+  const deckNameMap = new Map<string, string>((decks ?? []).map((d: any) => [d.id, d.commander_name]));
 
   // Count unique voters
-  const uniqueVoters = new Set(votes.map(v => v.voter_id));
+  const uniqueVoters = new Set(votes.map((v: any) => v.voter_id));
   const totalVoters = uniqueVoters.size;
 
   // ── Single-select questions ──
   const questionResults: QuestionResult[] = [];
 
   for (const qKey of SINGLE_SELECT_QUESTIONS) {
-    const qVotes = votes.filter(v => v.question_key === qKey && v.target_deck_id);
+    const qVotes = votes.filter((v: any) => v.question_key === qKey && v.target_deck_id);
 
     // Count votes per commander
     const countMap = new Map<string, number>();
@@ -96,14 +96,14 @@ export async function computeGameTally(gameId: string): Promise<{
 
     // Build sorted results
     const sorted = Array.from(countMap.entries())
-      .map(([deckId, count]) => ({
+      .map(([deckId, count]: any) => ({
         deck_id: deckId,
         commander_name: deckNameMap.get(deckId) ?? 'Unknown',
         votes: count,
         rank: 0,
         is_tied: false,
       }))
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         if (b.votes !== a.votes) return b.votes - a.votes;
         return a.commander_name.localeCompare(b.commander_name); // alphabetical tiebreak for stable order
       });
@@ -123,7 +123,7 @@ export async function computeGameTally(gameId: string): Promise<{
       rankCounts.set(s.rank, (rankCounts.get(s.rank) ?? 0) + 1);
     }
     for (const s of sorted) {
-      s.is_tied = (rankCounts.get(s.rank) ?? 0) > 1;
+      (s as any).is_tied = (rankCounts.get(s.rank) ?? 0) > 1;
     }
 
     const winner = sorted.length > 0 ? sorted[0] : null;
@@ -139,9 +139,9 @@ export async function computeGameTally(gameId: string): Promise<{
   }
 
   // ── Bracket check ──
-  const bracketVotes = votes.filter(v => v.question_key === 'bracket_check');
-  const bracketVoterIds = new Set(bracketVotes.map(v => v.voter_id));
-  const noFlagCount = bracketVotes.filter(v => v.target_deck_id === null).length;
+  const bracketVotes = votes.filter((v: any) => v.question_key === 'bracket_check');
+  const bracketVoterIds = new Set(bracketVotes.map((v: any) => v.voter_id));
+  const noFlagCount = bracketVotes.filter((v: any) => v.target_deck_id === null).length;
 
   // Count flags per commander
   const flagMap = new Map<string, number>();
@@ -152,12 +152,12 @@ export async function computeGameTally(gameId: string): Promise<{
   }
 
   const flaggedCommanders = Array.from(flagMap.entries())
-    .map(([deckId, count]) => ({
+    .map(([deckId, count]: any) => ({
       deck_id: deckId,
       commander_name: deckNameMap.get(deckId) ?? 'Unknown',
       flag_count: count,
     }))
-    .sort((a, b) => {
+    .sort((a: any, b: any) => {
       if (b.flag_count !== a.flag_count) return b.flag_count - a.flag_count;
       return a.commander_name.localeCompare(b.commander_name);
     });

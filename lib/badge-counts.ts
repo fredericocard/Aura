@@ -94,8 +94,8 @@ export async function recordBadgeVotes(
 
   // Insert history rows for each badge category
   const rows = ALL_BADGES
-    .filter(badge => voteCounts[badge] > 0)
-    .map(badge => ({
+    .filter((badge: BadgeKey) => voteCounts[badge] > 0)
+    .map((badge: BadgeKey) => ({
       deck_id: deckId,
       game_id: gameId,
       user_id: userId,
@@ -362,7 +362,7 @@ export async function getDeckVotesByBracket(deckId: string): Promise<{
   }
 
   return {
-    data: Array.from(groups.values()).sort((a, b) => {
+    data: Array.from(groups.values()).sort((a: any, b: any) => {
       if (a.badge !== b.badge) return a.badge.localeCompare(b.badge);
       return a.bracket - b.bracket;
     }),

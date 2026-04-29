@@ -91,7 +91,7 @@ export default function GridView2P() {
         }
       }
       if (!mana) {
-        const available = allMana.filter(c => !usedColors.includes(c));
+        const available = allMana.filter((c: any) => !usedColors.includes(c));
         mana = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : p.colors[0];
       }
     }
@@ -124,17 +124,17 @@ export default function GridView2P() {
         const { data: game } = await getGame(gameId);
         if (!game) return;
 
-        const deckIds = game.players.map(p => p.deck_id);
+        const deckIds = game.players.map((p: any) => p.deck_id);
         const { data: decks } = await supabase
           .from('decks')
           .select('id, commander_name, color_identity')
           .in('id', deckIds) as { data: any };
-        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]));
+        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
 
         const newPlayers = { ...players };
         const newPlayerUserIds: Record<number, string> = {};
 
-        game.players.forEach((p, i) => {
+        game.players.forEach((p: any, i: any) => {
           const playerNum = i + 1;
           if (playerNum > 2) return; // Only support 2 players
 

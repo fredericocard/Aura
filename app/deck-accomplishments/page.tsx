@@ -740,7 +740,7 @@ export default function DeckAccomplishmentsPage() {
             <div className="commander-info">
               <div className="commander-name">{profile.commanderName}</div>
               <div className="commander-mana">
-                {(profile.colorIdentity ?? '').split('').filter(c => 'WUBRG'.includes(c)).map((c, i) => {
+                {(profile.colorIdentity ?? '').split('').filter((c: any) => 'WUBRG'.includes(c)).map((c: any, i: any) => {
                   const colors: Record<string, string> = { W: '#f5efe3', U: '#2d7fa0', B: '#3a3a3a', R: '#b0593e', G: '#2a8a56' };
                   return <div key={i} className="mana-dot" style={{ background: colors[c] || '#888', border: c === 'W' ? '1px solid rgb(184,168,138)' : 'none' }} />;
                 })}
@@ -838,7 +838,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Brilliance <span className="badge-count">{(profile.badges.find(b => b.badge === 'brilliance')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'brilliance')?.earnedCount}` : '—'}</span>
+                  Brilliance <span className="badge-count">{(profile.badges.find((b: any) => b.badge === 'brilliance')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find((b: any) => b.badge === 'brilliance')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Sharp plays and strategic mastery</div>
               </div>
@@ -866,7 +866,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Flavor <span className="badge-count">{(profile.badges.find(b => b.badge === 'flavor')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'flavor')?.earnedCount}` : '—'}</span>
+                  Flavor <span className="badge-count">{(profile.badges.find((b: any) => b.badge === 'flavor')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find((b: any) => b.badge === 'flavor')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Thematic deck and memorable moments</div>
               </div>
@@ -890,7 +890,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Rivalry <span className="badge-count">{(profile.badges.find(b => b.badge === 'rivalry')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'rivalry')?.earnedCount}` : '—'}</span>
+                  Rivalry <span className="badge-count">{(profile.badges.find((b: any) => b.badge === 'rivalry')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find((b: any) => b.badge === 'rivalry')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Intense standoffs and worthy opponents</div>
               </div>
@@ -913,7 +913,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Allegiance <span className="badge-count">{(profile.badges.find(b => b.badge === 'allegiance')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'allegiance')?.earnedCount}` : '—'}</span>
+                  Allegiance <span className="badge-count">{(profile.badges.find((b: any) => b.badge === 'allegiance')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find((b: any) => b.badge === 'allegiance')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Loyal alliances and table politics</div>
               </div>

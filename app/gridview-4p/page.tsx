@@ -92,16 +92,16 @@ export default function GridView4P() {
     async function loadGame() {
       const { data: game } = await getGame(gameId);
       if (!game) return;
-      const deckIds = game.players.map(p => p.deck_id);
+      const deckIds = game.players.map((p: any) => p.deck_id);
       const { data: decks } = await supabase
         .from('decks')
         .select('id, commander_name, color_identity')
         .in('id', deckIds) as { data: any };
-      const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]));
+      const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
 
       const newPlayers: Record<number, typeof players[1]> = {};
       const newUserIds: Record<number, string> = {};
-      game.players.forEach((p, i) => {
+      game.players.forEach((p: any, i: any) => {
         const deck: any = deckMap.get(p.deck_id);
         const slot = i + 1;
         newPlayers[slot] = {
@@ -142,7 +142,7 @@ export default function GridView4P() {
       }
     }
 
-    const available = allMana.filter(c => !newUsedColors.includes(c));
+    const available = allMana.filter((c: any) => !newUsedColors.includes(c));
     if (available.length > 0) {
       const pick = available[Math.floor(Math.random() * available.length)];
       newUsedColors.push(pick);

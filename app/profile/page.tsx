@@ -785,7 +785,7 @@ export default function ProfilePage() {
               ) : commanders.length === 0 ? (
                 <div style={{ padding: '16px 0', textAlign: 'center', color: 'rgb(90,110,98)', fontSize: 13 }}>No commanders registered yet</div>
               ) : (
-                commanders.map(c => (
+                commanders.map((c: any) => (
                   <Link key={c.deckId} href={`/deck-accomplishments?deckId=${c.deckId}`} className="rated-deck-row" style={{ textDecoration: 'none' }}>
                     <div className="rated-deck-img">
                       {c.commanderArtUrl ? (

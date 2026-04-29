@@ -118,7 +118,7 @@ function ActiveCard({ idx, cat, selectedId, onSelect, players }: { idx: number; 
         </div>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-        {players.map(p => (
+        {players.map((p: any) => (
           <button key={p.deckId} onClick={() => onSelect(p.deckId)} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', opacity: faded && selectedId !== p.deckId ? 0.28 : 1, transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>
             <div style={{ position: 'relative' }}>
               <div style={{ width: 56, height: 56, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selectedId === p.deckId ? '0 0 0 3px #B06B2C' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
@@ -180,7 +180,7 @@ function BracketActiveCard({ selected, onSelect, players }: { selected: string |
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {players.map(p => (
+        {players.map((p: any) => (
           <button key={p.id} onClick={() => onSelect(p.deckId)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: selected === p.deckId ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif" }}>
             <div style={{ position: 'relative' }}>
               <div style={{ width: 36, height: 36, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selected === p.deckId ? '0 0 0 2px #9E2B2B' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
@@ -222,7 +222,7 @@ function KeepsakeCard({ card }: { card: GameCard }) {
           maskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 90%)',
         }}>
           <g stroke="#E2B858" strokeWidth="0.8" fill="none">
-            {Array.from({ length: 24 }).map((_, i) => {
+            {Array.from({ length: 24 }).map((_: any, i: any) => {
               const a = (i / 24) * Math.PI * 2;
               const r1 = 40, r2 = 170;
               const cx = 160, cy = 160;
@@ -250,7 +250,7 @@ function KeepsakeCard({ card }: { card: GameCard }) {
         </div>
 
         <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(201,155,47,0.3)' }}>
-          {commanders.map((c, i) => {
+          {commanders.map((c: any, i: any) => {
             const badge = c.brewed_badge;
             const isWinner = c.is_winner;
             return (
@@ -549,14 +549,14 @@ export default function ReviewPage() {
       // We need deck info — game_players has deck_id but we need commander name/art
       // For now, use deck_id as identifier; the game query joined decks
       const supabase = (await import('@/lib/supabase')).supabase;
-      const deckIds = game.players.map(p => p.deck_id);
+      const deckIds = game.players.map((p: any) => p.deck_id);
       const { data: decks } = await supabase
         .from('decks')
         .select('id, commander_name, commander_art_url')
         .in('id', deckIds) as { data: any };
-      const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]));
+      const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
 
-      const loaded: PlayerInfo[] = game.players.map(p => {
+      const loaded: PlayerInfo[] = game.players.map((p: any) => {
         const deck: any = deckMap.get(p.deck_id);
         return {
           id: p.user_id,

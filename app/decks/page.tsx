@@ -31,7 +31,7 @@ const MANA_COLORS: Record<string, string> = {
 };
 
 function tierFor(score: number) {
-  return AURA_TIERS.find(t => score >= t.min && score <= t.max) || AURA_TIERS[0];
+  return AURA_TIERS.find((t: any) => score >= t.min && score <= t.max) || AURA_TIERS[0];
 }
 
 export default function Page() {
@@ -149,7 +149,7 @@ export default function Page() {
     setSearchResults([]);
   };
 
-  const totalAura = decks.reduce((sum, d) => sum + (d.aura_score || 0), 0);
+  const totalAura = decks.reduce((sum: any, d: any) => sum + (d.aura_score || 0), 0);
 
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Young+Serif&display=swap');

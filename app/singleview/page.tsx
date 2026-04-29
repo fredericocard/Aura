@@ -1352,7 +1352,7 @@ export default function SingleViewPage() {
                     </div>
                     <div className="search-results">
                       {searchResults.length > 0 ? (
-                        searchResults.map((card, idx) => (
+                        searchResults.map((card: any, idx: any) => (
                           <div
                             key={idx}
                             className={`search-item ${selectedCard?.name === card.name ? 'selected' : ''}`}
@@ -1383,7 +1383,7 @@ export default function SingleViewPage() {
                 ) : (
                   <div>
                     <div className="decks-grid" style={{ marginTop: '16px' }}>
-                      {myDecks.map((deck, idx) => (
+                      {myDecks.map((deck: any, idx: any) => (
                         <div
                           key={idx}
                           className={`deck-option ${selectedDeck === idx ? 'selected' : ''}`}
@@ -1420,7 +1420,7 @@ export default function SingleViewPage() {
                         </div>
                         <div className="search-results">
                           {searchResults.length > 0 ? (
-                            searchResults.map((card, idx) => (
+                            searchResults.map((card: any, idx: any) => (
                               <div
                                 key={idx}
                                 className={`search-item ${selectedCard?.name === card.name ? 'selected' : ''}`}
@@ -1607,7 +1607,7 @@ export default function SingleViewPage() {
 
         {/* Opponents Panel */}
         <div className={`opponents-panel ${expandedOpponent ? 'has-expanded' : ''}`}>
-          {opponents.map((opp) => (
+          {opponents.map((opp: any) => (
             <div
               key={opp.key}
               className={`opponent-row ${expandedOpponent === opp.key ? 'active-expanded' : ''} ${expandedOpponent && expandedOpponent !== opp.key ? 'dimmed' : ''}`}

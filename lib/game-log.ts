@@ -83,7 +83,7 @@ export async function getGameLog(
     query = query.eq("deck_id", filters.deckId);
   }
 
-  const { data: playerGames, error, count } = await query;
+  const { data: playerGames, error, count } = await query as any;
 
   if (error) {
     throw new Error(`Failed to fetch game log: ${error.message}`);
@@ -100,7 +100,7 @@ export async function getGameLog(
   }
 
   // 2. Get game IDs for batch queries
-  const gameIds = playerGames.map((pg) => pg.game_id);
+  const gameIds = playerGames.map((pg: any) => pg.game_id);
 
   // 3. Batch load: all players in these games + game cards
   const [allPlayersResult, cardsResult] = await Promise.all([
@@ -149,7 +149,7 @@ export async function getGameLog(
   // Winner deck → commander name lookup
   const winnerDeckIds = new Set(
     playerGames
-      .map((pg) => {
+      .map((pg: any) => {
         const game = pg.games as { winner_deck_id: string | null };
         return game.winner_deck_id;
       })
@@ -168,7 +168,7 @@ export async function getGameLog(
   }
 
   // 4. Assemble entries
-  const entries: GameLogEntry[] = playerGames.map((pg) => {
+  const entries: GameLogEntry[] = playerGames.map((pg: any) => {
     const game = pg.games as {
       id: string;
       state: string;
@@ -250,14 +250,14 @@ export async function getPlayerStats(userId: string): Promise<PlayerStats> {
         .eq("user_id", userId) as unknown as Promise<{ data: any; error: any }>,
     ]);
 
-  const totalGames = gamesResult.count ?? 0;
-  const totalWins = winsResult.count ?? 0;
+  const totalGames = (gamesResult as any).count ?? 0;
+  const totalWins = (winsResult as any).count ?? 0;
 
   return {
     totalGames,
     totalWins,
     winRate: totalGames > 0 ? Number((totalWins / totalGames).toFixed(2)) : 0,
-    uniqueCommanders: decksResult.count ?? 0,
-    totalCards: cardsResult.count ?? 0,
+    uniqueCommanders: (decksResult as any).count ?? 0,
+    totalCards: (cardsResult as any).count ?? 0,
   };
 }

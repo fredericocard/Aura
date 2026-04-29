@@ -144,7 +144,7 @@ export async function computeBadgeAttribution(gameId: string): Promise<{
     const badgeKey = question.question_key as BadgeKey;
     for (const result of question.results) {
       // result.deck_id → find which player owns this deck
-      const player = gamePlayers.find(p => p.deck_id === result.deck_id);
+      const player = gamePlayers.find((p: any) => p.deck_id === result.deck_id);
       if (player) {
         const pd = playerData.get(player.user_id);
         if (pd) {

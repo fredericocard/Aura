@@ -103,7 +103,7 @@ export default function GridView3P() {
       }
     }
 
-    const available = allMana.filter(c => !currentUsedColors.includes(c));
+    const available = allMana.filter((c: any) => !currentUsedColors.includes(c));
     if (available.length > 0) {
       return available[Math.floor(Math.random() * available.length)];
     }
@@ -284,12 +284,12 @@ export default function GridView3P() {
         const { data: game } = await getGame(gameId);
         if (!game) return;
 
-        const deckIds = game.players.map(p => p.deck_id);
+        const deckIds = game.players.map((p: any) => p.deck_id);
         const { data: decks } = await supabase
           .from('decks')
           .select('id, commander_name, color_identity')
           .in('id', deckIds) as { data: any };
-        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]));
+        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
 
         const playerSlots: Record<PlayerNum, Player> = {
           1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
@@ -299,7 +299,7 @@ export default function GridView3P() {
 
         const userIdMap: Record<number, string> = {};
 
-        game.players.forEach((p, i) => {
+        game.players.forEach((p: any, i: any) => {
           const playerNum = (i + 1) as PlayerNum;
           if (playerNum > 3) return;
 

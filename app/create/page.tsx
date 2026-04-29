@@ -81,11 +81,11 @@ export default function Page() {
   // Parse color identity string to array: "WUBR" → ["W","U","B","R"]
   function parseColors(colorIdentity: string | null): string[] {
     if (!colorIdentity) return [];
-    return colorIdentity.split('').filter(c => 'WUBRG'.includes(c));
+    return colorIdentity.split('').filter((c: any) => 'WUBRG'.includes(c));
   }
 
   // Generate decorative QR pattern
-  const qrCells = Array.from({ length: 121 }).map((_, i) => {
+  const qrCells = Array.from({ length: 121 }).map((_: any, i: any) => {
     const r = Math.floor(i / 11), c = i % 11;
     const corner = (r < 3 && c < 3) || (r < 3 && c > 7) || (r > 7 && c < 3);
     const filled = corner || (Math.sin(i * 1.7) + Math.cos(i * 0.9)) > 0.2;

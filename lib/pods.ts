@@ -230,7 +230,7 @@ export async function getMyPods(): Promise<{ data: Pod[]; error: string | null }
     .select('pod_id')
     .eq('user_id', user.id);
 
-  const memberPodIds = (memberOf ?? []).map(m => m.pod_id);
+  const memberPodIds = (memberOf ?? []).map((m: any) => m.pod_id);
 
   let memberPods: Pod[] = [];
   if (memberPodIds.length > 0) {
@@ -245,7 +245,7 @@ export async function getMyPods(): Promise<{ data: Pod[]; error: string | null }
   // Merge and deduplicate
   const allPods = [...(hosted as Pod[] ?? []), ...memberPods];
   const seen = new Set<string>();
-  const unique = allPods.filter(p => {
+  const unique = allPods.filter((p: any) => {
     if (seen.has(p.id)) return false;
     seen.add(p.id);
     return true;

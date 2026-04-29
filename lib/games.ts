@@ -44,7 +44,7 @@ export async function createGame(podId: string): Promise<{ data: Game | null; er
   }
 
   // Validate: all members need a deck
-  const withDecks = members.filter((m: any) => m.deck_id != null);
+  const withDecks = members.filter((m: any) => m.deck_id != null) as any;
   if (withDecks.length < 2) {
     return { data: null, error: 'Need at least 2 players with commanders to start a game' };
   }
@@ -64,7 +64,7 @@ export async function createGame(podId: string): Promise<{ data: Game | null; er
   }
 
   // Snapshot pod members as game players
-  const gamePlayers = withDecks.map(m => ({
+  const gamePlayers = withDecks.map((m: any) => ({
     game_id: game.id,
     user_id: m.user_id,
     deck_id: m.deck_id,
@@ -189,7 +189,7 @@ export async function getGamesForDeck(deckId: string): Promise<{ data: Game[]; e
 
   if (!entries || entries.length === 0) return { data: [], error: null };
 
-  const gameIds = entries.map(e => e.game_id);
+  const gameIds = entries.map((e: any) => e.game_id);
 
   const { data: games, error } = await supabase
     .from('games')
@@ -214,7 +214,7 @@ export async function getMyGames(): Promise<{ data: Game[]; error: string | null
 
   if (!entries || entries.length === 0) return { data: [], error: null };
 
-  const gameIds = [...new Set(entries.map(e => e.game_id))];
+  const gameIds = [...new Set(entries.map((e: any) => e.game_id))];
 
   const { data: games, error } = await supabase
     .from('games')

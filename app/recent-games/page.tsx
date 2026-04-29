@@ -68,7 +68,7 @@ function GameCard({ game, index }: { game: Game; index: number }) {
         <div className="game-expanded">
           <div className="game-expanded-inner">
             <div className="game-players-label">Players</div>
-            {game.players.map((player, playerIdx) => (
+            {game.players.map((player: any, playerIdx: any) => (
               <div key={playerIdx} className="game-player-row">
                 <div
                   className="game-player-avatar"
@@ -91,7 +91,7 @@ function GameCard({ game, index }: { game: Game; index: number }) {
             ))}
 
             <div className="game-badges-label">Badges Earned</div>
-            {game.badges.map((badge, badgeIdx) => (
+            {game.badges.map((badge: any, badgeIdx: any) => (
               <div key={badgeIdx} className="game-badge-row">
                 <div className="game-badge-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke={getBadgeColor(badge.key)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -127,10 +127,10 @@ function MemoryCard({ game, onClose }: { game: Game; onClose: () => void }) {
   const winner = game.players[game.winnerIdx];
   const auraSign = game.aura >= 0 ? '+' : '';
   const badgeCounts: Record<string, number> = {};
-  game.badges.forEach((b) => {
+  game.badges.forEach((b: any) => {
     badgeCounts[b.key] = (badgeCounts[b.key] || 0) + 1;
   });
-  const badgeList = Object.entries(badgeCounts).map(([key, count]) => ({ key, count }));
+  const badgeList = Object.entries(badgeCounts).map(([key, count]: any) => ({ key, count }));
 
   return (
     <div className="mc-overlay show" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -154,7 +154,7 @@ function MemoryCard({ game, onClose }: { game: Game; onClose: () => void }) {
               </div>
 
               <div className="mc-slices">
-                {game.players.map((player, idx) => (
+                {game.players.map((player: any, idx: any) => (
                   <div key={idx} className="mc-slice">
                     <img src={player.img} alt={player.commander} />
                   </div>
@@ -171,7 +171,7 @@ function MemoryCard({ game, onClose }: { game: Game; onClose: () => void }) {
               </div>
 
               <div className="mc-players">
-                {game.players.map((player, idx) => (
+                {game.players.map((player: any, idx: any) => (
                   <div key={idx} className={`mc-p ${idx === game.winnerIdx ? 'is-winner' : ''}`}>
                     <div className="mc-p-avatar">
                       <img src={player.img} alt={player.name} />
@@ -312,7 +312,7 @@ function RecentGamesContent() {
     loadGames();
   }, [searchParams]);
 
-  const allDecks = Array.from(new Set(games.flatMap(g => g.players.map(p => p.commander))));
+  const allDecks = Array.from(new Set(games.flatMap((g: any) => g.players.map((p: any) => p.commander))));
 
   const filteredGames = games
     .filter(g => {

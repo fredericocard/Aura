@@ -163,7 +163,7 @@ export async function castBracketCheck(
       .select('deck_id')
       .eq('game_id', gameId);
 
-    const validDeckIds = new Set((gamePlayers ?? []).map(p => p.deck_id));
+    const validDeckIds = new Set((gamePlayers ?? []).map((p: any) => p.deck_id));
     for (const deckId of flaggedDeckIds) {
       if (!validDeckIds.has(deckId)) {
         return { error: `Deck ${deckId} is not in this game` };
@@ -193,7 +193,7 @@ export async function castBracketCheck(
     return { error: error?.message ?? null };
   } else {
     // Flag specific commanders
-    const rows = flaggedDeckIds.map(deckId => ({
+    const rows = flaggedDeckIds.map((deckId: any) => ({
       game_id: gameId,
       voter_id: user.id,
       question_key: 'bracket_check' as const,

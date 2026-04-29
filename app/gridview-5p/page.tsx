@@ -118,7 +118,7 @@ export default function GridView5P() {
       }
     }
 
-    const available = allMana.filter(c => !currentUsedColors.includes(c));
+    const available = allMana.filter((c: any) => !currentUsedColors.includes(c));
     if (available.length > 0) {
       return available[Math.floor(Math.random() * available.length)];
     }
@@ -322,12 +322,12 @@ export default function GridView5P() {
           return;
         }
 
-        const deckIds = game.players.map(p => p.deck_id);
+        const deckIds = game.players.map((p: any) => p.deck_id);
         const { data: decks } = await supabase
           .from('decks')
           .select('id, commander_name, color_identity')
           .in('id', deckIds) as { data: any };
-        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]));
+        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
 
         const newPlayers: Record<number, PlayerState> = {
           1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
@@ -339,7 +339,7 @@ export default function GridView5P() {
 
         const newPlayerUserIds: Record<number, string> = {};
 
-        game.players.forEach((p, i) => {
+        game.players.forEach((p: any, i: any) => {
           const slot = i + 1;
           if (slot > 5) return;
           const deck: any = deckMap.get(p.deck_id);

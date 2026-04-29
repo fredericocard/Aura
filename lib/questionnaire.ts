@@ -57,12 +57,12 @@ export async function getQuestionnaireStatus(gameId: string): Promise<{
     .select('user_id, review_submitted_at, auto_completed')
     .eq('pod_id', game.pod_id) as { data: any };
 
-  const memberMap = new Map(
+  const memberMap = new Map<string, any>(
     (podMembers ?? []).map((m: any) => [m.user_id, m])
   );
 
   const result: PlayerQuestionnaireInfo[] = gamePlayers.map((gp: any) => {
-    const pm = memberMap.get(gp.user_id);
+    const pm = memberMap.get(gp.user_id) as any;
     const reviewSubmitted = pm?.review_submitted_at ?? null;
     const autoCompleted = pm?.auto_completed ?? false;
 
@@ -111,10 +111,10 @@ export async function getPodCompletionSummary(gameId: string): Promise<{
   const { data: statusResult, error } = await getQuestionnaireStatus(gameId);
   if (error) return { data: null, error };
 
-  const completed = statusResult.filter(p => p.status === 'completed').length;
-  const autoComp = statusResult.filter(p => p.status === 'auto_completed').length;
-  const inProgress = statusResult.filter(p => p.status === 'in_progress' && p.can_review).length;
-  const notYet = statusResult.filter(p => p.status === 'in_progress' && !p.can_review).length;
+  const completed = statusResult.filter((p: any) => p.status === 'completed').length;
+  const autoComp = statusResult.filter((p: any) => p.status === 'auto_completed').length;
+  const inProgress = statusResult.filter((p: any) => p.status === 'in_progress' && p.can_review).length;
+  const notYet = statusResult.filter((p: any) => p.status === 'in_progress' && !p.can_review).length;
 
   // Timer: starts from ended_at (winner declared)
   let minutesRemaining: number | null = null;
@@ -188,13 +188,13 @@ export async function autoCompleteExpiredReviews(gameId: string): Promise<{
 
   const submittedSet = new Set(
     (podMembers ?? [])
-      .filter(m => m.review_submitted_at)
-      .map(m => m.user_id)
+      .filter((m: any) => m.review_submitted_at)
+      .map((m: any) => m.user_id)
   );
 
   // Players with review access who haven't submitted
   const expired = gamePlayers.filter(
-    p => p.can_review && !submittedSet.has(p.user_id)
+    (p: any) => p.can_review && !submittedSet.has(p.user_id)
   );
 
   if (expired.length === 0) return { autoCompletedCount: 0, error: null };
@@ -268,7 +268,7 @@ export async function checkPodCompletion(podId: string, gameId: string): Promise
     return { completed: false, error: 'No pod members found' };
   }
 
-  const allSubmitted = members.every(m => m.review_submitted_at);
+  const allSubmitted = members.every((m: any) => m.review_submitted_at);
 
   if (!allSubmitted) {
     return { completed: false, error: null };
@@ -281,7 +281,7 @@ export async function checkPodCompletion(podId: string, gameId: string): Promise
     .eq('id', podId);
 
   // Complete the game
-  const votingCount = members.filter(m => m.review_submitted_at).length;
+  const votingCount = members.filter((m: any) => m.review_submitted_at).length;
   await supabase
     .from('games')
     .update({

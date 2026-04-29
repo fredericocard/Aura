@@ -177,5 +177,5 @@ async function getGameDeckIds(gameId: string): Promise<string[]> {
     throw new Error(`Failed to fetch game deck IDs: ${error.message}`);
   }
 
-  return (data ?? []).map((p) => p.deck_id);
+  return (data ?? []).map((p: any) => p.deck_id);
 }

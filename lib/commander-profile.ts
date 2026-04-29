@@ -133,8 +133,8 @@ export async function getCommanderProfile(
       .eq("bracket_at_time", deck.bracket) as unknown as Promise<{ data: any; error: any }>,
   ]);
 
-  const totalGames = gamesResult.count ?? 0;
-  const gamesAtCurrentBracket = bracketGamesResult.count ?? 0;
+  const totalGames = (gamesResult as any).count ?? 0;
+  const gamesAtCurrentBracket = (bracketGamesResult as any).count ?? 0;
 
   // 3. Build badge profiles
   const badgeKeys: BadgeKey[] = [
@@ -151,12 +151,12 @@ export async function getCommanderProfile(
 
     // Build bracket breakdown from history
     const byBracket: BracketBreakdown[] = [];
-    const bracketData = bracketVotes.filter((bv) => bv.category === badge);
+    const bracketData = bracketVotes.data.filter((bv: any) => bv.badge === badge);
     for (const bv of bracketData) {
       byBracket.push({
         bracket: bv.bracket,
         votes: bv.total_votes,
-        badges: bv.total_badges ?? 0,
+        badges: (bv as any).total_badges ?? 0,
       });
     }
 
@@ -166,7 +166,7 @@ export async function getCommanderProfile(
   const totalBadgesEarned = badges.reduce((sum, b) => sum + b.earnedCount, 0);
 
   // 4. Build recent cards
-  const recentCards: RecentCard[] = cards.slice(0, 5).map((card) => {
+  const recentCards: RecentCard[] = cards.slice(0, 5).map((card: any) => {
     // Find this commander's data in the card
     const commanders = (card.commanders ?? []) as Array<{
       deck_id: string;
@@ -174,7 +174,7 @@ export async function getCommanderProfile(
       brewed_badge: string;
       is_winner: boolean;
     }>;
-    const myData = commanders.find((c) => c.deck_id === deckId);
+    const myData = commanders.find((c: any) => c.deck_id === deckId);
 
     return {
       cardId: card.id,
@@ -245,7 +245,7 @@ export async function getUserCommanderSummaries(
 
   const summaries: CommanderSummary[] = [];
 
-  for (const deck of decks ?? []) {
+  for (const deck of (decks ?? []) as any) {
     const [tierResult, gamesResult] = await Promise.all([
       getDeckTier(deck.id),
       supabase
@@ -255,7 +255,7 @@ export async function getUserCommanderSummaries(
         .eq("games.state", "completed") as unknown as Promise<{ data: any; error: any }>,
     ]);
 
-    const totalGames = gamesResult.count ?? 0;
+    const totalGames = (gamesResult as any).count ?? 0;
     const totalBadges =
       (deck.badge_fun ?? 0) +
       (deck.badge_rivalry ?? 0) +

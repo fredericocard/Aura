@@ -158,7 +158,7 @@ export async function evaluateNudge(
     throw new Error(`Failed to fetch games: ${gamesErr.message}`);
   }
 
-  const gameIds = (gameRows ?? []).map((r) => r.game_id);
+  const gameIds = (gameRows ?? []).map((r: any) => r.game_id);
   const totalGames = gameIds.length;
 
   // Not enough games

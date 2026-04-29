@@ -213,7 +213,7 @@ export async function composeGameCard(
   const bracketResult = await buildBracketSummary(gameId, deckToCommander);
 
   // 8. Build commanders array
-  const commanders: CommanderCardData[] = players.map((p) => {
+  const commanders: CommanderCardData[] = players.map((p: any) => {
     const attr = attrMap.get(p.deck_id);
     const deck = p.decks as { commander_name: string; commander_art_url: string | null };
     return {
@@ -221,7 +221,7 @@ export async function composeGameCard(
       user_id: p.user_id,
       commander_name: deck.commander_name,
       art_url: deck.commander_art_url,
-      archetype: attr?.archetype ?? "The Unknown",
+      archetype: attr?.archetype_name ?? "The Unknown",
       brewed_badge: attr?.brewed_badge ?? "none",
       is_winner: p.is_winner,
     };
@@ -245,7 +245,7 @@ export async function composeGameCard(
     winnerUserId: game.winner_player_id,
     winnerDeckId: game.winner_deck_id,
     winnerCommanderName: winnerCommander,
-    winnerArchetype: winnerAttr?.archetype ?? null,
+    winnerArchetype: winnerAttr?.archetype_name ?? null,
     archenemyCommander,
     flavourWinnerCommander,
     funWinnerCommander,
