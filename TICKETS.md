@@ -12,6 +12,7 @@
 | **Ticket** |  |  | AF-B08 |
 | **Ticket** |  |  | AF-B09 |
 | **Ticket** |  |  | AF-B10 |
+| **Ticket** |  |  | AF-B11 |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
@@ -242,3 +243,25 @@
   - getReviewTimeRemaining() — minutes left on timer
 
 **Blocked by:** AF-B08 ✅, AF-B09 ✅ **Enables:** AF-B17, AF-B22
+
+---
+
+## AF-B11 · Interim acknowledgement for early finishers ✅
+
+**Acceptance criteria:**
+
+* [x] Game Card text area shows interim status message while reviews are in progress
+* [x] Message includes completion count ("3 of 4 reviews in")
+* [x] Player can see their own vote recap on the interim card
+* [x] Once pod completes, interim text is replaced by the commander story/review
+* [x] Game Card is marked as locked (immutable) only after pod completion
+
+**What was built:**
+- No SQL migration needed — uses existing game/pod state
+- lib/card-status.ts:
+  - getCardStatus() — returns phase (reviewing / waiting_for_others / complete) + message + counts
+  - getCardTextContent() — interim text with progress, or null when complete (UI shows story)
+  - getMyVoteRecap() — player's own votes with commander names for display
+  - Three phases: reviewing → waiting_for_others → complete
+
+**Blocked by:** AF-B10 ✅ **Enables:** Interim feedback flow
