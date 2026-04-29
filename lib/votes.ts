@@ -1,8 +1,10 @@
 import { supabase } from './supabase';
 
-export type QuestionKey = 'q1' | 'q2' | 'q3' | 'q4' | 'allegiance' | 'bracket_check';
+export type BadgeKey = 'fun' | 'rivalry' | 'allegiance' | 'brilliance' | 'flavor';
+export type QuestionKey = BadgeKey | 'bracket_check';
 
-export const SINGLE_SELECT_QUESTIONS: QuestionKey[] = ['q1', 'q2', 'q3', 'q4', 'allegiance'];
+export const BADGE_QUESTIONS: BadgeKey[] = ['fun', 'rivalry', 'allegiance', 'brilliance', 'flavor'];
+export const SINGLE_SELECT_QUESTIONS: QuestionKey[] = [...BADGE_QUESTIONS];
 
 export interface GameVote {
   id: string;

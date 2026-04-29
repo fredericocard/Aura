@@ -14,6 +14,7 @@
 | **Ticket** |  |  | AF-B10 |
 | **Ticket** |  |  | AF-B11 |
 | **Ticket** |  |  | AF-B12 |
+| **Ticket** |  |  | AF-B13 |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
@@ -288,3 +289,28 @@
   - BracketCheckResult with consensus_honoured flag + per-commander flag counts
 
 **Blocked by:** AF-B09 ✅ **Enables:** AF-B13, AF-B14, AF-B17
+
+---
+
+## AF-B13 · Badge attribution + archetype system ✅
+
+**Acceptance criteria:**
+
+* [x] Every player gets exactly one brewed badge (most voted category) per game
+* [x] Players with 0 votes get brewed_badge='none' and archetype 'The Unknown'
+* [x] Archetype determined by combination of all badges received (31 total archetypes)
+* [x] No two players in the same game receive the same archetype (collision resolved by dropping weakest badge)
+* [x] Attribution is deterministic — alphabetical tiebreaks throughout
+* [x] Bracket Check never used for badge attribution
+* [x] Attributions saved to badge_attributions table for audit
+
+**What was built:**
+- SQL migration: renames question keys (q1→fun, q2→rivalry, q3→brilliance, q4→flavor), creates badge_attributions table with RLS
+- Updated lib/votes.ts and lib/vote-tally.ts with real badge names
+- lib/badge-attribution.ts:
+  - ARCHETYPE_MAP — all 31 combinations mapped to names (The Mastermind, The Living Legend, etc.)
+  - computeBadgeAttribution() — vote counting, brewed badge, archetype with collision resolution
+  - saveGameBadgeAttributions() — idempotent save to database
+  - getGameBadgeAttributions(), getPlayerAttribution(), getPlayerArchetypeHistory()
+
+**Blocked by:** AF-B12 ✅ **Enables:** AF-B14, AF-B22
