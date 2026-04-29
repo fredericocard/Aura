@@ -2,6 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { getGame } from '@/lib/games';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
+import { supabase } from '@/lib/supabase';
 
 type PlayerNum = 1 | 2 | 3;
 
@@ -21,6 +25,15 @@ interface Counters {
 }
 
 export default function GridView3P() {
+  const searchParams = useSearchParams();
+  const gameId = searchParams.get('gameId') ?? '';
+  const podId = searchParams.get('podId') ?? '';
+  const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+
+  const syncLife = (userId: string, newLife: number) => {
+    if (gameId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
+  };
+
   const [players, setPlayers] = useState<Record<PlayerNum, Player>>({
     1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W','U','B','G'] },
     2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] },
@@ -262,6 +275,69 @@ export default function GridView3P() {
       }
     }
   };
+
+  useEffect(() => {
+    const loadGameData = async () => {
+      if (!gameId) return;
+
+      try {
+        const game = await getGame(gameId);
+        if (!game) return;
+
+        const playerSlots: Record<PlayerNum, Player> = {
+          1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
+          2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] },
+          3: { life: 40, name: 'Player 3', commander: null, claimed: false, colors: [] }
+        };
+
+        const userIdMap: Record<number, string> = {};
+
+        // Load player data from game
+        if (game.players && Array.isArray(game.players)) {
+          for (let i = 0; i < Math.min(game.players.length, 3); i++) {
+            const player = game.players[i];
+            const playerNum = (i + 1) as PlayerNum;
+
+            if (player.user_id) {
+              userIdMap[playerNum] = player.user_id;
+            }
+
+            // Load deck data to get commander and colors
+            if (player.deck_id) {
+              const { data: deckData } = await supabase
+                .from('decks')
+                .select('commander_name, color_identity')
+                .eq('id', player.deck_id)
+                .single();
+
+              if (deckData) {
+                playerSlots[playerNum].commander = deckData.commander_name;
+                playerSlots[playerNum].colors = deckData.color_identity ? deckData.color_identity.split('') : [];
+                playerSlots[playerNum].claimed = true;
+              }
+            }
+
+            // Set player name if available
+            if (player.name) {
+              playerSlots[playerNum].name = player.name;
+            }
+
+            // Set life total if available
+            if (player.life !== undefined && player.life !== null) {
+              playerSlots[playerNum].life = player.life;
+            }
+          }
+        }
+
+        setPlayers(playerSlots);
+        setPlayerUserIds(userIdMap);
+      } catch (error) {
+        console.error('Failed to load game data:', error);
+      }
+    };
+
+    loadGameData();
+  }, [gameId]);
 
   useEffect(() => {
     scheduleNavCollapse();

@@ -5,30 +5,30 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from '../../lib/auth-context';
+import { getGame, type GamePlayer } from '@/lib/games';
+import { castVote, castBracketCheck, type QuestionKey } from '@/lib/votes';
+import { submitReview } from '@/lib/pods';
+import { getGameCard, type GameCard, type CommanderCardData } from '@/lib/game-card';
 
-const PLAYERS = [
-  { id: 'frederico', name: 'Frederico', short: 'Omnath', art: '/assets/commanders/omnath.jpg' },
-  { id: 'manel', name: 'Manel', short: 'Krenko', art: '/assets/commanders/krenko.jpg' },
-  { id: 'sofia', name: 'Sofia', short: 'Atraxa', art: '/assets/commanders/atraxa.jpg' },
-  { id: 'tomas', name: 'Tomás', short: 'Muldrotha', art: '/assets/commanders/muldrotha.jpg' },
-];
+interface PlayerInfo {
+  id: string;      // user_id
+  deckId: string;   // deck_id
+  name: string;     // display name (commander for now)
+  short: string;    // commander name
+  art: string;      // commander art URL
+}
 
 const CATEGORIES = [
-  { id: 'brilliance', label: 'Brilliance', question: 'Who pulled off the wildest play?', glyph: 'brilliance', color: '#C99B2F', soft: '#F6ECD2' },
-  { id: 'flavor', label: 'Flavour', question: 'Who took the flavour win?', glyph: 'flavor', color: '#7E4E8A', soft: '#EADDEE' },
-  { id: 'rivalry', label: 'Rivalry', question: 'Who was the biggest threat?', glyph: 'rivalry', color: '#9E2B2B', soft: '#F1D4CF' },
-  { id: 'allegiance', label: 'Allegiance', question: 'Who did you team up with?', glyph: 'allegiance', color: '#2F7A74', soft: '#D6E6E3' },
-  { id: 'fun', label: 'Fun', question: "Who's invited back first?", glyph: 'fun', color: '#E07B4A', soft: '#F9DFCD' },
+  { id: 'brilliance' as QuestionKey, label: 'Brilliance', question: 'Who pulled off the wildest play?', glyph: 'brilliance', color: '#C99B2F', soft: '#F6ECD2' },
+  { id: 'flavor' as QuestionKey, label: 'Flavour', question: 'Who took the flavour win?', glyph: 'flavor', color: '#7E4E8A', soft: '#EADDEE' },
+  { id: 'rivalry' as QuestionKey, label: 'Rivalry', question: 'Who was the biggest threat?', glyph: 'rivalry', color: '#9E2B2B', soft: '#F1D4CF' },
+  { id: 'allegiance' as QuestionKey, label: 'Allegiance', question: 'Who did you team up with?', glyph: 'allegiance', color: '#2F7A74', soft: '#D6E6E3' },
+  { id: 'fun' as QuestionKey, label: 'Fun', question: "Who's invited back first?", glyph: 'fun', color: '#E07B4A', soft: '#F9DFCD' },
 ];
 
 const BADGE_LABELS: Record<string, string> = { brilliance: 'Brilliance', rivalry: 'Rivalry', allegiance: 'Allegiance', fun: 'Fun', flavor: 'Flavour' };
-const ARCHETYPES: Record<string, string> = {
-  'brilliance': 'Mastermind', 'flavor': 'Lore Master', 'rivalry': 'Archenemy',
-  'allegiance': 'Kingmaker', 'fun': 'Beloved',
-};
-const COMMANDER_BADGES: Record<string, string> = { frederico: 'brilliance', manel: 'fun', sofia: 'allegiance', tomas: 'flavor' };
-const WINNER_ID = 'frederico';
 
 function AuraMark({ size = 22, color = '#2B2118' }: { size?: number; color?: string }) {
   return (
@@ -78,7 +78,7 @@ function BadgeGlyph({ name, size = 28, stroke: strokeColor = 'currentColor' }: {
   );
 }
 
-function DoneCard({ idx, cat, answerPlayer, onReopen }: { idx: number; cat: typeof CATEGORIES[0]; answerPlayer: typeof PLAYERS[0] | undefined; onReopen: () => void }) {
+function DoneCard({ idx, cat, answerPlayer, onReopen }: { idx: number; cat: typeof CATEGORIES[0]; answerPlayer: { id: string; name: string; short: string; art: string } | undefined; onReopen: () => void }) {
   return (
     <button onClick={onReopen} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: '#FAF5EA', border: '1px solid rgba(43,33,24,.08)', borderLeft: '4px solid #2F5D3A', borderRadius: 20, padding: '14px 16px 14px 14px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)', fontFamily: "'Instrument Sans', sans-serif" }}>
       <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#8A7E6F', minWidth: 28 }}>{idx + 1}/6</span>
@@ -104,7 +104,7 @@ function InactiveCard({ idx, question }: { idx: number; question: string }) {
   );
 }
 
-function ActiveCard({ idx, cat, selectedId, onSelect }: { idx: number; cat: typeof CATEGORIES[0]; selectedId: string | undefined; onSelect: (id: string) => void }) {
+function ActiveCard({ idx, cat, selectedId, onSelect, players }: { idx: number; cat: typeof CATEGORIES[0]; selectedId: string | undefined; onSelect: (id: string) => void; players: PlayerInfo[] }) {
   const faded = selectedId != null;
   return (
     <div style={{ background: '#FAF5EA', border: `1.5px solid ${cat.color}`, borderLeft: `6px solid ${cat.color}`, borderRadius: 20, padding: '22px 20px 24px', boxShadow: '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)' }}>
@@ -118,13 +118,13 @@ function ActiveCard({ idx, cat, selectedId, onSelect }: { idx: number; cat: type
         </div>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-        {PLAYERS.map(p => (
-          <button key={p.id} onClick={() => onSelect(p.id)} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', opacity: faded && selectedId !== p.id ? 0.28 : 1, transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>
+        {players.map(p => (
+          <button key={p.deckId} onClick={() => onSelect(p.deckId)} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', opacity: faded && selectedId !== p.deckId ? 0.28 : 1, transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>
             <div style={{ position: 'relative' }}>
-              <div style={{ width: 56, height: 56, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selectedId === p.id ? '0 0 0 3px #B06B2C' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
-                <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/>
+              <div style={{ width: 56, height: 56, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selectedId === p.deckId ? '0 0 0 3px #B06B2C' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
+                {p.art ? <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{p.short.charAt(0)}</div>}
               </div>
-              {selectedId === p.id && (
+              {selectedId === p.deckId && (
                 <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'rgba(176,107,44,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                   <Icon name="check" size={26} width={2.5} />
                 </div>
@@ -150,7 +150,7 @@ function ActiveCard({ idx, cat, selectedId, onSelect }: { idx: number; cat: type
   );
 }
 
-function BracketActiveCard({ selected, onSelect }: { selected: string | null; onSelect: (val: string) => void }) {
+function BracketActiveCard({ selected, onSelect, players }: { selected: string | null; onSelect: (val: string) => void; players: PlayerInfo[] }) {
   return (
     <div style={{ background: '#FAF5EA', border: '1.5px solid #8A7E6F', borderLeft: '6px solid #8A7E6F', borderRadius: 20, padding: '22px 20px 24px', boxShadow: '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
@@ -180,13 +180,13 @@ function BracketActiveCard({ selected, onSelect }: { selected: string | null; on
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {PLAYERS.map(p => (
-          <button key={p.id} onClick={() => onSelect(p.id)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: selected === p.id ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif" }}>
+        {players.map(p => (
+          <button key={p.id} onClick={() => onSelect(p.deckId)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: selected === p.deckId ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif" }}>
             <div style={{ position: 'relative' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selected === p.id ? '0 0 0 2px #9E2B2B' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
-                <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/>
+              <div style={{ width: 36, height: 36, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selected === p.deckId ? '0 0 0 2px #9E2B2B' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
+                {p.art ? <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>{p.short.charAt(0)}</div>}
               </div>
-              {selected === p.id && (
+              {selected === p.deckId && (
                 <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'rgba(158,43,43,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                   <Icon name="check" size={18} width={2.5} />
                 </div>
@@ -204,7 +204,10 @@ function BracketActiveCard({ selected, onSelect }: { selected: string | null; on
 }
 
 
-function KeepsakeCard() {
+function KeepsakeCard({ card }: { card: GameCard }) {
+  const commanders = (card.commanders ?? []) as CommanderCardData[];
+  const dateStr = card.game_date ?? '';
+
   return (
     <div style={{ padding: 4, background: 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)', borderRadius: 24, boxShadow: '0 30px 60px -20px rgba(10,6,4,0.55), 0 12px 24px -8px rgba(43,33,24,0.35), 0 1px 0 rgba(255,255,255,0.35) inset' }}>
       <div style={{ background: '#0A0604', backgroundImage: 'radial-gradient(ellipse at 50% 15%, rgba(201,155,47,0.34), transparent 45%), radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.6), transparent 50%), linear-gradient(180deg, #140C07 0%, #0A0604 45%, #050302 100%)', borderRadius: 20, padding: '12px 12px 14px', position: 'relative', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(201,155,47,0.35), inset 0 0 30px rgba(0,0,0,0.5)' }}>
@@ -239,7 +242,7 @@ function KeepsakeCard() {
             <AuraMark size={16} color="#E2B858" />
             <span style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, letterSpacing: '-0.01em', color: '#E2B858', lineHeight: 1 }}>Aura</span>
           </div>
-          <span style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(226,184,88,0.6)' }}>Apr 24 · 7:30 PM · 1h 24m</span>
+          <span style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(226,184,88,0.6)' }}>{dateStr}</span>
         </div>
 
         <div style={{ position: 'relative', marginBottom: 12, textAlign: 'center', fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.34em', textTransform: 'uppercase', color: 'rgba(226,184,88,0.85)', textShadow: '0 0 12px rgba(201,155,47,0.45)' }}>
@@ -247,13 +250,17 @@ function KeepsakeCard() {
         </div>
 
         <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(201,155,47,0.3)' }}>
-          {PLAYERS.map((p, i) => {
-            const badge = COMMANDER_BADGES[p.id];
-            const isWinner = p.id === WINNER_ID;
+          {commanders.map((c, i) => {
+            const badge = c.brewed_badge;
+            const isWinner = c.is_winner;
             return (
-              <div key={p.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', height: 72, background: '#0A0604', overflow: 'hidden', borderBottom: i < PLAYERS.length - 1 ? '1px solid rgba(201,155,47,0.22)' : 'none' }}>
+              <div key={c.deck_id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', height: 72, background: '#0A0604', overflow: 'hidden', borderBottom: i < commanders.length - 1 ? '1px solid rgba(201,155,47,0.22)' : 'none' }}>
                 <div style={{ position: 'relative', width: '65%', flexShrink: 0, overflow: 'hidden' }}>
-                  <img src={p.art} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 12%', transform: 'scale(1.15)' }}/>
+                  {c.art_url ? (
+                    <img src={c.art_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 12%', transform: 'scale(1.15)' }}/>
+                  ) : (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a140e', color: '#E2B858', fontSize: 28, fontFamily: "'Young Serif', Georgia, serif" }}>{c.commander_name.charAt(0)}</div>
+                  )}
                   <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 80, background: 'linear-gradient(90deg, transparent 0%, rgba(10,6,4,0.55) 55%, #0A0604 100%)', pointerEvents: 'none' }} />
                   {isWinner && (
                     <div style={{ position: 'absolute', top: 8, left: 8, width: 22, height: 22, borderRadius: 999, background: 'rgba(10,6,4,0.72)', border: '1px solid rgba(226,184,88,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E2B858' }}>
@@ -262,37 +269,24 @@ function KeepsakeCard() {
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0, padding: '8px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
-                  <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 500, color: '#F5EFE2', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.8 }}>{p.name}</div>
-                  <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: '#F5EFE2' }}>{p.short}</div>
-                  <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 8, fontWeight: 300, color: 'rgba(245,239,226,0.55)', marginTop: 2 }}>
-                    Brewed for <span style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 10, color: '#F5EFE2', marginLeft: 2 }}>{BADGE_LABELS[badge]}</span>
-                  </div>
+                  <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 500, color: '#F5EFE2', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.8 }}>{c.archetype}</div>
+                  <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: '#F5EFE2' }}>{c.commander_name}</div>
+                  {badge && badge !== 'none' && (
+                    <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 8, fontWeight: 300, color: 'rgba(245,239,226,0.55)', marginTop: 2 }}>
+                      Brewed for <span style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 10, color: '#F5EFE2', marginLeft: 2 }}>{BADGE_LABELS[badge] ?? badge}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(201,155,47,0.25)', position: 'relative', textAlign: 'center', fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 13, lineHeight: 1.45, color: '#F5EFE2', padding: '12px 4px 0', textWrap: 'pretty' as any }}>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}>In this chapter, </span>
-          <strong style={{ fontWeight: 700 }}>Frederico</strong>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}> played the </span>
-          <em>Mastermind</em>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}>, </span>
-          <strong style={{ fontWeight: 700 }}>Manel</strong>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}> the </span>
-          <em>Beloved</em>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}>, </span>
-          <strong style={{ fontWeight: 700 }}>Sofia</strong>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}> the </span>
-          <em>Kingmaker</em>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}>, and </span>
-          <strong style={{ fontWeight: 700 }}>Tomás</strong>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}> the </span>
-          <em>Lore Master</em>
-          <span style={{ color: 'rgba(245,239,226,0.7)' }}>.</span>
-          <div style={{ marginTop: 6, fontStyle: 'italic', fontSize: 11, color: 'rgba(226,184,88,0.75)', textAlign: 'right' }}>— Friday Night Pod</div>
-        </div>
+        {card.narrative && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(201,155,47,0.25)', position: 'relative', textAlign: 'center', fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 13, lineHeight: 1.45, color: '#F5EFE2', padding: '12px 4px 0', textWrap: 'pretty' as any }}>
+            <span style={{ color: 'rgba(245,239,226,0.7)' }}>{card.narrative}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -503,11 +497,13 @@ function GuestPromotionOverlay({ onComplete, onSkip }: { onComplete: () => void;
   );
 }
 
-function MemoryCardOverlay({ onClose }: { onClose: () => void }) {
+function MemoryCardOverlay({ onClose, card }: { onClose: () => void; card: GameCard | null }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,6,4,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 20px', fontFamily: "'Instrument Sans', sans-serif" }}>
       <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, width: '100%', maxWidth: 430 }}>
-        <KeepsakeCard />
+        {card ? <KeepsakeCard card={card} /> : (
+          <div style={{ color: '#E2B858', fontFamily: "'Instrument Sans', sans-serif", fontSize: 14, textAlign: 'center', padding: 40 }}>Loading your Game Card...</div>
+        )}
         <div style={{ display: 'flex', gap: 14 }}>
           <button style={{ width: 44, height: 44, borderRadius: 999, border: '1px solid rgba(201,155,47,0.55)', background: 'linear-gradient(180deg, #140C07 0%, #0A0604 100%)', color: '#E2B858', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -4px rgba(10,6,4,0.45)' }}>
             <Icon name="download" size={16} />
@@ -524,14 +520,57 @@ function MemoryCardOverlay({ onClose }: { onClose: () => void }) {
 
 export default function ReviewPage() {
   const { isGuest, isLoggedIn } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const gameId = searchParams.get('gameId') ?? '';
+  const podId = searchParams.get('podId') ?? '';
+
+  const [players, setPlayers] = useState<PlayerInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [activeIdx, setActiveIdx] = useState(0);
   const [bracketAnswer, setBracketAnswer] = useState<string | null>(null);
   const [showMemory, setShowMemory] = useState(false);
   const [showPromotion, setShowPromotion] = useState(false);
+  const [gameCard, setGameCard] = useState<GameCard | null>(null);
   const activeCardRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const doneCardRef = useRef<HTMLDivElement>(null);
+
+  // Load game players on mount
+  useEffect(() => {
+    if (!gameId) { setPageError('No game specified'); setLoading(false); return; }
+    async function load() {
+      const { data: game, error: err } = await getGame(gameId);
+      if (err || !game) { setPageError(err ?? 'Game not found'); setLoading(false); return; }
+      // Build player list from game_players + deck info
+      // We need deck info — game_players has deck_id but we need commander name/art
+      // For now, use deck_id as identifier; the game query joined decks
+      const supabase = (await import('@/lib/supabase')).supabase;
+      const deckIds = game.players.map(p => p.deck_id);
+      const { data: decks } = await supabase
+        .from('decks')
+        .select('id, commander_name, commander_art_url')
+        .in('id', deckIds);
+      const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
+
+      const loaded: PlayerInfo[] = game.players.map(p => {
+        const deck = deckMap.get(p.deck_id);
+        return {
+          id: p.user_id,
+          deckId: p.deck_id,
+          name: deck?.commander_name ?? 'Unknown',
+          short: deck?.commander_name ?? 'Unknown',
+          art: deck?.commander_art_url ?? '',
+        };
+      });
+      setPlayers(loaded);
+      setLoading(false);
+    }
+    load();
+  }, [gameId]);
 
   useEffect(() => {
     if (activeCardRef.current) {
@@ -553,11 +592,51 @@ export default function ReviewPage() {
 
   const selectAnswer = (catId: string, playerId: string) => {
     setAnswers(a => ({ ...a, [catId]: playerId }));
+
+    // Fire vote to backend (fire-and-forget for snappy UX)
+    if (playerId !== '__skip' && gameId) {
+      // playerId here is actually deckId for real players
+      castVote(gameId, catId as QuestionKey, playerId).catch(() => {});
+    }
+
     setTimeout(() => {
       const nextIdx = CATEGORIES.findIndex((c, i) => i > activeIdx && !answers[c.id] && c.id !== catId);
       if (nextIdx >= 0) setActiveIdx(nextIdx);
       else if (!bracketAnswer && !answers.bracket) setActiveIdx(5);
     }, 180);
+  };
+
+  const handleBracketSelect = (val: string) => {
+    setBracketAnswer(val);
+    // Fire bracket check vote
+    if (gameId) {
+      if (val === 'on-bracket') {
+        castBracketCheck(gameId, []).catch(() => {});
+      } else {
+        // val is a deckId
+        castBracketCheck(gameId, [val]).catch(() => {});
+      }
+    }
+  };
+
+  const handleAcceptReview = async () => {
+    if (!podId) return;
+    setSubmitting(true);
+    const { allDone, error: submitErr } = await submitReview(podId);
+    setSubmitting(false);
+    if (submitErr) { setPageError(submitErr); return; }
+
+    // Load the Game Card (created by the orchestration pipeline after all reviews are in)
+    if (gameId) {
+      getGameCard(gameId).then(card => { if (card) setGameCard(card); }).catch(() => {});
+    }
+
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!isLoggedIn) {
+      setShowPromotion(true);
+    } else {
+      setShowMemory(true);
+    }
   };
 
   return (
@@ -574,17 +653,23 @@ export default function ReviewPage() {
       </div>
 
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#8A7E6F' }}>Loading game data...</div>
+        ) : pageError ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#B0593E' }}>{pageError}</div>
+        ) : (
+        <>
         {CATEGORIES.map((cat, idx) => {
           const ans = answers[cat.id];
           const isActive = idx === activeIdx;
           if (ans != null && !isActive) {
-            const player = PLAYERS.find(p => p.id === ans);
-            return <DoneCard key={cat.id} idx={idx} cat={cat} answerPlayer={player} onReopen={() => setActiveIdx(idx)} />;
+            const player = players.find(p => p.deckId === ans);
+            return <DoneCard key={cat.id} idx={idx} cat={cat} answerPlayer={player ? { id: player.id, name: player.name, short: player.short, art: player.art } : undefined} onReopen={() => setActiveIdx(idx)} />;
           }
           if (isActive) {
             return (
               <div key={cat.id} ref={activeCardRef} style={{ margin: '10px 0' }}>
-                <ActiveCard idx={idx} cat={cat} selectedId={answers[cat.id]} onSelect={pid => selectAnswer(cat.id, pid)} />
+                <ActiveCard idx={idx} cat={cat} selectedId={answers[cat.id]} onSelect={deckId => selectAnswer(cat.id, deckId)} players={players} />
               </div>
             );
           }
@@ -593,20 +678,20 @@ export default function ReviewPage() {
 
         {activeIdx === 5 ? (
           <div ref={activeCardRef} style={{ margin: '10px 0' }}>
-            <BracketActiveCard selected={bracketAnswer} onSelect={val => { setBracketAnswer(val); }} />
+            <BracketActiveCard selected={bracketAnswer} onSelect={handleBracketSelect} players={players} />
           </div>
         ) : bracketAnswer != null ? (
           <button onClick={() => setActiveIdx(5)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: '#FAF5EA', border: '1px solid rgba(43,33,24,.08)', borderLeft: '4px solid #2F5D3A', borderRadius: 20, padding: '14px 16px 14px 14px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)', fontFamily: "'Instrument Sans', sans-serif" }}>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#8A7E6F', minWidth: 28 }}>6/6</span>
             <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: '#2B2118' }}>Did any deck play above its bracket?</span>
-            {bracketAnswer === 'none' ? (
+            {bracketAnswer === 'on-bracket' ? (
               <span style={{ fontSize: 13, color: '#5C5043', fontWeight: 500 }}>On bracket</span>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {(() => { const pl = PLAYERS.find(p => p.id === bracketAnswer); return pl ? (
+                {(() => { const pl = players.find(p => p.deckId === bracketAnswer); return pl ? (
                   <>
                     <div style={{ width: 26, height: 26, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
-                      <img src={pl.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/>
+                      {pl.art ? <img src={pl.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : null}
                     </div>
                     <span style={{ fontSize: 13, color: '#5C5043', fontWeight: 500 }}>{pl.short}</span>
                   </>
@@ -631,17 +716,12 @@ export default function ReviewPage() {
             </div>
           </div>
         )}
+        </>
+        )}
       </div>
 
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 32px', background: 'linear-gradient(to top, #F5EFE2 60%, rgba(245,239,226,0))', pointerEvents: 'none', zIndex: 5 }}>
-        <button disabled={!allAnswered} onClick={() => {
-          scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-          if (!isLoggedIn) {
-            setShowPromotion(true);
-          } else {
-            setShowMemory(true);
-          }
-        }} style={{ pointerEvents: 'auto', width: '100%', border: 'none', background: '#B06B2C', color: '#F5EFE2', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 16, padding: '16px 20px', borderRadius: 20, boxShadow: allAnswered ? '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)' : 'none', opacity: allAnswered ? 1 : 0.4, cursor: allAnswered ? 'pointer' : 'not-allowed', transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>Accept Review</button>
+        <button disabled={!allAnswered || submitting} onClick={handleAcceptReview} style={{ pointerEvents: 'auto', width: '100%', border: 'none', background: '#B06B2C', color: '#F5EFE2', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 16, padding: '16px 20px', borderRadius: 20, boxShadow: allAnswered ? '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)' : 'none', opacity: allAnswered && !submitting ? 1 : 0.4, cursor: allAnswered && !submitting ? 'pointer' : 'not-allowed', transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>{submitting ? 'Submitting...' : 'Accept Review'}</button>
       </div>
 
       {showPromotion && (
@@ -657,7 +737,7 @@ export default function ReviewPage() {
         />
       )}
 
-      {showMemory && <MemoryCardOverlay onClose={() => setShowMemory(false)} />}
+      {showMemory && <MemoryCardOverlay card={gameCard} onClose={() => setShowMemory(false)} />}
     </div>
   );
 }

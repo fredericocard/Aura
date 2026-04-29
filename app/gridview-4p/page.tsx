@@ -2,8 +2,29 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { getGame } from '@/lib/games';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
+import { supabase } from '@/lib/supabase';
 
 export default function GridView4P() {
+  const searchParams = useSearchParams();
+  const gameId = searchParams.get('gameId') ?? '';
+  const podId = searchParams.get('podId') ?? '';
+
+  // Sync life changes to backend (debounced fire-and-forget)
+  const syncLife = (userId: string, newLife: number) => {
+    if (gameId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
+  };
+  const syncPoison = (userId: string, count: number) => {
+    if (gameId) updatePoisonCounters(gameId, userId, count).catch(() => {});
+  };
+  const syncExperience = (userId: string, count: number) => {
+    if (gameId) updateExperienceCounters(gameId, userId, count).catch(() => {});
+  };
+  const syncEnergy = (userId: string, count: number) => {
+    if (gameId) updateEnergyCounters(gameId, userId, count).catch(() => {});
+  };
   const [players, setPlayers] = useState<Record<number, { life: number; name: string; commander: string | null; claimed: boolean; colors: string[]; assignedColor: string | null }>>({
     1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W', 'U', 'B', 'G'], assignedColor: null },
     2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [], assignedColor: null },
@@ -57,10 +78,51 @@ export default function GridView4P() {
   ]);
   const [simIndex, setSimIndex] = useState(0);
 
+  // Map player slot → user_id for backend sync
+  const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+
   const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
   const repeatTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
   const navCollapseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load real game data if gameId is provided
+  useEffect(() => {
+    if (!gameId) return;
+    async function loadGame() {
+      const { data: game } = await getGame(gameId);
+      if (!game) return;
+      const deckIds = game.players.map(p => p.deck_id);
+      const { data: decks } = await supabase
+        .from('decks')
+        .select('id, commander_name, color_identity')
+        .in('id', deckIds);
+      const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
+
+      const newPlayers: Record<number, typeof players[1]> = {};
+      const newUserIds: Record<number, string> = {};
+      game.players.forEach((p, i) => {
+        const deck = deckMap.get(p.deck_id);
+        const slot = i + 1;
+        newPlayers[slot] = {
+          life: 40,
+          name: deck?.commander_name?.split(',')[0] ?? `Player ${slot}`,
+          commander: deck?.commander_name ?? null,
+          claimed: true,
+          colors: (deck?.color_identity ?? '').split('').filter((c: string) => 'WUBRG'.includes(c)),
+          assignedColor: null,
+        };
+        newUserIds[slot] = p.user_id;
+      });
+      // Fill remaining slots
+      for (let s = game.players.length + 1; s <= 4; s++) {
+        newPlayers[s] = { life: 40, name: `Player ${s}`, commander: null, claimed: false, colors: [], assignedColor: null };
+      }
+      setPlayers(newPlayers);
+      setPlayerUserIds(newUserIds);
+    }
+    loadGame();
+  }, [gameId]);
 
   const pickPlayerColor = (playerNum: number, newUsedColors: string[]) => {
     const p = players[playerNum];

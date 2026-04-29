@@ -1,16 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth-context';
+import { getUserCommanderSummaries, type CommanderSummary } from '@/lib/commander-profile';
+import { supabase } from '@/lib/supabase';
 
 export default function ProfilePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [accountViewOpen, setAccountViewOpen] = useState(false);
-  const [nameInputValue, setNameInputValue] = useState('Frederico');
+  const [nameInputValue, setNameInputValue] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [commanders, setCommanders] = useState<CommanderSummary[]>([]);
+  const [loadingDecks, setLoadingDecks] = useState(true);
   const { signOut } = useAuth();
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoadingDecks(false); return; }
+      setNameInputValue(user.user_metadata?.display_name ?? user.email?.split('@')[0] ?? '');
+      try {
+        const summaries = await getUserCommanderSummaries(user.id);
+        setCommanders(summaries);
+      } catch {}
+      setLoadingDecks(false);
+    }
+    load();
+  }, []);
 
   const showToastMessage = (msg: string) => {
     setToastMessage(msg);
@@ -762,56 +780,28 @@ export default function ProfilePage() {
               <Link href="/decks" className="section-link" style={{ textDecoration: 'none' }}>View all ›</Link>
             </div>
             <div className="rated-deck-list">
-              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
-                <div className="rated-deck-img">
-                  <img src="https://cards.scryfall.io/art_crop/front/c/3/c34ae834-775e-447a-a330-0270c227c667.jpg" alt="Atraxa"/>
-                  <div className="rated-deck-img-fade"></div>
-                </div>
-                <div className="rated-deck-info">
-                  <div className="rated-deck-name">Atraxa Superfriends</div>
-                  <div className="rated-deck-aura"><span className="aura-value">72</span> Beloved</div>
-                </div>
-              </Link>
-              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
-                <div className="rated-deck-img">
-                  <img src="https://cards.scryfall.io/art_crop/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg" alt="Korvold"/>
-                  <div className="rated-deck-img-fade"></div>
-                </div>
-                <div className="rated-deck-info">
-                  <div className="rated-deck-name">Korvold Sac</div>
-                  <div className="rated-deck-aura"><span className="aura-value">55</span> Brewed</div>
-                </div>
-              </Link>
-              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
-                <div className="rated-deck-img">
-                  <img src="https://cards.scryfall.io/art_crop/front/3/b/3bd81ae6-e628-447a-a36b-597e63ede295.jpg" alt="Yuriko"/>
-                  <div className="rated-deck-img-fade"></div>
-                </div>
-                <div className="rated-deck-info">
-                  <div className="rated-deck-name">Yuriko Ninjas</div>
-                  <div className="rated-deck-aura"><span className="aura-value">88</span> Mythic</div>
-                </div>
-              </Link>
-              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
-                <div className="rated-deck-img">
-                  <img src="https://cards.scryfall.io/art_crop/front/c/6/c654737d-34ac-42ff-ae27-3a3bbb930fc1.jpg" alt="Muldrotha"/>
-                  <div className="rated-deck-img-fade"></div>
-                </div>
-                <div className="rated-deck-info">
-                  <div className="rated-deck-name">Muldrotha Value</div>
-                  <div className="rated-deck-aura"><span className="aura-value">34</span> Sideboard</div>
-                </div>
-              </Link>
-              <Link href="/deck-accomplishments" className="rated-deck-row" style={{ textDecoration: 'none' }}>
-                <div className="rated-deck-img">
-                  <img src="https://cards.scryfall.io/art_crop/front/c/d/cd9fec9d-23c8-4d35-97c1-9499527198fb.jpg" alt="Krenko"/>
-                  <div className="rated-deck-img-fade"></div>
-                </div>
-                <div className="rated-deck-info">
-                  <div className="rated-deck-name">Krenko Goblins</div>
-                  <div className="rated-deck-aura"><span className="aura-value">12</span> Exiled</div>
-                </div>
-              </Link>
+              {loadingDecks ? (
+                <div style={{ padding: '16px 0', textAlign: 'center', color: 'rgb(90,110,98)', fontSize: 13 }}>Loading decks...</div>
+              ) : commanders.length === 0 ? (
+                <div style={{ padding: '16px 0', textAlign: 'center', color: 'rgb(90,110,98)', fontSize: 13 }}>No commanders registered yet</div>
+              ) : (
+                commanders.map(c => (
+                  <Link key={c.deckId} href={`/deck-accomplishments?deckId=${c.deckId}`} className="rated-deck-row" style={{ textDecoration: 'none' }}>
+                    <div className="rated-deck-img">
+                      {c.commanderArtUrl ? (
+                        <img src={c.commanderArtUrl} alt={c.commanderName} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgb(222,212,192)', fontSize: 18, color: 'rgb(44,62,54)' }}>{c.commanderName.charAt(0)}</div>
+                      )}
+                      <div className="rated-deck-img-fade"></div>
+                    </div>
+                    <div className="rated-deck-info">
+                      <div className="rated-deck-name">{c.commanderName}</div>
+                      <div className="rated-deck-aura"><span className="aura-value">{Math.round(c.auraScore)}</span> {c.tier}</div>
+                    </div>
+                  </Link>
+                ))
+              )}
             </div>
           </div>
 

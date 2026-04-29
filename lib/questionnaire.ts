@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { onGameCompleted } from '@/lib/orchestration';
 
 const REVIEW_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -280,15 +281,25 @@ export async function checkPodCompletion(podId: string, gameId: string): Promise
     .eq('id', podId);
 
   // Complete the game
+  const votingCount = members.filter(m => m.review_submitted_at).length;
   await supabase
     .from('games')
     .update({
       state: 'completed',
       completed_at: new Date().toISOString(),
-      voting_player_count: members.filter(m => m.review_submitted_at).length,
-      produces_score_changes: members.filter(m => m.review_submitted_at).length >= 2,
+      voting_player_count: votingCount,
+      produces_score_changes: votingCount >= 2,
     })
     .eq('id', gameId);
+
+  // ── Trigger post-game pipeline ──────────────────────
+  // Runs: badges → chronic → AURA → nudges → Game Card
+  // All steps are idempotent — safe to retry on failure.
+  // Fire-and-forget: don't block the completion response.
+  // Errors are captured in the OrchestrationResult (logged, not thrown).
+  onGameCompleted(gameId).catch((err) => {
+    console.error(`[orchestration] Pipeline failed for game ${gameId}:`, err);
+  });
 
   return { completed: true, error: null };
 }

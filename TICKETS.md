@@ -16,15 +16,16 @@
 | **Ticket** |  |  | AF-B12 |
 | **Ticket** |  |  | AF-B13 |
 | **Ticket** |  |  | AF-B14 |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
-| **Ticket** |  |  |  |
+| **Ticket** |  |  | AF-B26 |
+| **Ticket** |  |  | AF-B18 |
+| **Ticket** |  |  | AF-B17 |
+| **Ticket** |  |  | AF-B19 |
+| **Ticket** |  |  | AF-B20 |
+| **Ticket** |  |  | AF-B21 |
+| **Ticket** |  |  | AF-B22 |
+| **Ticket** |  |  | AF-B23 |
+| **Ticket** |  |  | AF-B24 |
+| **Ticket** |  |  | AF-B25 |
 | **Ticket** |  |  |  |
 
 ---
@@ -341,3 +342,241 @@
   - getDeckVotesByBracket() — vote breakdown by bracket
 
 **Blocked by:** AF-B13 ✅ **Enables:** AF-B22, AF-B24
+
+---
+
+## AF-B26 · Scoring configuration ✅
+
+**Acceptance criteria:**
+
+* [x] All scoring values stored in configuration, not in code
+* [x] Per-vote weights: brilliance +0.5, flavour +0.7, rivalry +0.2, allegiance +0.4, fun +0.9, bracket flag −3.0
+* [x] Tier boundaries: Exiled ≤20, Sideboard ≤40, Brewed ≤60, Beloved ≤80, Mythic ≤100
+* [x] Chronic archenemy: 3 consecutive rivalry badges → −1.5 AURA penalty
+* [x] Pod size scaling: 2→×3.0, 3→×1.5, 4→×1.0, 5→×0.75
+* [x] Changes apply only to future games — historical games never recomputed
+* [x] Configuration changes are auditable (scoring_config_log with trigger)
+* [x] Only admin users can modify configuration (is_admin RLS check)
+
+**What was built:**
+- SQL migration 013: scoring_config + scoring_config_log tables, audit trigger, is_admin on profiles
+- All defaults seeded from design spec image
+- lib/scoring-config.ts:
+  - getScoringWeights() — per-badge vote weights
+  - getChronicConfig() — consecutive games + penalty
+  - getPodSizeScaling(), getAuraRange(), getTierBoundaries()
+  - updateConfigValue() — admin-only writer
+  - getConfigHistory(), getFullConfigHistory() — audit trail
+
+**Blocked by:** — **Enables:** AF-B17, AF-B19, AF-B20
+
+---
+
+## AF-B18 · Chronic archenemy detection ✅
+
+**Acceptance criteria:**
+
+* [x] A commander becomes chronic after earning the rivalry brewed badge in 3 consecutive games
+* [x] Status re-evaluated after every game; commanders can enter and exit chronic state
+* [x] When chronic, a flat −1.5 AURA penalty is applied to the delta
+* [x] The chronic flag is internal — not displayed to the user
+* [x] Consecutive streak breaks when a different badge is brewed
+
+**What was built:**
+- SQL migration 014: adds is_chronic_archenemy + chronic_updated_at to decks
+- lib/chronic-archenemy.ts:
+  - evaluateChronicStatus() — checks last N brewed badges from badge_history
+  - updateChronicStatus() — persists flag on deck
+  - isChronicArchenemy() — quick read of persisted flag
+  - updateChronicStatusForGame() — batch update all commanders in a game
+
+**Blocked by:** AF-B12 ✅ **Enables:** AF-B17, AF-B20
+
+---
+
+## AF-B17 · AURA delta computation ✅
+
+**Acceptance criteria:**
+
+* [x] For each commander in a completed game, AURA delta computed from tally and applied
+* [x] Per-vote weights read from scoring_config (not hardcoded)
+* [x] Pod size scaling applied: 2-player and 5-player produce comparable max movement
+* [x] Bracket Check flag carries much larger negative weight (−3.0 vs max +0.9 positive)
+* [x] AURA clamped to range 1–100 after each update
+* [x] One game produces exactly one update per commander, applied atomically (idempotent)
+* [x] Full delta history recorded in aura_history for audit and trend visualisation
+
+**What was built:**
+- SQL migration 014: aura_history table with full breakdown columns + RLS
+- lib/aura-scoring.ts:
+  - computeGameAura() — compute deltas without persisting (preview)
+  - applyGameAura() — compute + persist atomically (idempotent)
+  - getAuraHistory() — per-deck trend data
+  - getGameAuraHistory() — all deltas for one game
+  - getAuraScore() — current score reader
+
+**Blocked by:** AF-B12 ✅, AF-B18 ✅, AF-B26 ✅ **Enables:** AF-B19, AF-B22
+
+---
+
+## AF-B19 · AURA tier classification ✅
+
+**Acceptance criteria:**
+
+* [x] AURA score maps to exactly one of five tiers: Exiled, Sideboard, Brewed, Beloved, Mythic
+* [x] Tier boundaries configurable via scoring_config
+* [x] Tier computed on demand from current score — no separate tier field
+* [x] Commander with < 5 completed games shown as "Developing" (threshold configurable)
+
+**What was built:**
+- No SQL migration needed — pure computation from score + config
+- lib/aura-tiers.ts:
+  - computeTier() — pure function: score + boundaries → tier name
+  - getDeckTier() — full tier info with games count and developing check
+  - getDeckTiers() — batch lookup for deck collection view
+  - getTierFromScore() — when you already have score + games in memory
+  - TIER_INFO — labels and descriptions for UI display
+  - getTierRange() — min/max score range for each tier
+
+**Blocked by:** AF-B17 ✅, AF-B26 ✅ **Enables:** AF-B22
+
+---
+
+## AF-B20 · Bracket change nudge (in-app) ✅
+
+**Acceptance criteria:**
+
+* [x] After min games played, system evaluates whether bracket flags exceed configurable proportion (default 50%)
+* [x] If triggered, nudge suggests the next bracket up (never down)
+* [x] Nudge shown to player at most once per session (getPendingNudge / getUserPendingNudges)
+* [x] Dismissed nudge respects cooloff period (configurable games before re-evaluation)
+* [x] Never suggests moving down a bracket
+* [x] Already at bracket 5 → no nudge possible
+
+**What was built:**
+- SQL migration 015: bracket_nudges table with status tracking + RLS
+- Config keys: bracket_nudge_min_games (5), bracket_nudge_flag_ratio (0.5), bracket_nudge_cooloff_games (5)
+- lib/bracket-nudge.ts:
+  - evaluateNudge() — checks flag ratio, cooloff, max bracket
+  - createNudgeIfWarranted() — evaluate + create in one call (post-game hook)
+  - getPendingNudge() — single deck pending nudge for UI
+  - getUserPendingNudges() — all pending nudges for user (app open)
+  - dismissNudge() — dismiss with cooloff period
+  - getNudgeHistory() — full audit trail per deck
+
+**Blocked by:** AF-B12 ✅, AF-B18 ✅ **Enables:** AF-B21
+
+---
+
+## AF-B21 · Bracket change handler ✅
+
+**Acceptance criteria:**
+
+* [x] Bracket change triggered by accepting a nudge or manual action on deck profile
+* [x] On change: AURA resets to 50
+* [x] Chronic archenemy status cleared
+* [x] All earned badge counts preserved unchanged (snapshot in log)
+* [x] Confirmation summary returned explaining what was reset and kept
+* [x] Bracket changes logged for audit (bracket_change_log)
+
+**What was built:**
+- SQL migration 015: bracket_change_log table with full snapshot + RLS
+- lib/bracket-change.ts:
+  - changeBracket() — core handler: update bracket, reset AURA, clear chronic, preserve badges, log
+  - acceptNudge() — one-tap nudge acceptance
+  - manualBracketChange() — player-initiated from deck profile
+  - getConfirmationSummary() — human-readable reset summary for UI
+  - getBracketChangeHistory() — audit trail per deck
+
+**Blocked by:** AF-B17 ✅, AF-B20 ✅ **Enables:** Manual bracket change UI
+
+---
+
+## AF-B22 · Game Card composition ✅
+
+**Acceptance criteria:**
+
+* [x] Game Card composed once pod reaches completed state (all questionnaires done)
+* [x] Each commander displays art + nickname (archetype from B13)
+* [x] "In this chapter" narrative sentence generated from tally (template-based)
+* [x] Card includes date, winner, key votes (Brilliance, Flavour, Archenemy, Allegiance, Fan Favourite)
+* [x] Explicitly does NOT include linear placements (1st/2nd/3rd) or AURA score changes
+* [x] Card metadata stored against game record (game_cards table)
+* [x] Allegiance relationships + bracket check consensus included
+
+**What was built:**
+- SQL migration 016: game_cards table + game_card_players link table with RLS
+- lib/game-card.ts:
+  - composeGameCard() — assembles all data from votes, tally, badges, archetypes
+  - composeNarrative() — template-based "in this chapter" from winner/archenemy/flavour/fun
+  - createGameCard() — compose + save (idempotent)
+  - getGameCard(), getCardByShareCode() — single card retrieval
+  - getCardsForDeck() — deck profile history
+  - getCardsForUser() — user game log
+
+**Blocked by:** AF-B10 ✅, AF-B12 ✅, AF-B13 ✅ **Enables:** AF-B23, AF-B24, AF-B25
+
+---
+
+## AF-B23 · Game Card storage ✅
+
+**Acceptance criteria:**
+
+* [x] Every generated Game Card persisted with stable, retrievable URL
+* [x] Cards are never automatically deleted (on delete restrict)
+* [x] Each card linked to game record + participating players (game_card_players)
+* [x] Card images accessible via short URLs (8-char share_code, public RLS policy)
+* [x] Image URL field ready for Supabase Storage integration
+
+**What was built:**
+- SQL migration 016 (shared with B22): share_code, image_url, image_generated_at columns
+- Public RLS policy: anyone can read cards with a share_code
+- lib/game-card.ts:
+  - setCardImage() — update card with generated image URL
+  - getCardByShareCode() — public access via short code
+  - getShareUrl() — construct share link from code
+  - 8-char share code generation (no ambiguous chars)
+
+**Blocked by:** AF-B22 ✅ **Enables:** AF-B24, AF-B25
+
+---
+
+## AF-B24 · Commander profile aggregation ✅
+
+**Acceptance criteria:**
+
+* [x] Single endpoint returns: AURA, tier, confidence band (Developing/Tracking/Stable), every badge with earned count, total games, recent Game Cards
+* [x] "Developing" shown for < 5 games, "Tracking" for 5–14, "Stable" for 15+
+* [x] Each badge count broken down by bracket at which it was earned
+* [x] Endpoint designed for speed — parallel queries, minimal round trips
+* [x] Data always consistent — reads from same source of truth
+
+**What was built:**
+- No SQL migration needed — pure aggregation over existing tables
+- lib/commander-profile.ts:
+  - getCommanderProfile() — full profile: AURA, tier, confidence, 5 badges with counts + bracket breakdown, AURA trend (last 10), recent cards (last 5)
+  - getUserCommanderSummaries() — lightweight list view for all user's commanders
+  - ConfidenceBand type: Developing / Tracking / Stable
+
+**Blocked by:** AF-B07 ✅, AF-B14 ✅, AF-B19 ✅, AF-B23 ✅ **Enables:** Deck profile UI
+
+---
+
+## AF-B25 · Game log aggregation ✅
+
+**Acceptance criteria:**
+
+* [x] Endpoint returns games in reverse chronological order, paginated (default 20/page)
+* [x] Each entry: date, pod composition, player's commander, winner, Game Card link
+* [x] Filterable by specific commander (deckId filter)
+* [x] Efficient for large histories — batch queries, indexed lookups
+* [x] Includes quick player stats (total games, wins, win rate, unique commanders)
+
+**What was built:**
+- No SQL migration needed — pure aggregation
+- lib/game-log.ts:
+  - getGameLog() — paginated, filterable, with pod composition + card links
+  - getPlayerStats() — quick stats: totalGames, totalWins, winRate, uniqueCommanders, totalCards
+  - GameLogPage type with hasMore for infinite scroll
+
+**Blocked by:** AF-B07 ✅, AF-B22 ✅ **Enables:** Game log UI

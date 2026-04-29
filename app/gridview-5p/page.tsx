@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { getGame } from '@/lib/games';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
+import { supabase } from '@/lib/supabase';
 
 interface PlayerState {
   life: number;
@@ -25,6 +29,15 @@ interface ManaStyle {
 }
 
 export default function GridView5P() {
+  const searchParams = useSearchParams();
+  const gameId = searchParams.get('gameId') ?? '';
+  const podId = searchParams.get('podId') ?? '';
+  const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+
+  const syncLife = (userId: string, newLife: number) => {
+    if (gameId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
+  };
+
   const [players, setPlayers] = useState<Record<number, PlayerState>>({
     1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W', 'U', 'B', 'G'] },
     2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] },
@@ -292,10 +305,80 @@ export default function GridView5P() {
   };
 
   useEffect(() => {
-    // Apply color to player 1 on mount
-    applyColorIdentity(1);
-    scheduleCollapse();
-  }, []);
+    const loadGameData = async () => {
+      if (!gameId) {
+        // No gameId, use default setup
+        applyColorIdentity(1);
+        scheduleCollapse();
+        return;
+      }
+
+      try {
+        // Fetch game details
+        const game = await getGame(gameId);
+        if (!game) {
+          applyColorIdentity(1);
+          scheduleCollapse();
+          return;
+        }
+
+        // Load player data from deck_ids
+        const deckIds = game.deck_ids || [];
+        const newPlayers: Record<number, PlayerState> = {
+          1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
+          2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] },
+          3: { life: 40, name: 'Player 3', commander: null, claimed: false, colors: [] },
+          4: { life: 40, name: 'Player 4', commander: null, claimed: false, colors: [] },
+          5: { life: 40, name: 'Player 5', commander: null, claimed: false, colors: [] }
+        };
+
+        const newPlayerUserIds: Record<number, string> = {};
+
+        // Populate players from deck data
+        for (let i = 0; i < Math.min(deckIds.length, 5); i++) {
+          const deckId = deckIds[i];
+          try {
+            const { data: deck } = await supabase
+              .from('decks')
+              .select('id, commander_name, user_id, color_identity')
+              .eq('id', deckId)
+              .single();
+
+            if (deck) {
+              const playerSlot = i + 1;
+              newPlayers[playerSlot] = {
+                life: 40,
+                name: deck.commander_name || `Player ${playerSlot}`,
+                commander: deck.commander_name || null,
+                claimed: true,
+                colors: deck.color_identity ? deck.color_identity.split('') : []
+              };
+              newPlayerUserIds[playerSlot] = deck.user_id || '';
+            }
+          } catch (err) {
+            // Deck not found, keep slot empty
+          }
+        }
+
+        setPlayerUserIds(newPlayerUserIds);
+        setPlayers(newPlayers);
+
+        // Apply color identity to claimed players
+        for (let i = 1; i <= 5; i++) {
+          if (newPlayers[i].claimed) {
+            applyColorIdentity(i);
+          }
+        }
+      } catch (err) {
+        // Error loading game, use default setup
+        applyColorIdentity(1);
+      }
+
+      scheduleCollapse();
+    };
+
+    loadGameData();
+  }, [gameId]);
 
   const getTileStyle = (playerNum: number): React.CSSProperties => {
     const p = players[playerNum];

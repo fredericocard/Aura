@@ -3,6 +3,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { getGameLog, type GameLogEntry } from '@/lib/game-log';
+import { supabase } from '@/lib/supabase';
 
 interface Player {
   name: string;
@@ -23,14 +25,8 @@ interface Game {
   winnerIdx: number;
   players: Player[];
   badges: Badge[];
+  shareCode: string | null;
 }
-
-const scryfall = {
-  'Omnath, Locus': 'https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg',
-  'Krenko': 'https://cards.scryfall.io/art_crop/front/c/d/cd9fef1d-fbdc-4e44-9740-d214f712e067.jpg',
-  'Atraxa': 'https://cards.scryfall.io/art_crop/front/d/0/d0d33d52-3d28-4f2d-b7f6-92571f2f0e0e.jpg',
-  'Muldrotha': 'https://cards.scryfall.io/art_crop/front/c/6/c654737d-34ac-42ff-ae27-3a3bbb930fc1.jpg',
-};
 
 const badgeIcons: Record<string, string> = {
   brilliance: '<svg viewBox="0 0 24 24" fill="none" stroke="rgb(184,146,46)" strokeWidth="2" strokeLinejoin="round"><polygon points="12,2 15,9 22,9 17,14 18.5,21 12,17 5.5,21 7,14 2,9 9,9"/></svg>',
@@ -39,51 +35,6 @@ const badgeIcons: Record<string, string> = {
   allegiance: '<svg viewBox="0 0 24 24" fill="none" stroke="rgb(26,122,106)" strokeWidth="2" strokeLinejoin="round"><path d="M12 3L20 9V17L12 21L4 17V9L12 3Z"/></svg>',
   fun: '<svg viewBox="0 0 24 24" fill="none" stroke="rgb(90,110,98)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 14C8 14 9.5 16 12 16C14.5 16 16 14 16 14"/><circle cx="9" cy="10" r="1" fill="rgb(90,110,98)"/><circle cx="15" cy="10" r="1" fill="rgb(90,110,98)"/></svg>',
 };
-
-const games: Game[] = [
-  {
-    pod: 'Forest of Beasts',
-    date: 'April 25, 2024',
-    aura: -3,
-    auraType: 'loss',
-    winnerIdx: 2,
-    players: [
-      { name: 'Frederico', commander: 'Omnath, Locus', commanderFull: 'Omnath, Locus of Creation', img: scryfall['Omnath, Locus'] },
-      { name: 'Manel', commander: 'Krenko', commanderFull: 'Krenko, Mob Boss', img: scryfall['Krenko'] },
-      { name: 'Sofia', commander: 'Atraxa', commanderFull: 'Atraxa, Praetors\' Voice', img: scryfall['Atraxa'] },
-      { name: 'Tomás', commander: 'Muldrotha', commanderFull: 'Muldrotha, the Gravetide', img: scryfall['Muldrotha'] },
-    ],
-    badges: [{ key: 'flavor' }],
-  },
-  {
-    pod: 'Mountain Showdown',
-    date: 'April 24, 2024',
-    aura: 12,
-    auraType: 'gain',
-    winnerIdx: 0,
-    players: [
-      { name: 'Frederico', commander: 'Omnath, Locus', commanderFull: 'Omnath, Locus of Creation', img: scryfall['Omnath, Locus'] },
-      { name: 'Manel', commander: 'Krenko', commanderFull: 'Krenko, Mob Boss', img: scryfall['Krenko'] },
-      { name: 'Sofia', commander: 'Atraxa', commanderFull: 'Atraxa, Praetors\' Voice', img: scryfall['Atraxa'] },
-      { name: 'Tomás', commander: 'Muldrotha', commanderFull: 'Muldrotha, the Gravetide', img: scryfall['Muldrotha'] },
-    ],
-    badges: [{ key: 'brilliance' }, { key: 'fun' }, { key: 'allegiance' }],
-  },
-  {
-    pod: 'Riverside Rumble',
-    date: 'April 23, 2024',
-    aura: 5,
-    auraType: 'gain',
-    winnerIdx: 0,
-    players: [
-      { name: 'Frederico', commander: 'Omnath, Locus', commanderFull: 'Omnath, Locus of Creation', img: scryfall['Omnath, Locus'] },
-      { name: 'Manel', commander: 'Krenko', commanderFull: 'Krenko, Mob Boss', img: scryfall['Krenko'] },
-      { name: 'Sofia', commander: 'Atraxa', commanderFull: 'Atraxa, Praetors\' Voice', img: scryfall['Atraxa'] },
-      { name: 'Tomás', commander: 'Muldrotha', commanderFull: 'Muldrotha, the Gravetide', img: scryfall['Muldrotha'] },
-    ],
-    badges: [{ key: 'rivalry' }, { key: 'fun' }],
-  },
-];
 
 function GameCard({ game, index }: { game: Game; index: number }) {
   const [expanded, setExpanded] = useState(false);
@@ -331,23 +282,43 @@ function RecentGamesContent() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterDeck, setFilterDeck] = useState<string | null>(null);
   const [filterAura, setFilterAura] = useState<'all' | 'gain' | 'loss'>('all');
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const deckParam = searchParams.get('deck');
-    if (deckParam) {
-      const allDeckNames = Array.from(new Set(games.flatMap(g => g.players.filter(p => p.name === 'Frederico').map(p => p.commander))));
-      const match = allDeckNames.find(d => d.toLowerCase().startsWith(deckParam.toLowerCase()));
-      if (match) setFilterDeck(match);
+    async function loadGames() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const deckIdFilter = searchParams.get('deckId') ?? undefined;
+      const result = await getGameLog(user.id, { deckId: deckIdFilter, pageSize: 50 });
+      const mapped: Game[] = result.entries.map(e => ({
+        pod: `${e.podSize}-player game`,
+        date: new Date(e.gameDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        aura: 0, // AURA delta not available in game log entry
+        auraType: e.isWinner ? 'gain' as const : 'loss' as const,
+        winnerIdx: e.podCommanders.findIndex(c => c.isWinner),
+        players: e.podCommanders.map(c => ({
+          name: c.commanderName,
+          commander: c.commanderName.split(',')[0],
+          commanderFull: c.commanderName,
+          img: c.artUrl ?? '',
+        })),
+        badges: [],
+        shareCode: e.shareCode,
+      }));
+      setGames(mapped);
+      setLoading(false);
     }
+    loadGames();
   }, [searchParams]);
 
-  const allDecks = Array.from(new Set(games.flatMap(g => g.players.filter(p => p.name === 'Frederico').map(p => p.commander))));
+  const allDecks = Array.from(new Set(games.flatMap(g => g.players.map(p => p.commander))));
 
   const filteredGames = games
     .filter(g => {
       if (filterDeck) {
-        const me = g.players.find(p => p.name === 'Frederico');
-        if (!me || me.commander !== filterDeck) return false;
+        const me = g.players.find(p => p.commander === filterDeck);
+        if (!me) return false;
       }
       return true;
     })

@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { getGame } from '@/lib/games';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
+import { supabase } from '@/lib/supabase';
 
 interface PlayerState {
   life: number;
@@ -19,6 +23,15 @@ interface CounterState {
 }
 
 export default function GridView2P() {
+  const searchParams = useSearchParams();
+  const gameId = searchParams.get('gameId') ?? '';
+  const podId = searchParams.get('podId') ?? '';
+  const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+
+  const syncLife = (userId: string, newLife: number) => {
+    if (gameId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
+  };
+
   const [players, setPlayers] = useState<{ [key: number]: PlayerState }>({
     1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W', 'U', 'B', 'G'] },
     2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] }
@@ -101,6 +114,69 @@ export default function GridView2P() {
       if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
     };
   }, []);
+
+  // Load game data from backend
+  useEffect(() => {
+    if (!gameId) return;
+
+    const loadGameData = async () => {
+      try {
+        const game = await getGame(gameId);
+        if (!game) return;
+
+        const deckIds = game.player_deck_ids || [];
+        const userIds = game.player_user_ids || [];
+        const newPlayers = { ...players };
+        const newPlayerUserIds: Record<number, string> = {};
+
+        // Load deck data for each player
+        for (let i = 0; i < deckIds.length; i++) {
+          const deckId = deckIds[i];
+          const userId = userIds[i];
+          const playerNum = i + 1;
+
+          if (playerNum > 2) break; // Only support 2 players
+
+          if (userId) {
+            newPlayerUserIds[playerNum] = userId;
+          }
+
+          if (deckId) {
+            const { data: deck } = await supabase
+              .from('decks')
+              .select('id, commander_name, color_identity')
+              .eq('id', deckId)
+              .single();
+
+            if (deck) {
+              newPlayers[playerNum] = {
+                ...newPlayers[playerNum],
+                name: deck.commander_name || `Player ${playerNum}`,
+                commander: deck.commander_name || null,
+                colors: deck.color_identity ? deck.color_identity.split('') : [],
+                claimed: true
+              };
+            }
+          }
+        }
+
+        setPlayerUserIds(newPlayerUserIds);
+        setPlayers(newPlayers);
+
+        // Apply color identities
+        if (newPlayers[1].claimed && newPlayers[1].colors.length > 0) {
+          applyColorIdentity(1);
+        }
+        if (newPlayers[2].claimed && newPlayers[2].colors.length > 0) {
+          applyColorIdentity(2);
+        }
+      } catch (error) {
+        console.error('Failed to load game data:', error);
+      }
+    };
+
+    loadGameData();
+  }, [gameId]);
 
   // Long press ref and cleanup (must be before changeLife so it can call stopLongPress)
   const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });

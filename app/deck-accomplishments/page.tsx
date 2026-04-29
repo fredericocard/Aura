@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { getCommanderProfile, type CommanderProfile } from '@/lib/commander-profile';
 
 const BRACKETS = [
   { num: 1, name: 'Exhibition', desc: 'Your ultra-casual commander deck.', restrictions: ['No mass land denial or extra turns', 'No 2-card infinite combos', 'No game changers'], note: 'Few tutors' },
@@ -11,8 +13,28 @@ const BRACKETS = [
 ];
 
 export default function DeckAccomplishmentsPage() {
+  const searchParams = useSearchParams();
+  const deckId = searchParams.get('deckId') ?? '';
   const [bracketModalActive, setBracketModalActive] = useState(false);
   const [selectedBracket, setSelectedBracket] = useState<number>(3);
+  const [profile, setProfile] = useState<CommanderProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!deckId) { setError('No deck specified'); setLoading(false); return; }
+    async function load() {
+      try {
+        const data = await getCommanderProfile(deckId);
+        setProfile(data);
+        setSelectedBracket(data.currentBracket);
+      } catch (e: any) {
+        setError(e.message ?? 'Failed to load profile');
+      }
+      setLoading(false);
+    }
+    load();
+  }, [deckId]);
 
   const styles = `
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -701,20 +723,27 @@ export default function DeckAccomplishmentsPage() {
           />
 
           {/* Commander Identity (compact) */}
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: 40, color: 'rgba(245,239,227,0.7)' }}>Loading commander profile...</div>
+          ) : error ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#B0593E' }}>{error}</div>
+          ) : profile && (
+          <>
           <div className="commander-identity">
             <div className="commander-avatar">
-              <img
-                src="https://cards.scryfall.io/art_crop/front/c/3/c34ae834-775e-447a-a330-0270c227c667.jpg"
-                alt="Atraxa"
-              />
+              {profile.commanderArtUrl ? (
+                <img src={profile.commanderArtUrl} alt={profile.commanderName} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'rgb(245,239,227)' }}>{profile.commanderName.charAt(0)}</div>
+              )}
             </div>
             <div className="commander-info">
-              <div className="commander-name">Atraxa, Praetors' Voice</div>
+              <div className="commander-name">{profile.commanderName}</div>
               <div className="commander-mana">
-                <div className="mana-dot" style={{ background: '#f5efe3', border: '1px solid rgb(184,168,138)' }} />
-                <div className="mana-dot" style={{ background: '#2d7fa0' }} />
-                <div className="mana-dot" style={{ background: '#3a3a3a' }} />
-                <div className="mana-dot" style={{ background: '#2a8a56' }} />
+                {(profile.colorIdentity ?? '').split('').filter(c => 'WUBRG'.includes(c)).map((c, i) => {
+                  const colors: Record<string, string> = { W: '#f5efe3', U: '#2d7fa0', B: '#3a3a3a', R: '#b0593e', G: '#2a8a56' };
+                  return <div key={i} className="mana-dot" style={{ background: colors[c] || '#888', border: c === 'W' ? '1px solid rgb(184,168,138)' : 'none' }} />;
+                })}
               </div>
             </div>
           </div>
@@ -746,12 +775,12 @@ export default function DeckAccomplishmentsPage() {
                   opacity="0.3"
                 />
               </svg>
-              <span className="aura-number">72</span>
+              <span className="aura-number">{Math.round(profile.auraScore)}</span>
             </div>
             <div className="aura-details">
               <div className="aura-label">Aura</div>
-              <div className="aura-tier-name">Beloved</div>
-              <div className="aura-range">Regular at the table</div>
+              <div className="aura-tier-name">{profile.auraTier.tier}</div>
+              <div className="aura-range">{profile.confidenceBand} · {profile.totalGames} games</div>
             </div>
           </div>
 
@@ -759,15 +788,15 @@ export default function DeckAccomplishmentsPage() {
           <div className="stats-row">
             <div className="stat-cell">
               <div className="stat-value-row">
-                <span className="stat-value">23</span>
+                <span className="stat-value">{profile.totalGames}</span>
               </div>
               <div className="stat-label">Games Played</div>
             </div>
             <div className="stat-cell">
               <div className="stat-value-row">
-                <span className="stat-value">34%</span>
+                <span className="stat-value">{profile.totalBadgesEarned}</span>
               </div>
-              <div className="stat-label">Win Rate</div>
+              <div className="stat-label">Badges Earned</div>
             </div>
           </div>
 
@@ -809,7 +838,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Brilliance <span className="badge-count">x3</span>
+                  Brilliance <span className="badge-count">{(profile.badges.find(b => b.badge === 'brilliance')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'brilliance')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Sharp plays and strategic mastery</div>
               </div>
@@ -837,7 +866,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Flavor <span className="badge-count">x1</span>
+                  Flavor <span className="badge-count">{(profile.badges.find(b => b.badge === 'flavor')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'flavor')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Thematic deck and memorable moments</div>
               </div>
@@ -861,7 +890,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Rivalry <span className="badge-count">&mdash;</span>
+                  Rivalry <span className="badge-count">{(profile.badges.find(b => b.badge === 'rivalry')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'rivalry')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Intense standoffs and worthy opponents</div>
               </div>
@@ -884,7 +913,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Allegiance <span className="badge-count">x2</span>
+                  Allegiance <span className="badge-count">{(profile.badges.find(b => b.badge === 'allegiance')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'allegiance')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Loyal alliances and table politics</div>
               </div>
@@ -908,7 +937,7 @@ export default function DeckAccomplishmentsPage() {
               </div>
               <div className="badge-text">
                 <div className="badge-title">
-                  Fun <span className="badge-count">&mdash;</span>
+                  Fun <span className="badge-count">{(profile.badges.find(b => b.badge === 'fun')?.earnedCount ?? 0) > 0 ? `x${profile.badges.find(b => b.badge === 'fun')?.earnedCount}` : '—'}</span>
                 </div>
                 <div className="badge-desc">Great vibes and enjoyable games</div>
               </div>
@@ -917,7 +946,7 @@ export default function DeckAccomplishmentsPage() {
 
           {/* Action Buttons */}
           <div className="action-buttons">
-            <a href="/recent-games?deck=Atraxa" className="action-btn" style={{ textDecoration: 'none' }}>
+            <a href={`/recent-games?deckId=${deckId}`} className="action-btn" style={{ textDecoration: 'none' }}>
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M2 4H16M2 9H16M2 14H16" />
               </svg>
@@ -930,6 +959,8 @@ export default function DeckAccomplishmentsPage() {
               Brackets
             </button>
           </div>
+          </>
+          )}
         </div>
 
         {/* Bottom Nav: Recent Games | Profile | Decks (active) */}

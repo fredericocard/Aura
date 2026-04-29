@@ -1,9 +1,56 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { joinPod } from '@/lib/pods';
 
 export default function Page() {
-  const code = ['A', 'R', 'C', '', '7', 'X', '2', 'K'];
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [codeChars, setCodeChars] = useState<string[]>(['', '', '', '', '', '']);
+  const [joining, setJoining] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Pre-fill from ?code= query param
+  useEffect(() => {
+    const prefill = searchParams.get('code');
+    if (prefill) {
+      const chars = prefill.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6).split('');
+      while (chars.length < 6) chars.push('');
+      setCodeChars(chars);
+    }
+  }, [searchParams]);
+
+  function handleCodeInput(value: string) {
+    const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    const chars = clean.split('');
+    while (chars.length < 6) chars.push('');
+    setCodeChars(chars);
+  }
+
+  async function handleJoin() {
+    const fullCode = codeChars.join('');
+    if (fullCode.length < 6) { setError('Enter the full 6-character code'); return; }
+    setJoining(true);
+    setError(null);
+
+    const { data: pod, error: joinErr } = await joinPod(fullCode);
+    if (joinErr || !pod) {
+      setError(joinErr ?? 'Failed to join pod');
+      setJoining(false);
+      return;
+    }
+
+    // Navigate to a waiting/gridview page
+    router.push(`/singleview?podId=${pod.id}`);
+  }
+
+  // Build display array with dash separator: [0,1,2, '-', 3,4,5]
+  const displayCode: (string | null)[] = [
+    codeChars[0], codeChars[1], codeChars[2], null, codeChars[3], codeChars[4], codeChars[5]
+  ];
 
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Young+Serif&display=swap');
@@ -262,18 +309,38 @@ export default function Page() {
           </div>
 
           {/* Code Input */}
-          <div className="code-row">
-            {code.map((c, i) => c === '' ? (
+          {error && <div style={{ color: '#B0593E', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>{error}</div>}
+          <div className="code-row" onClick={() => inputRef.current?.focus()}>
+            {displayCode.map((c, i) => c === null ? (
               <div key={i} className="code-dash">—</div>
             ) : (
-              <div key={i} className={`code-char ${i < 3 ? 'filled' : ''}`}>{c}</div>
+              <div key={i} className={`code-char ${c ? 'filled' : ''}`}>{c}</div>
             ))}
           </div>
+          {/* Hidden input to capture keyboard */}
+          <input
+            ref={inputRef}
+            type="text"
+            value={codeChars.join('')}
+            onChange={(e) => handleCodeInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleJoin(); }}
+            autoFocus
+            style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+            maxLength={6}
+            autoCapitalize="characters"
+          />
         </div>
 
         {/* Sticky Join Button */}
         <div className="cta-wrap">
-          <Link href="/singleview" className="join-btn">Join Pod</Link>
+          <button
+            className="join-btn"
+            onClick={handleJoin}
+            disabled={joining || codeChars.join('').length < 6}
+            style={{ opacity: (joining || codeChars.join('').length < 6) ? 0.5 : 1 }}
+          >
+            {joining ? 'Joining...' : 'Join Pod'}
+          </button>
         </div>
       </div>
     </>

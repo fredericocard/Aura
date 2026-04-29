@@ -1,13 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-const SAMPLE_DECKS = [
-  { id: 'omnath', name: 'Omnath, Locus of Creation', art: 'https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg', colors: ['G','W','U','R'] },
-  { id: 'atraxa', name: "Atraxa, Praetors' Voice", art: 'https://cards.scryfall.io/art_crop/front/d/0/d0d33d52-3d28-4f2d-b7f6-92571f2f0e0e.jpg', colors: ['W','U','B','G'] },
-  { id: 'krenko', name: 'Krenko, Mob Boss', art: 'https://cards.scryfall.io/art_crop/front/c/d/cd9fef1d-fbdc-4e44-9740-d214f712e067.jpg', colors: ['R'] },
-];
+import { useRouter } from 'next/navigation';
+import { getMyCommanders, type Deck } from '@/lib/commanders';
+import { createPod } from '@/lib/pods';
+import { createGame } from '@/lib/games';
 
 const MANA_COLORS: Record<string, string> = {
   W: '#E9DEB6',
@@ -18,10 +16,73 @@ const MANA_COLORS: Record<string, string> = {
 };
 
 export default function Page() {
+  const router = useRouter();
   const [podName, setPodName] = useState('Friday Night Pod');
   const [selectedPlayers, setSelectedPlayers] = useState(4);
   const [selectedDeck, setSelectedDeck] = useState(0);
   const [showQr, setShowQr] = useState(false);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [createdPod, setCreatedPod] = useState<{ id: string; short_code: string } | null>(null);
+  const [createdGameId, setCreatedGameId] = useState<string | null>(null);
+
+  // Load user's commanders on mount
+  useEffect(() => {
+    async function loadDecks() {
+      const { data, error: err } = await getMyCommanders();
+      if (err) { setError(err); }
+      setDecks(data);
+      setLoading(false);
+    }
+    loadDecks();
+  }, []);
+
+  // Create pod + game handler
+  async function handleCreatePod() {
+    if (decks.length === 0) return;
+    setCreating(true);
+    setError(null);
+
+    const selectedDeckId = decks[selectedDeck]?.id;
+    if (!selectedDeckId) { setCreating(false); return; }
+
+    // 1. Create the pod with the selected deck
+    const { data: pod, error: podErr } = await createPod(selectedDeckId);
+    if (podErr || !pod) {
+      setError(podErr ?? 'Failed to create pod');
+      setCreating(false);
+      return;
+    }
+
+    setCreatedPod({ id: pod.id, short_code: pod.short_code });
+    setShowQr(true);
+    setCreating(false);
+  }
+
+  // Enter pod → create game + navigate to gridview
+  async function handleEnterPod() {
+    if (!createdPod) return;
+    setCreating(true);
+
+    const { data: game, error: gameErr } = await createGame(createdPod.id);
+    if (gameErr || !game) {
+      setError(gameErr ?? 'Failed to create game');
+      setCreating(false);
+      return;
+    }
+
+    setCreatedGameId(game.id);
+    // Navigate to gridview with pod context
+    router.push(`/gridview-${selectedPlayers}p?podId=${createdPod.id}&gameId=${game.id}`);
+  }
+
+  // Parse color identity string to array: "WUBR" → ["W","U","B","R"]
+  function parseColors(colorIdentity: string | null): string[] {
+    if (!colorIdentity) return [];
+    return colorIdentity.split('').filter(c => 'WUBRG'.includes(c));
+  }
 
   // Generate decorative QR pattern
   const qrCells = Array.from({ length: 121 }).map((_, i) => {
@@ -436,39 +497,63 @@ export default function Page() {
 
           {/* Deck Selection */}
           <div className="eyebrow eyebrow-top">Select Your Deck</div>
+          {error && <div style={{ color: '#B0593E', fontSize: 14, padding: '8px 4px' }}>{error}</div>}
           <div className="deck-list">
-            {SAMPLE_DECKS.map((d, i) => (
-              <div
-                key={d.id}
-                className={`deck-row ${selectedDeck === i ? 'selected' : ''}`}
-                onClick={() => setSelectedDeck(i)}
-              >
-                <div className="deck-art">
-                  <img src={d.art} alt={d.name} />
-                </div>
-                <div className="deck-info">
-                  <div className="deck-name">{d.name}</div>
-                  <div className="deck-mana">
-                    {d.colors.map((c, j) => (
-                      <div key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
-                    ))}
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: 32, color: '#8A7E6F' }}>Loading your commanders...</div>
+            ) : decks.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 32, color: '#8A7E6F' }}>
+                No commanders registered yet.
+                <br />
+                <Link href="/profile" style={{ color: '#2F5D3A', fontWeight: 600 }}>Add a commander first</Link>
+              </div>
+            ) : (
+              decks.map((d, i) => (
+                <div
+                  key={d.id}
+                  className={`deck-row ${selectedDeck === i ? 'selected' : ''}`}
+                  onClick={() => setSelectedDeck(i)}
+                >
+                  <div className="deck-art">
+                    {d.commander_art_url ? (
+                      <img src={d.commander_art_url} alt={d.commander_name} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', background: '#E5E0D4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                        {d.commander_name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="deck-info">
+                    <div className="deck-name">{d.commander_name}</div>
+                    <div className="deck-mana">
+                      {parseColors(d.color_identity).map((c, j) => (
+                        <div key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className={`deck-check ${selectedDeck === i ? 'selected' : ''}`}>
+                    {selectedDeck === i && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F5EFE2" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
                   </div>
                 </div>
-                <div className={`deck-check ${selectedDeck === i ? 'selected' : ''}`}>
-                  {selectedDeck === i && (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F5EFE2" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
         {/* Sticky CTA */}
         <div className="cta-wrap">
-          <button className="create-btn" onClick={() => setShowQr(true)}>Create Pod</button>
+          <button
+            className="create-btn"
+            onClick={handleCreatePod}
+            disabled={creating || loading || decks.length === 0}
+            style={{ opacity: (creating || loading || decks.length === 0) ? 0.5 : 1 }}
+          >
+            {creating ? 'Creating...' : 'Create Pod'}
+          </button>
         </div>
       </div>
 
@@ -494,11 +579,18 @@ export default function Page() {
               ))}
             </div>
 
-            <div className="qr-code-text">ARC—7X2K</div>
+            <div className="qr-code-text">
+              {createdPod ? `${createdPod.short_code.slice(0, 3)}—${createdPod.short_code.slice(3)}` : '———————'}
+            </div>
 
-            <Link href={`/gridview-${selectedPlayers}p`} className="qr-enter-btn">
-              Enter Pod
-            </Link>
+            <button
+              className="qr-enter-btn"
+              onClick={handleEnterPod}
+              disabled={creating}
+              style={{ opacity: creating ? 0.5 : 1 }}
+            >
+              {creating ? 'Starting game...' : 'Enter Pod'}
+            </button>
           </div>
         </div>
       )}
