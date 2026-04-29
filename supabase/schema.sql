@@ -257,19 +257,12 @@ CREATE INDEX idx_game_players_deck_id ON game_players(deck_id);
 ALTER TABLE game_players ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Game players can read game data"
-  ON game_players FOR SELECT USING (
-    game_id IN (
-      SELECT gp.game_id FROM game_players gp WHERE gp.user_id = auth.uid()
-    )
-  );
+  ON game_players FOR SELECT USING (TRUE);
 CREATE POLICY "Pod hosts can insert game players"
   ON game_players FOR INSERT WITH CHECK (TRUE);
 CREATE POLICY "Game players can update their own row"
   ON game_players FOR UPDATE USING (
-    user_id = auth.uid() OR
-    game_id IN (
-      SELECT gp.game_id FROM game_players gp WHERE gp.user_id = auth.uid()
-    )
+    user_id = auth.uid()
   );
 
 -- Deferred policy: decks readable by co-players (needs game_players to exist)
