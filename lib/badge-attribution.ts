@@ -117,7 +117,7 @@ export async function computeBadgeAttribution(gameId: string): Promise<{
   const { data: gamePlayers } = await supabase
     .from('game_players')
     .select('user_id, deck_id')
-    .eq('game_id', gameId);
+    .eq('game_id', gameId) as { data: any };
 
   if (!gamePlayers || gamePlayers.length === 0) {
     return { data: null, error: 'No players found' };
@@ -366,7 +366,7 @@ export async function getPlayerAttribution(gameId: string, userId: string): Prom
     .select('*')
     .eq('game_id', gameId)
     .eq('user_id', userId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (error || !data) return { data: null, error: error?.message ?? null };
 

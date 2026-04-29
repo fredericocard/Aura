@@ -171,7 +171,7 @@ async function getGameDeckIds(gameId: string): Promise<string[]> {
   const { data, error } = await supabase
     .from("game_players")
     .select("deck_id")
-    .eq("game_id", gameId);
+    .eq("game_id", gameId) as { data: any; error: any };
 
   if (error) {
     throw new Error(`Failed to fetch game deck IDs: ${error.message}`);

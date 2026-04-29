@@ -37,7 +37,7 @@ export async function getCardStatus(gameId: string, userId: string): Promise<{
     .from('games')
     .select('pod_id, state, winner_player_id')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (!game?.pod_id) return { data: null, error: 'Game not found' };
 
@@ -45,7 +45,7 @@ export async function getCardStatus(gameId: string, userId: string): Promise<{
   const { data: members } = await supabase
     .from('pod_members')
     .select('user_id, review_submitted_at')
-    .eq('pod_id', game.pod_id);
+    .eq('pod_id', game.pod_id) as { data: any };
 
   if (!members) return { data: null, error: 'Pod members not found' };
 
@@ -148,7 +148,7 @@ export async function getMyVoteRecap(gameId: string): Promise<{
     .select('question_key, target_deck_id')
     .eq('game_id', gameId)
     .eq('voter_id', user.id)
-    .order('question_key');
+    .order('question_key') as { data: any };
 
   if (!votes) return { data: [], error: null };
 
@@ -162,7 +162,7 @@ export async function getMyVoteRecap(gameId: string): Promise<{
     const { data: decks } = await supabase
       .from('decks')
       .select('id, commander_name')
-      .in('id', deckIds);
+      .in('id', deckIds) as { data: any };
 
     deckMap = new Map((decks ?? []).map(d => [d.id, d.commander_name]));
   }

@@ -553,7 +553,7 @@ export default function ReviewPage() {
       const { data: decks } = await supabase
         .from('decks')
         .select('id, commander_name, commander_art_url')
-        .in('id', deckIds);
+        .in('id', deckIds) as { data: any };
       const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
 
       const loaded: PlayerInfo[] = game.players.map(p => {

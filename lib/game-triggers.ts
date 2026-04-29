@@ -99,7 +99,7 @@ async function revivePlayer(gameId: string, userId: string): Promise<void> {
     .select('is_eliminated')
     .eq('game_id', gameId)
     .eq('user_id', userId)
-    .single();
+    .single() as { data: any };
 
   if (!player?.is_eliminated) return;
 
@@ -119,7 +119,7 @@ async function revivePlayer(gameId: string, userId: string): Promise<void> {
     .from('games')
     .select('pod_id')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (game?.pod_id) {
     await supabase
@@ -140,7 +140,7 @@ async function checkLastStanding(gameId: string): Promise<void> {
   const { data: players } = await supabase
     .from('game_players')
     .select('user_id, deck_id, is_eliminated')
-    .eq('game_id', gameId);
+    .eq('game_id', gameId) as { data: any };
 
   if (!players) return;
 
@@ -221,7 +221,7 @@ export async function reviveSelf(gameId: string, userId: string): Promise<{ erro
     .select('is_eliminated, life_total')
     .eq('game_id', gameId)
     .eq('user_id', userId)
-    .single();
+    .single() as { data: any };
 
   if (!player) return { error: 'Player not found in this game' };
   if (!player.is_eliminated) return { error: 'You are not eliminated' };
@@ -231,7 +231,7 @@ export async function reviveSelf(gameId: string, userId: string): Promise<{ erro
     .from('games')
     .select('pod_id')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (game?.pod_id) {
     const { data: member } = await supabase
@@ -239,7 +239,7 @@ export async function reviveSelf(gameId: string, userId: string): Promise<{ erro
       .select('review_submitted_at')
       .eq('pod_id', game.pod_id)
       .eq('user_id', userId)
-      .single();
+      .single() as { data: any };
 
     if (member?.review_submitted_at) {
       return { error: 'You already accepted your review — revive is no longer available.' };
@@ -267,7 +267,7 @@ export async function canPlayerReview(gameId: string, userId: string): Promise<b
     .select('can_review')
     .eq('game_id', gameId)
     .eq('user_id', userId)
-    .single();
+    .single() as { data: any };
 
   return data?.can_review ?? false;
 }

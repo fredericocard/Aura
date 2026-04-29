@@ -81,7 +81,7 @@ export async function computeGameAura(
     .from("games")
     .select("id, pod_size, produces_score_changes")
     .eq("id", gameId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (gameErr || !game) {
     throw new Error(`Game not found: ${gameErr?.message}`);
@@ -106,7 +106,7 @@ export async function computeGameAura(
   const { data: players, error: playersErr } = await supabase
     .from("game_players")
     .select("user_id, deck_id, decks!inner(aura_score)")
-    .eq("game_id", gameId);
+    .eq("game_id", gameId) as { data: any; error: any };
 
   if (playersErr || !players) {
     throw new Error(`Failed to load game players: ${playersErr?.message}`);
@@ -116,7 +116,7 @@ export async function computeGameAura(
   const { data: allVotes, error: votesErr } = await supabase
     .from("game_votes")
     .select("question_key, target_deck_id")
-    .eq("game_id", gameId);
+    .eq("game_id", gameId) as { data: any; error: any };
 
   if (votesErr) {
     throw new Error(`Failed to load votes: ${votesErr.message}`);
@@ -339,7 +339,7 @@ export async function getAuraScore(deckId: string): Promise<number> {
     .from("decks")
     .select("aura_score")
     .eq("id", deckId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (error) {
     throw new Error(`Failed to fetch AURA score: ${error.message}`);

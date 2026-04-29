@@ -55,7 +55,7 @@ export async function computeGameTally(gameId: string): Promise<{
   const { data: votes, error: votesError } = await supabase
     .from('game_votes')
     .select('voter_id, question_key, target_deck_id')
-    .eq('game_id', gameId);
+    .eq('game_id', gameId) as { data: any; error: any };
 
   if (votesError) return { data: null, error: votesError.message };
   if (!votes || votes.length === 0) {
@@ -66,7 +66,7 @@ export async function computeGameTally(gameId: string): Promise<{
   const { data: gamePlayers } = await supabase
     .from('game_players')
     .select('user_id, deck_id')
-    .eq('game_id', gameId);
+    .eq('game_id', gameId) as { data: any };
 
   if (!gamePlayers) return { data: null, error: 'No players found' };
 
@@ -74,7 +74,7 @@ export async function computeGameTally(gameId: string): Promise<{
   const { data: decks } = await supabase
     .from('decks')
     .select('id, commander_name')
-    .in('id', deckIds);
+    .in('id', deckIds) as { data: any };
 
   const deckNameMap = new Map((decks ?? []).map(d => [d.id, d.commander_name]));
 

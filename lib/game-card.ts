@@ -155,7 +155,7 @@ export async function composeGameCard(
     .from("games")
     .select("id, pod_id, pod_size, winner_player_id, winner_deck_id, created_at")
     .eq("id", gameId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (gameErr || !game) {
     throw new Error(`Game not found: ${gameErr?.message}`);
@@ -164,7 +164,7 @@ export async function composeGameCard(
   const { data: players, error: playersErr } = await supabase
     .from("game_players")
     .select("user_id, deck_id, is_winner, decks!inner(commander_name, commander_art_url)")
-    .eq("game_id", gameId);
+    .eq("game_id", gameId) as { data: any; error: any };
 
   if (playersErr || !players) {
     throw new Error(`Failed to load players: ${playersErr?.message}`);
@@ -271,7 +271,7 @@ export async function createGameCard(gameId: string): Promise<GameCard> {
     .from("game_cards")
     .select("*")
     .eq("game_id", gameId)
-    .single();
+    .single() as { data: any };
 
   if (existing) return existing as GameCard;
 
@@ -305,7 +305,7 @@ export async function createGameCard(gameId: string): Promise<GameCard> {
       share_code: shareCode,
     })
     .select()
-    .single();
+    .single() as { data: any; error: any };
 
   if (cardErr || !card) {
     throw new Error(`Failed to create game card: ${cardErr?.message}`);
@@ -336,7 +336,7 @@ export async function getGameCard(gameId: string): Promise<GameCard | null> {
     .from("game_cards")
     .select("*")
     .eq("game_id", gameId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (error || !data) return null;
   return data as GameCard;
@@ -351,7 +351,7 @@ export async function getCardByShareCode(
     .from("game_cards")
     .select("*")
     .eq("share_code", shareCode)
-    .single();
+    .single() as { data: any; error: any };
 
   if (error || !data) return null;
   return data as GameCard;

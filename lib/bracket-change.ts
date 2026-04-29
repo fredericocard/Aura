@@ -86,7 +86,7 @@ export async function changeBracket(
         "votes_fun, votes_rivalry, votes_allegiance, votes_brilliance, votes_flavor"
     )
     .eq("id", deckId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (deckErr || !deck) {
     throw new Error(`Deck not found: ${deckErr?.message}`);
@@ -193,7 +193,7 @@ export async function acceptNudge(
     .select("*")
     .eq("id", nudgeId)
     .eq("status", "pending")
-    .single();
+    .single() as { data: any; error: any };
 
   if (error || !nudge) {
     throw new Error(`Nudge not found or not pending: ${error?.message}`);

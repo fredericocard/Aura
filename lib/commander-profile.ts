@@ -100,7 +100,7 @@ export async function getCommanderProfile(
         "votes_fun, votes_rivalry, votes_allegiance, votes_brilliance, votes_flavor"
     )
     .eq("id", deckId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (deckErr || !deck) {
     throw new Error(`Deck not found: ${deckErr?.message}`);
@@ -237,7 +237,7 @@ export async function getUserCommanderSummaries(
         "badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor"
     )
     .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false }) as { data: any; error: any };
 
   if (error) {
     throw new Error(`Failed to fetch decks: ${error.message}`);

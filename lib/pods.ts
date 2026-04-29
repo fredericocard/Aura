@@ -54,7 +54,7 @@ export async function createPod(deckId?: string): Promise<{ data: Pod | null; er
       .from('pods')
       .select('id')
       .eq('short_code', shortCode)
-      .single();
+      .single() as { data: any };
     if (!existing) break;
     shortCode = generateShortCode();
     attempts++;
@@ -68,7 +68,7 @@ export async function createPod(deckId?: string): Promise<{ data: Pod | null; er
       host_id: user.id,
     })
     .select()
-    .single();
+    .single() as { data: any; error: any };
 
   if (podError || !pod) {
     return { data: null, error: podError?.message ?? 'Failed to create pod' };
@@ -103,7 +103,7 @@ export async function joinPod(shortCode: string, deckId?: string): Promise<{ dat
     .from('pods')
     .select('*')
     .eq('short_code', shortCode.toUpperCase().trim())
-    .single();
+    .single() as { data: any; error: any };
 
   if (findError || !pod) {
     return { data: null, error: 'Pod not found. Check the code and try again.' };
@@ -150,7 +150,7 @@ export async function getPod(podId: string): Promise<{ data: (Pod & { members: P
     .from('pods')
     .select('*')
     .eq('id', podId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (podError || !pod) {
     return { data: null, error: podError?.message ?? 'Pod not found' };
@@ -176,7 +176,7 @@ export async function getPodByCode(shortCode: string): Promise<{ data: Pod | nul
     .from('pods')
     .select('*')
     .eq('short_code', shortCode.toUpperCase().trim())
-    .single();
+    .single() as { data: any; error: any };
 
   return { data: data as Pod | null, error: error?.message ?? null };
 }

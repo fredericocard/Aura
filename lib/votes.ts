@@ -27,7 +27,7 @@ export async function isVoteLocked(gameId: string, voterId: string): Promise<boo
     .from('games')
     .select('winner_player_id, pod_id')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (!game) return false;
 
@@ -41,7 +41,7 @@ export async function isVoteLocked(gameId: string, voterId: string): Promise<boo
       .select('review_submitted_at')
       .eq('pod_id', game.pod_id)
       .eq('user_id', voterId)
-      .single();
+      .single() as { data: any };
 
     if (member?.review_submitted_at) return true;
   }
@@ -78,7 +78,7 @@ export async function castVote(
     .select('user_id, deck_id')
     .eq('game_id', gameId)
     .eq('user_id', user.id)
-    .single();
+    .single() as { data: any };
 
   if (!player) return { error: 'You are not a participant in this game' };
 
@@ -95,7 +95,7 @@ export async function castVote(
     .select('deck_id')
     .eq('game_id', gameId)
     .eq('deck_id', targetDeckId)
-    .single();
+    .single() as { data: any };
 
   if (!targetPlayer) return { error: 'Target commander is not in this game' };
 
@@ -106,7 +106,7 @@ export async function castVote(
     .eq('game_id', gameId)
     .eq('voter_id', user.id)
     .eq('question_key', questionKey)
-    .single();
+    .single() as { data: any };
 
   if (existing) {
     const { error } = await supabase
@@ -152,7 +152,7 @@ export async function castBracketCheck(
     .select('user_id')
     .eq('game_id', gameId)
     .eq('user_id', user.id)
-    .single();
+    .single() as { data: any };
 
   if (!player) return { error: 'You are not a participant in this game' };
 

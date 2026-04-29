@@ -39,7 +39,7 @@ export async function getQuestionnaireStatus(gameId: string): Promise<{
     .from('games')
     .select('pod_id')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (!game?.pod_id) return { data: [], error: 'Game or pod not found' };
 
@@ -47,7 +47,7 @@ export async function getQuestionnaireStatus(gameId: string): Promise<{
   const { data: gamePlayers } = await supabase
     .from('game_players')
     .select('user_id, deck_id, can_review, is_eliminated')
-    .eq('game_id', gameId);
+    .eq('game_id', gameId) as { data: any };
 
   if (!gamePlayers) return { data: [], error: 'No players found' };
 
@@ -55,7 +55,7 @@ export async function getQuestionnaireStatus(gameId: string): Promise<{
   const { data: podMembers } = await supabase
     .from('pod_members')
     .select('user_id, review_submitted_at, auto_completed')
-    .eq('pod_id', game.pod_id);
+    .eq('pod_id', game.pod_id) as { data: any };
 
   const memberMap = new Map(
     (podMembers ?? []).map(m => [m.user_id, m])
@@ -104,7 +104,7 @@ export async function getPodCompletionSummary(gameId: string): Promise<{
     .from('games')
     .select('pod_id, ended_at, winner_player_id')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (!game?.pod_id) return { data: null, error: 'Game or pod not found' };
 
@@ -160,7 +160,7 @@ export async function autoCompleteExpiredReviews(gameId: string): Promise<{
     .from('games')
     .select('id, pod_id, ended_at, winner_player_id, state')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (!game) return { autoCompletedCount: 0, error: 'Game not found' };
   if (!game.winner_player_id) return { autoCompletedCount: 0, error: null }; // No winner yet, no timer
@@ -313,7 +313,7 @@ export async function isGameCardLocked(gameId: string): Promise<boolean> {
     .from('games')
     .select('state')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   return game?.state === 'completed';
 }
@@ -327,7 +327,7 @@ export async function getReviewTimeRemaining(gameId: string): Promise<number | n
     .from('games')
     .select('ended_at, winner_player_id')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (!game?.ended_at || !game.winner_player_id) return null;
 

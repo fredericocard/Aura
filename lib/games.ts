@@ -37,7 +37,7 @@ export async function createGame(podId: string): Promise<{ data: Game | null; er
   const { data: members, error: membersError } = await supabase
     .from('pod_members')
     .select('user_id, deck_id')
-    .eq('pod_id', podId);
+    .eq('pod_id', podId) as { data: any; error: any };
 
   if (membersError || !members) {
     return { data: null, error: membersError?.message ?? 'Failed to load pod members' };
@@ -57,7 +57,7 @@ export async function createGame(podId: string): Promise<{ data: Game | null; er
       pod_size: withDecks.length,
     })
     .select()
-    .single();
+    .single() as { data: any; error: any };
 
   if (gameError || !game) {
     return { data: null, error: gameError?.message ?? 'Failed to create game' };
@@ -89,7 +89,7 @@ export async function getGame(gameId: string): Promise<{ data: (Game & { players
     .from('games')
     .select('*')
     .eq('id', gameId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (gameError || !game) {
     return { data: null, error: gameError?.message ?? 'Game not found' };

@@ -157,7 +157,7 @@ async function getCachedCard(nameLower: string) {
     .from('scryfall_cache')
     .select('*')
     .eq('card_name_lower', nameLower)
-    .single();
+    .single() as { data: any };
   return data;
 }
 

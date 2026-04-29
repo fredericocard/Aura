@@ -41,7 +41,7 @@ export async function registerCommander(commanderName: string, bracket: number =
       bracket,
     })
     .select()
-    .single();
+    .single() as { data: any; error: any };
 
   return { data: data as Deck | null, error: error?.message ?? null };
 }
@@ -69,7 +69,7 @@ export async function getMyCommanders(): Promise<{ data: Deck[]; error: string |
   const { data, error } = await supabase
     .from('decks')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as { data: any; error: any };
 
   return { data: (data as Deck[]) ?? [], error: error?.message ?? null };
 }

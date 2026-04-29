@@ -96,7 +96,7 @@ export default function GridView4P() {
       const { data: decks } = await supabase
         .from('decks')
         .select('id, commander_name, color_identity')
-        .in('id', deckIds);
+        .in('id', deckIds) as { data: any };
       const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
 
       const newPlayers: Record<number, typeof players[1]> = {};

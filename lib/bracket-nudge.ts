@@ -78,7 +78,7 @@ export async function evaluateNudge(
     .from("decks")
     .select("id, bracket, user_id")
     .eq("id", deckId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (deckErr || !deck) {
     throw new Error(`Deck not found: ${deckErr?.message}`);
@@ -124,7 +124,7 @@ export async function evaluateNudge(
     .eq("deck_id", deckId)
     .eq("status", "dismissed")
     .order("dismissed_at", { ascending: false })
-    .limit(1);
+    .limit(1) as { data: any };
 
   if (lastDismissed && lastDismissed.length > 0 && lastDismissed[0].dismissed_at) {
     // Count games played since dismissal
@@ -152,7 +152,7 @@ export async function evaluateNudge(
     .from("game_players")
     .select("game_id, games!inner(state)")
     .eq("deck_id", deckId)
-    .eq("games.state", "completed");
+    .eq("games.state", "completed") as { data: any; error: any };
 
   if (gamesErr) {
     throw new Error(`Failed to fetch games: ${gamesErr.message}`);
@@ -238,7 +238,7 @@ export async function createNudgeIfWarranted(
       games_evaluated: evaluation.gamesEvaluated,
     })
     .select()
-    .single();
+    .single() as { data: any; error: any };
 
   if (error) {
     throw new Error(`Failed to create nudge: ${error.message}`);

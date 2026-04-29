@@ -60,7 +60,7 @@ export async function getConfigValue<T = number>(key: string): Promise<T> {
     .from("scoring_config")
     .select("value")
     .eq("key", key)
-    .single();
+    .single() as { data: any; error: any };
 
   if (error || !data) {
     throw new Error(`Config key "${key}" not found: ${error?.message}`);
@@ -77,7 +77,7 @@ export async function getConfigValues(
   const { data, error } = await supabase
     .from("scoring_config")
     .select("key, value")
-    .in("key", keys);
+    .in("key", keys) as { data: any; error: any };
 
   if (error) {
     throw new Error(`Failed to read config: ${error.message}`);
@@ -95,7 +95,7 @@ export async function getAllConfig(): Promise<Record<string, unknown>> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("scoring_config")
-    .select("key, value, description");
+    .select("key, value, description") as { data: any; error: any };
 
   if (error) {
     throw new Error(`Failed to read config: ${error.message}`);

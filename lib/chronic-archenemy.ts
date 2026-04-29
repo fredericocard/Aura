@@ -62,7 +62,7 @@ export async function evaluateChronicStatus(
     .select("brewed_badge, created_at")
     .eq("deck_id", deckId)
     .order("created_at", { ascending: false })
-    .limit(cfg.consecutive);
+    .limit(cfg.consecutive) as { data: any; error: any };
 
   if (error) {
     throw new Error(
@@ -132,7 +132,7 @@ export async function isChronicArchenemy(deckId: string): Promise<boolean> {
     .from("decks")
     .select("is_chronic_archenemy")
     .eq("id", deckId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (error) return false;
   return data?.is_chronic_archenemy ?? false;
@@ -151,7 +151,7 @@ export async function updateChronicStatusForGame(
   const { data: players, error } = await supabase
     .from("game_players")
     .select("deck_id")
-    .eq("game_id", gameId);
+    .eq("game_id", gameId) as { data: any; error: any };
 
   if (error || !players) {
     throw new Error(`Failed to fetch game players: ${error?.message}`);

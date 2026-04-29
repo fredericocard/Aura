@@ -88,7 +88,7 @@ export async function recordBadgeVotes(
     .from('decks')
     .select('bracket, votes_fun, votes_rivalry, votes_allegiance, votes_brilliance, votes_flavor')
     .eq('id', deckId)
-    .single();
+    .single() as { data: any };
 
   if (!deck) return { error: 'Deck not found' };
 
@@ -154,7 +154,7 @@ export async function recordBrewedBadge(
     .select('id')
     .eq('deck_id', deckId)
     .eq('game_id', gameId)
-    .single();
+    .single() as { data: any };
 
   if (existing) return { error: null };
 
@@ -164,7 +164,7 @@ export async function recordBrewedBadge(
     .from('decks')
     .select('bracket, badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor')
     .eq('id', deckId)
-    .single();
+    .single() as { data: any };
 
   if (!deck) return { error: 'Deck not found' };
 
@@ -253,7 +253,7 @@ export async function getDeckBadgeCounts(deckId: string): Promise<{
     .from('decks')
     .select('badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor')
     .eq('id', deckId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (error || !data) return { data: null, error: error?.message ?? null };
 
@@ -298,7 +298,7 @@ export async function getDeckVoteCounts(deckId: string): Promise<{
     .from('decks')
     .select('votes_fun, votes_rivalry, votes_allegiance, votes_brilliance, votes_flavor')
     .eq('id', deckId)
-    .single();
+    .single() as { data: any; error: any };
 
   if (error || !data) return { data: null, error: error?.message ?? null };
 

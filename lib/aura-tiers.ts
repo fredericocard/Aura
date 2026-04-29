@@ -112,7 +112,7 @@ export async function getDeckTier(deckId: string): Promise<AuraTier> {
       .from("decks")
       .select("aura_score")
       .eq("id", deckId)
-      .single(),
+      .single() as Promise<{ data: any; error: any }>,
     supabase
       .from("game_players")
       .select("game_id, games!inner(state)")
