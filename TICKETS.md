@@ -13,6 +13,7 @@
 | **Ticket** |  |  | AF-B09 |
 | **Ticket** |  |  | AF-B10 |
 | **Ticket** |  |  | AF-B11 |
+| **Ticket** |  |  | AF-B12 |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
@@ -265,3 +266,25 @@
   - Three phases: reviewing → waiting_for_others → complete
 
 **Blocked by:** AF-B10 ✅ **Enables:** Interim feedback flow
+
+---
+
+## AF-B12 · Per-game vote tally ✅
+
+**Acceptance criteria:**
+
+* [x] For each single-select question, tally returns vote counts per commander ordered by votes received
+* [x] For Bracket Check, tally returns "consensus honoured" or list of flagged commanders with flag counts
+* [x] Ties surfaced explicitly (tied commanders share the same rank, is_tied=true)
+* [x] Tally is deterministic — alphabetical tiebreak for stable ordering
+* [x] Tally is read-only — does not modify any state
+
+**What was built:**
+- No SQL migration needed — pure computation over game_votes
+- lib/vote-tally.ts:
+  - computeGameTally() — full results for all 6 questions with ranks, ties, commander names
+  - getQuestionWinner() — single question winner (null on tie)
+  - getAllWinners() — map of all winners for Game Card composition
+  - BracketCheckResult with consensus_honoured flag + per-commander flag counts
+
+**Blocked by:** AF-B09 ✅ **Enables:** AF-B13, AF-B14, AF-B17
