@@ -327,7 +327,7 @@ export default function GridView5P() {
           .from('decks')
           .select('id, commander_name, color_identity')
           .in('id', deckIds) as { data: any };
-        const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
+        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]));
 
         const newPlayers: Record<number, PlayerState> = {
           1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },

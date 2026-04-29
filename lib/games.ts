@@ -44,7 +44,7 @@ export async function createGame(podId: string): Promise<{ data: Game | null; er
   }
 
   // Validate: all members need a deck
-  const withDecks = members.filter(m => m.deck_id != null);
+  const withDecks = members.filter((m: any) => m.deck_id != null);
   if (withDecks.length < 2) {
     return { data: null, error: 'Need at least 2 players with commanders to start a game' };
   }

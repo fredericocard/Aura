@@ -58,10 +58,10 @@ export async function getQuestionnaireStatus(gameId: string): Promise<{
     .eq('pod_id', game.pod_id) as { data: any };
 
   const memberMap = new Map(
-    (podMembers ?? []).map(m => [m.user_id, m])
+    (podMembers ?? []).map((m: any) => [m.user_id, m])
   );
 
-  const result: PlayerQuestionnaireInfo[] = gamePlayers.map(gp => {
+  const result: PlayerQuestionnaireInfo[] = gamePlayers.map((gp: any) => {
     const pm = memberMap.get(gp.user_id);
     const reviewSubmitted = pm?.review_submitted_at ?? null;
     const autoCompleted = pm?.auto_completed ?? false;

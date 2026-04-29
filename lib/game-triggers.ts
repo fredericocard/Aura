@@ -144,8 +144,8 @@ async function checkLastStanding(gameId: string): Promise<void> {
 
   if (!players) return;
 
-  const alive = players.filter(p => !p.is_eliminated);
-  const eliminated = players.filter(p => p.is_eliminated);
+  const alive = players.filter((p: any) => !p.is_eliminated);
+  const eliminated = players.filter((p: any) => p.is_eliminated);
 
   if (alive.length === 1) {
     // Last player standing = winner, give them review access

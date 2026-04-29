@@ -50,10 +50,10 @@ export async function getCardStatus(gameId: string, userId: string): Promise<{
   if (!members) return { data: null, error: 'Pod members not found' };
 
   const total = members.length;
-  const submitted = members.filter(m => m.review_submitted_at).length;
+  const submitted = members.filter((m: any) => m.review_submitted_at).length;
   const remaining = total - submitted;
 
-  const myMember = members.find(m => m.user_id === userId);
+  const myMember = members.find((m: any) => m.user_id === userId);
   const myVotesSubmitted = !!myMember?.review_submitted_at;
 
   const gameCardLocked = game.state === 'completed';
@@ -164,7 +164,7 @@ export async function getMyVoteRecap(gameId: string): Promise<{
       .select('id, commander_name')
       .in('id', deckIds) as { data: any };
 
-    deckMap = new Map((decks ?? []).map(d => [d.id, d.commander_name]));
+    deckMap = new Map((decks ?? []).map((d: any) => [d.id, d.commander_name]));
   }
 
   const recap: VoteRecap[] = votes.map(v => ({

@@ -70,13 +70,13 @@ export async function computeGameTally(gameId: string): Promise<{
 
   if (!gamePlayers) return { data: null, error: 'No players found' };
 
-  const deckIds = gamePlayers.map(p => p.deck_id);
+  const deckIds = gamePlayers.map((p: any) => p.deck_id);
   const { data: decks } = await supabase
     .from('decks')
     .select('id, commander_name')
     .in('id', deckIds) as { data: any };
 
-  const deckNameMap = new Map((decks ?? []).map(d => [d.id, d.commander_name]));
+  const deckNameMap = new Map((decks ?? []).map((d: any) => [d.id, d.commander_name]));
 
   // Count unique voters
   const uniqueVoters = new Set(votes.map(v => v.voter_id));
