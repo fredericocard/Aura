@@ -11,6 +11,7 @@
 | **Ticket** |  |  | AF-B07 |
 | **Ticket** |  |  | AF-B08 |
 | **Ticket** |  |  | AF-B09 |
+| **Ticket** |  |  | AF-B10 |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
@@ -217,3 +218,27 @@
   - isVoteLocked() — checks winner_player_id + review_submitted_at
 
 **Blocked by:** AF-B07 ✅, AF-B08 ✅ **Enables:** AF-B12, AF-B13, AF-B17
+
+---
+
+## AF-B10 · Pod-level questionnaire completion tracking ✅
+
+**Acceptance criteria:**
+
+* [x] The system tracks each player's questionnaire status: in_progress, completed, or auto_completed
+* [x] A pod-level summary is queryable: completed, in_progress, auto_completed counts + time remaining
+* [x] When all players reach completed or auto_completed, the pod transitions to completed and Game Card locks
+* [x] Players who haven't accepted within 30 minutes of the winner being declared are auto-completed
+* [x] Auto-completed players: single-select questions skipped, bracket check set to "no flag"
+
+**What was built:**
+- SQL migration: adds auto_completed boolean to pod_members
+- lib/questionnaire.ts:
+  - getQuestionnaireStatus() — per-player status with review details
+  - getPodCompletionSummary() — counts + minutes remaining on 30-min timer
+  - autoCompleteExpiredReviews() — fills bracket default, marks review submitted
+  - checkPodCompletion() — transitions pod + game to completed when all done
+  - isGameCardLocked() — true when game state = completed
+  - getReviewTimeRemaining() — minutes left on timer
+
+**Blocked by:** AF-B08 ✅, AF-B09 ✅ **Enables:** AF-B17, AF-B22
