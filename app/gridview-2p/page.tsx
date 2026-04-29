@@ -121,44 +121,33 @@ export default function GridView2P() {
 
     const loadGameData = async () => {
       try {
-        const game = await getGame(gameId);
+        const { data: game } = await getGame(gameId);
         if (!game) return;
 
-        const deckIds = game.player_deck_ids || [];
-        const userIds = game.player_user_ids || [];
+        const deckIds = game.players.map(p => p.deck_id);
+        const { data: decks } = await supabase
+          .from('decks')
+          .select('id, commander_name, color_identity')
+          .in('id', deckIds);
+        const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
+
         const newPlayers = { ...players };
         const newPlayerUserIds: Record<number, string> = {};
 
-        // Load deck data for each player
-        for (let i = 0; i < deckIds.length; i++) {
-          const deckId = deckIds[i];
-          const userId = userIds[i];
+        game.players.forEach((p, i) => {
           const playerNum = i + 1;
+          if (playerNum > 2) return; // Only support 2 players
 
-          if (playerNum > 2) break; // Only support 2 players
-
-          if (userId) {
-            newPlayerUserIds[playerNum] = userId;
-          }
-
-          if (deckId) {
-            const { data: deck } = await supabase
-              .from('decks')
-              .select('id, commander_name, color_identity')
-              .eq('id', deckId)
-              .single();
-
-            if (deck) {
-              newPlayers[playerNum] = {
-                ...newPlayers[playerNum],
-                name: deck.commander_name || `Player ${playerNum}`,
-                commander: deck.commander_name || null,
-                colors: deck.color_identity ? deck.color_identity.split('') : [],
-                claimed: true
-              };
-            }
-          }
-        }
+          const deck = deckMap.get(p.deck_id);
+          newPlayerUserIds[playerNum] = p.user_id;
+          newPlayers[playerNum] = {
+            ...newPlayers[playerNum],
+            name: deck?.commander_name || `Player ${playerNum}`,
+            commander: deck?.commander_name || null,
+            colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : [],
+            claimed: true
+          };
+        });
 
         setPlayerUserIds(newPlayerUserIds);
         setPlayers(newPlayers);

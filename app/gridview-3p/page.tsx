@@ -281,8 +281,15 @@ export default function GridView3P() {
       if (!gameId) return;
 
       try {
-        const game = await getGame(gameId);
+        const { data: game } = await getGame(gameId);
         if (!game) return;
+
+        const deckIds = game.players.map(p => p.deck_id);
+        const { data: decks } = await supabase
+          .from('decks')
+          .select('id, commander_name, color_identity')
+          .in('id', deckIds);
+        const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
 
         const playerSlots: Record<PlayerNum, Player> = {
           1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
@@ -292,42 +299,20 @@ export default function GridView3P() {
 
         const userIdMap: Record<number, string> = {};
 
-        // Load player data from game
-        if (game.players && Array.isArray(game.players)) {
-          for (let i = 0; i < Math.min(game.players.length, 3); i++) {
-            const player = game.players[i];
-            const playerNum = (i + 1) as PlayerNum;
+        game.players.forEach((p, i) => {
+          const playerNum = (i + 1) as PlayerNum;
+          if (playerNum > 3) return;
 
-            if (player.user_id) {
-              userIdMap[playerNum] = player.user_id;
-            }
-
-            // Load deck data to get commander and colors
-            if (player.deck_id) {
-              const { data: deckData } = await supabase
-                .from('decks')
-                .select('commander_name, color_identity')
-                .eq('id', player.deck_id)
-                .single();
-
-              if (deckData) {
-                playerSlots[playerNum].commander = deckData.commander_name;
-                playerSlots[playerNum].colors = deckData.color_identity ? deckData.color_identity.split('') : [];
-                playerSlots[playerNum].claimed = true;
-              }
-            }
-
-            // Set player name if available
-            if (player.name) {
-              playerSlots[playerNum].name = player.name;
-            }
-
-            // Set life total if available
-            if (player.life !== undefined && player.life !== null) {
-              playerSlots[playerNum].life = player.life;
-            }
-          }
-        }
+          const deck = deckMap.get(p.deck_id);
+          userIdMap[playerNum] = p.user_id;
+          playerSlots[playerNum] = {
+            life: 40,
+            name: deck?.commander_name || `Player ${playerNum}`,
+            commander: deck?.commander_name || null,
+            colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : [],
+            claimed: true
+          };
+        });
 
         setPlayers(playerSlots);
         setPlayerUserIds(userIdMap);

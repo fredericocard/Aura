@@ -315,15 +315,20 @@ export default function GridView5P() {
 
       try {
         // Fetch game details
-        const game = await getGame(gameId);
+        const { data: game } = await getGame(gameId);
         if (!game) {
           applyColorIdentity(1);
           scheduleCollapse();
           return;
         }
 
-        // Load player data from deck_ids
-        const deckIds = game.deck_ids || [];
+        const deckIds = game.players.map(p => p.deck_id);
+        const { data: decks } = await supabase
+          .from('decks')
+          .select('id, commander_name, color_identity')
+          .in('id', deckIds);
+        const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
+
         const newPlayers: Record<number, PlayerState> = {
           1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
           2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] },
@@ -334,31 +339,19 @@ export default function GridView5P() {
 
         const newPlayerUserIds: Record<number, string> = {};
 
-        // Populate players from deck data
-        for (let i = 0; i < Math.min(deckIds.length, 5); i++) {
-          const deckId = deckIds[i];
-          try {
-            const { data: deck } = await supabase
-              .from('decks')
-              .select('id, commander_name, user_id, color_identity')
-              .eq('id', deckId)
-              .single();
-
-            if (deck) {
-              const playerSlot = i + 1;
-              newPlayers[playerSlot] = {
-                life: 40,
-                name: deck.commander_name || `Player ${playerSlot}`,
-                commander: deck.commander_name || null,
-                claimed: true,
-                colors: deck.color_identity ? deck.color_identity.split('') : []
-              };
-              newPlayerUserIds[playerSlot] = deck.user_id || '';
-            }
-          } catch (err) {
-            // Deck not found, keep slot empty
-          }
-        }
+        game.players.forEach((p, i) => {
+          const slot = i + 1;
+          if (slot > 5) return;
+          const deck = deckMap.get(p.deck_id);
+          newPlayers[slot] = {
+            life: 40,
+            name: deck?.commander_name || `Player ${slot}`,
+            commander: deck?.commander_name || null,
+            claimed: true,
+            colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : []
+          };
+          newPlayerUserIds[slot] = p.user_id;
+        });
 
         setPlayerUserIds(newPlayerUserIds);
         setPlayers(newPlayers);
