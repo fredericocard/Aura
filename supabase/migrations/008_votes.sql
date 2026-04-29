@@ -74,6 +74,17 @@ create policy "Voters can insert own votes"
     )
   );
 
+-- Any participant can insert votes for auto-complete (B10: expired player default votes)
+create policy "Participants can insert votes for auto-complete"
+  on public.game_votes for insert
+  with check (
+    exists (
+      select 1 from public.game_players
+      where game_players.game_id = game_votes.game_id
+      and game_players.user_id = auth.uid()
+    )
+  );
+
 -- Voters can update their own votes (immutability enforced in app)
 create policy "Voters can update own votes"
   on public.game_votes for update

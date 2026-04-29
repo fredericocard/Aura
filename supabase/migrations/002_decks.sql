@@ -55,3 +55,18 @@ create policy "Users can update own decks"
 create policy "Users can delete own decks"
   on public.decks for delete
   using (auth.uid() = user_id);
+
+-- Select: other players can see decks in shared games (for voting, tally, Game Card)
+create policy "Game participants can read decks in their games"
+  on public.decks for select
+  using (
+    exists (
+      select 1 from public.game_players gp
+      where gp.deck_id = decks.id
+      and exists (
+        select 1 from public.game_players gp2
+        where gp2.game_id = gp.game_id
+        and gp2.user_id = auth.uid()
+      )
+    )
+  );

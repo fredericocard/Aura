@@ -162,6 +162,17 @@ create policy "Members can update own membership"
   on public.pod_members for update
   using (auth.uid() = user_id);
 
+-- Any pod member can update others for auto-complete (B10: expired review timeout)
+create policy "Pod members can update others for auto-complete"
+  on public.pod_members for update
+  using (
+    exists (
+      select 1 from public.pod_members pm
+      where pm.pod_id = pod_members.pod_id
+      and pm.user_id = auth.uid()
+    )
+  );
+
 -- State log: pod members can read
 alter table public.pod_state_log enable row level security;
 

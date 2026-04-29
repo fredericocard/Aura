@@ -90,8 +90,9 @@ create policy "Pod host can update games"
     )
   );
 
--- Allow any game participant to update the game (for auto-complete on last review)
-create policy "Participants can complete games"
+-- Allow any game participant to update the game
+-- (auto-complete on last review, checkLastStanding reverts to active on revive)
+create policy "Participants can update game state"
   on public.games for update
   using (
     exists (
@@ -99,8 +100,7 @@ create policy "Participants can complete games"
       where game_players.game_id = games.id
       and game_players.user_id = auth.uid()
     )
-  )
-  with check (state in ('completed', 'in_questionnaire'));
+  );
 
 -- Game players: participants can read, pod members can insert
 alter table public.game_players enable row level security;
@@ -139,14 +139,18 @@ create policy "Pod members can insert game players"
     )
   );
 
--- Game players update (mark winner)
-create policy "Pod host can update game players"
+-- Game players update: own row (life, counters, concede)
+create policy "Players can update own game_player row"
+  on public.game_players for update
+  using (user_id = auth.uid());
+
+-- Game players update: any row in your game (checkLastStanding sets can_review on others)
+create policy "Participants can update game players in their game"
   on public.game_players for update
   using (
     exists (
-      select 1 from public.games g
-      join public.pods p on p.id = g.pod_id
-      where g.id = game_players.game_id
-      and p.host_id = auth.uid()
+      select 1 from public.game_players gp
+      where gp.game_id = game_players.game_id
+      and gp.user_id = auth.uid()
     )
   );
