@@ -557,7 +557,7 @@ export default function ReviewPage() {
       const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
 
       const loaded: PlayerInfo[] = game.players.map(p => {
-        const deck = deckMap.get(p.deck_id);
+        const deck: any = deckMap.get(p.deck_id);
         return {
           id: p.user_id,
           deckId: p.deck_id,

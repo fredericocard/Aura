@@ -303,7 +303,7 @@ export default function GridView3P() {
           const playerNum = (i + 1) as PlayerNum;
           if (playerNum > 3) return;
 
-          const deck = deckMap.get(p.deck_id);
+          const deck: any = deckMap.get(p.deck_id);
           userIdMap[playerNum] = p.user_id;
           playerSlots[playerNum] = {
             life: 40,

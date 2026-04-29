@@ -342,7 +342,7 @@ export default function GridView5P() {
         game.players.forEach((p, i) => {
           const slot = i + 1;
           if (slot > 5) return;
-          const deck = deckMap.get(p.deck_id);
+          const deck: any = deckMap.get(p.deck_id);
           newPlayers[slot] = {
             life: 40,
             name: deck?.commander_name || `Player ${slot}`,

@@ -138,7 +138,7 @@ export default function GridView2P() {
           const playerNum = i + 1;
           if (playerNum > 2) return; // Only support 2 players
 
-          const deck = deckMap.get(p.deck_id);
+          const deck: any = deckMap.get(p.deck_id);
           newPlayerUserIds[playerNum] = p.user_id;
           newPlayers[playerNum] = {
             ...newPlayers[playerNum],

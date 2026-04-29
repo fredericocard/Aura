@@ -102,7 +102,7 @@ export default function GridView4P() {
       const newPlayers: Record<number, typeof players[1]> = {};
       const newUserIds: Record<number, string> = {};
       game.players.forEach((p, i) => {
-        const deck = deckMap.get(p.deck_id);
+        const deck: any = deckMap.get(p.deck_id);
         const slot = i + 1;
         newPlayers[slot] = {
           life: 40,
