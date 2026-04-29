@@ -162,7 +162,7 @@ export async function recordBrewedBadge(
   const column = BADGE_COLUMN_MAP[badge];
   const { data: deck } = await supabase
     .from('decks')
-    .select(`bracket, ${column}`)
+    .select('bracket, badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor')
     .eq('id', deckId)
     .single();
 
