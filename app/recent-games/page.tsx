@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getGameLog, type GameLogEntry } from '@/lib/game-log';
@@ -124,6 +124,17 @@ function GameCard({ game, index }: { game: Game; index: number }) {
 }
 
 function MemoryCard({ game, onClose }: { game: Game; onClose: () => void }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const handleDownload = async () => {
+    if (!cardRef.current) return;
+    const { downloadCard } = await import('@/lib/share-card');
+    await downloadCard(cardRef.current, `aura-card-${game.date}`);
+  };
+  const handleShare = async () => {
+    if (!cardRef.current) return;
+    const { shareCard } = await import('@/lib/share-card');
+    await shareCard(cardRef.current);
+  };
   const winner = game.players[game.winnerIdx];
   const auraSign = game.aura >= 0 ? '+' : '';
   const badgeCounts: Record<string, number> = {};
@@ -135,7 +146,7 @@ function MemoryCard({ game, onClose }: { game: Game; onClose: () => void }) {
   return (
     <div className="mc-overlay show" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="mc-wrapper" onClick={(e) => e.stopPropagation()}>
-        <div className="mc">
+        <div className="mc" ref={cardRef}>
           <div className="mc-bg">
             <div className="mc-inner">
               <div className="mc-info">
@@ -196,7 +207,7 @@ function MemoryCard({ game, onClose }: { game: Game; onClose: () => void }) {
           </div>
         </div>
         <div className="mc-actions">
-          <div className="mc-act" onClick={(e) => { e.stopPropagation(); alert('Image saved!'); }}>
+          <div className="mc-act" onClick={(e) => { e.stopPropagation(); handleDownload(); }}>
             <div className="mc-act-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -205,7 +216,7 @@ function MemoryCard({ game, onClose }: { game: Game; onClose: () => void }) {
               </svg>
             </div>
           </div>
-          <div className="mc-act" onClick={(e) => { e.stopPropagation(); alert('Share sheet'); }}>
+          <div className="mc-act" onClick={(e) => { e.stopPropagation(); handleShare(); }}>
             <div className="mc-act-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="18" cy="5" r="3" />

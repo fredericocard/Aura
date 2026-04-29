@@ -498,17 +498,30 @@ function GuestPromotionOverlay({ onComplete, onSkip }: { onComplete: () => void;
 }
 
 function MemoryCardOverlay({ onClose, card }: { onClose: () => void; card: GameCard | null }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const handleDownload = async () => {
+    if (!cardRef.current) return;
+    const { downloadCard } = await import('@/lib/share-card');
+    await downloadCard(cardRef.current, 'aura-game-card');
+  };
+  const handleShare = async () => {
+    if (!cardRef.current) return;
+    const { shareCard } = await import('@/lib/share-card');
+    await shareCard(cardRef.current);
+  };
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,6,4,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 20px', fontFamily: "'Instrument Sans', sans-serif" }}>
       <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, width: '100%', maxWidth: 430 }}>
-        {card ? <KeepsakeCard card={card} /> : (
-          <div style={{ color: '#E2B858', fontFamily: "'Instrument Sans', sans-serif", fontSize: 14, textAlign: 'center', padding: 40 }}>Loading your Game Card...</div>
-        )}
+        <div ref={cardRef}>
+          {card ? <KeepsakeCard card={card} /> : (
+            <div style={{ color: '#E2B858', fontFamily: "'Instrument Sans', sans-serif", fontSize: 14, textAlign: 'center', padding: 40 }}>Loading your Game Card...</div>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: 14 }}>
-          <button style={{ width: 44, height: 44, borderRadius: 999, border: '1px solid rgba(201,155,47,0.55)', background: 'linear-gradient(180deg, #140C07 0%, #0A0604 100%)', color: '#E2B858', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -4px rgba(10,6,4,0.45)' }}>
+          <button onClick={handleDownload} style={{ width: 44, height: 44, borderRadius: 999, border: '1px solid rgba(201,155,47,0.55)', background: 'linear-gradient(180deg, #140C07 0%, #0A0604 100%)', color: '#E2B858', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -4px rgba(10,6,4,0.45)' }}>
             <Icon name="download" size={16} />
           </button>
-          <button style={{ width: 44, height: 44, borderRadius: 999, border: '1px solid rgba(201,155,47,0.55)', background: 'linear-gradient(180deg, #140C07 0%, #0A0604 100%)', color: '#E2B858', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -4px rgba(10,6,4,0.45)' }}>
+          <button onClick={handleShare} style={{ width: 44, height: 44, borderRadius: 999, border: '1px solid rgba(201,155,47,0.55)', background: 'linear-gradient(180deg, #140C07 0%, #0A0604 100%)', color: '#E2B858', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -4px rgba(10,6,4,0.45)' }}>
             <Icon name="share-2" size={16} />
           </button>
         </div>
