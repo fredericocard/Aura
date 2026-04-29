@@ -1,25 +1,9 @@
 -- ============================================
 -- AF-B13 · Badge attribution + archetype system
--- 1. Rename question keys to badge names
--- 2. Create badge_attributions table for audit
+-- Badge attributions table for audit
 -- ============================================
 
--- 1. Update question_key constraint to use badge names
-alter table public.game_votes
-  drop constraint game_votes_question_key_check;
-
-alter table public.game_votes
-  add constraint game_votes_question_key_check
-  check (question_key in ('fun','rivalry','allegiance','brilliance','flavor','bracket_check'));
-
--- Migrate any existing data from old keys to new keys
-update public.game_votes set question_key = 'fun' where question_key = 'q1';
-update public.game_votes set question_key = 'rivalry' where question_key = 'q2';
--- allegiance stays as-is
-update public.game_votes set question_key = 'brilliance' where question_key = 'q3';
-update public.game_votes set question_key = 'flavor' where question_key = 'q4';
-
--- 2. Badge attributions — permanent record per game per player
+-- Badge attributions — permanent record per game per player
 create table public.badge_attributions (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete restrict,

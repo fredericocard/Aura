@@ -1,8 +1,7 @@
 -- ============================================
 -- AF-B09 · Vote capture for post-game questions
--- Six questions per game per voter:
---   q1–q4: single-select (one commander)
---   allegiance: single-select (one commander, not yourself)
+-- Six badge questions per game per voter:
+--   fun, rivalry, allegiance, brilliance, flavor: single-select (one commander)
 --   bracket_check: "no flag" OR flag one-or-more commanders
 --
 -- Votes are MUTABLE until both conditions are met:
@@ -16,7 +15,7 @@ create table public.game_votes (
   game_id uuid not null references public.games(id) on delete restrict,
   voter_id uuid not null references auth.users(id),
   question_key text not null
-    check (question_key in ('q1','q2','q3','q4','allegiance','bracket_check')),
+    check (question_key in ('fun','rivalry','allegiance','brilliance','flavor','bracket_check')),
   target_deck_id uuid references public.decks(id),  -- null only for bracket_check "no flag"
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

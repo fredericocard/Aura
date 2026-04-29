@@ -1,20 +1,46 @@
 -- ============================================
--- RLS fixes for B08–B14 functionality
--- Several operations need broader permissions:
---   1. Any player updates their own game_players row (life, counters)
---   2. Any participant updates game_players for game flow (elimination, winner)
---   3. Any participant can insert votes for auto-complete flow
---   4. Any participant can update pod_members for auto-complete flow
+-- RLS fixes for B01–B14 functionality
+-- Fixes permissions that later tickets exposed as too restrictive.
 -- ============================================
 
--- 1. Players can update their own game_players row
---    (life_total, poison, experience, energy, concede)
+-- ─── DECKS (B03) ────────────────────────────────────────────
+-- Other players need to read deck names/art for voting, Game Card, tally.
+-- Current RLS only allows owner to read own decks.
+create policy "Game participants can read decks in their games"
+  on public.decks for select
+  using (
+    exists (
+      select 1 from public.game_players gp
+      where gp.deck_id = decks.id
+      and exists (
+        select 1 from public.game_players gp2
+        where gp2.game_id = gp.game_id
+        and gp2.user_id = auth.uid()
+      )
+    )
+  );
+
+-- ─── GAMES (B07) ────────────────────────────────────────────
+-- checkLastStanding can revert game state to 'active' on revive.
+-- Existing policy only allows participants to set 'completed' or 'in_questionnaire'.
+-- Need broader update for any participant.
+create policy "Participants can update game state"
+  on public.games for update
+  using (
+    exists (
+      select 1 from public.game_players
+      where game_players.game_id = games.id
+      and game_players.user_id = auth.uid()
+    )
+  );
+
+-- ─── GAME PLAYERS (B07/B08) ─────────────────────────────────
+-- Any player needs to update their own row (life, counters, concede).
+-- checkLastStanding updates other players' can_review.
 create policy "Players can update own game_player row"
   on public.game_players for update
   using (user_id = auth.uid());
 
--- 2. Any game participant can update any game_players row in their game
---    (needed for checkLastStanding: sets can_review on winner, reverts on revive)
 create policy "Participants can update game players in their game"
   on public.game_players for update
   using (
@@ -25,8 +51,9 @@ create policy "Participants can update game players in their game"
     )
   );
 
--- 3. Any game participant can insert votes for auto-complete
---    (autoCompleteExpiredReviews inserts bracket_check "no flag" for expired players)
+-- ─── GAME VOTES (B09/B10) ───────────────────────────────────
+-- autoCompleteExpiredReviews inserts bracket_check votes for expired players.
+-- Existing policy requires voter_id = auth.uid().
 create policy "Participants can insert votes for auto-complete"
   on public.game_votes for insert
   with check (
@@ -37,8 +64,9 @@ create policy "Participants can insert votes for auto-complete"
     )
   );
 
--- 4. Any pod member can update other members for auto-complete
---    (autoCompleteExpiredReviews sets review_submitted_at + auto_completed)
+-- ─── POD MEMBERS (B06/B10) ──────────────────────────────────
+-- autoCompleteExpiredReviews sets review_submitted_at on other players.
+-- Existing policy only allows self-update.
 create policy "Pod members can update others for auto-complete"
   on public.pod_members for update
   using (
