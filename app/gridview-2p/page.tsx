@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
+import { useWakeLock } from '@/lib/use-wake-lock';
 
 interface PlayerState {
   life: number;
@@ -23,6 +24,7 @@ interface CounterState {
 }
 
 function PageContent() {
+  useWakeLock();
   const searchParams = useSearchParams();
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';

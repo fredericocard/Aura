@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { useWakeLock } from '@/lib/use-wake-lock';
 
 export default function SingleViewPage() {
+  useWakeLock();
   // Life counter state
   const [life, setLife] = useState(40);
   const [isLifeExpanded, setIsLifeExpanded] = useState(false);
