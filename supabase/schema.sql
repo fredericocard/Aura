@@ -174,10 +174,7 @@ CREATE INDEX idx_pod_members_user_id ON pod_members(user_id);
 ALTER TABLE pod_members ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Pod members can read their pod members"
-  ON pod_members FOR SELECT USING (
-    pod_id IN (SELECT pod_id FROM pod_members pm WHERE pm.user_id = auth.uid())
-    OR pod_id IN (SELECT id FROM pods WHERE host_id = auth.uid())
-  );
+  ON pod_members FOR SELECT USING (TRUE);
 CREATE POLICY "Users can join pods"
   ON pod_members FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own membership"

@@ -85,7 +85,7 @@ export default function Page() {
     if (!createdPod) return;
     setCreating(true);
 
-    const { data: game, error: gameErr } = await createGame(createdPod.id);
+    const { data: game, error: gameErr } = await createGame(createdPod.id, selectedPlayers);
     if (gameErr || !game) {
       setError(gameErr ?? 'Failed to create game');
       setCreating(false);

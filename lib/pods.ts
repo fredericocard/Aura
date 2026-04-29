@@ -198,7 +198,7 @@ export async function updatePodState(podId: string, newState: PodState): Promise
       .eq('pod_id', podId);
 
     const memberCount = count ?? 0;
-    if (memberCount < 2) return { error: 'Need at least 2 players to start.' };
+    if (memberCount < 1) return { error: 'Need at least 1 player to start.' };
     if (memberCount > 5) return { error: 'Too many players (max 5).' };
   }
 

@@ -29,32 +29,31 @@ export interface GamePlayer {
 
 /**
  * Create a game for a pod.
- * Snapshots the current pod members as game_players.
- * Each pod member must have a deck_id assigned.
+ * The host is the only required real player. Empty seats are placeholders
+ * ("Player 1", "Player 2", etc.) that others can claim later by joining.
+ * @param podId  The pod to create the game for
+ * @param playerCount  Total number of seats (2-5), including the host
  */
-export async function createGame(podId: string): Promise<{ data: Game | null; error: string | null }> {
-  // Get pod members with their decks
+export async function createGame(podId: string, playerCount?: number): Promise<{ data: Game | null; error: string | null }> {
+  // Get pod members with their decks (at minimum, the host)
   const { data: members, error: membersError } = await supabase
     .from('pod_members')
     .select('user_id, deck_id')
     .eq('pod_id', podId) as { data: any; error: any };
 
-  if (membersError || !members) {
+  if (membersError || !members || members.length === 0) {
     return { data: null, error: membersError?.message ?? 'Failed to load pod members' };
   }
 
-  // Validate: all members need a deck
-  const withDecks = members.filter((m: any) => m.deck_id != null) as any;
-  if (withDecks.length < 2) {
-    return { data: null, error: 'Need at least 2 players with commanders to start a game' };
-  }
+  // Use playerCount if provided, otherwise fall back to member count (min 2)
+  const totalSeats = playerCount ?? Math.max(members.length, 2);
 
   // Create the game
   const { data: game, error: gameError } = await supabase
     .from('games')
     .insert({
       pod_id: podId,
-      pod_size: withDecks.length,
+      pod_size: totalSeats,
     })
     .select()
     .single() as { data: any; error: any };
@@ -63,19 +62,23 @@ export async function createGame(podId: string): Promise<{ data: Game | null; er
     return { data: null, error: gameError?.message ?? 'Failed to create game' };
   }
 
-  // Snapshot pod members as game players
-  const gamePlayers = withDecks.map((m: any) => ({
-    game_id: game.id,
-    user_id: m.user_id,
-    deck_id: m.deck_id,
-  }));
+  // Snapshot real pod members as game players
+  const gamePlayers = members
+    .filter((m: any) => m.deck_id != null)
+    .map((m: any) => ({
+      game_id: game.id,
+      user_id: m.user_id,
+      deck_id: m.deck_id,
+    }));
 
-  const { error: playersError } = await supabase
-    .from('game_players')
-    .insert(gamePlayers);
+  if (gamePlayers.length > 0) {
+    const { error: playersError } = await supabase
+      .from('game_players')
+      .insert(gamePlayers);
 
-  if (playersError) {
-    return { data: game as Game, error: `Game created but failed to add players: ${playersError.message}` };
+    if (playersError) {
+      return { data: game as Game, error: `Game created but failed to add players: ${playersError.message}` };
+    }
   }
 
   return { data: game as Game, error: null };
