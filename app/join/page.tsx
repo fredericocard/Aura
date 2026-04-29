@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { joinPod } from '@/lib/pods';
 
-export default function Page() {
+function PageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [codeChars, setCodeChars] = useState<string[]>(['', '', '', '', '', '']);
@@ -344,5 +344,13 @@ export default function Page() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
+      <PageContent />
+    </Suspense>
   );
 }

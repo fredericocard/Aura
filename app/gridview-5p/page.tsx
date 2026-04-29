@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
@@ -28,7 +28,7 @@ interface ManaStyle {
   shadow: [number, number, number];
 }
 
-export default function GridView5P() {
+function PageContent() {
   const searchParams = useSearchParams();
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
@@ -1769,5 +1769,13 @@ export default function GridView5P() {
         {toastMessage}
       </div>
     </div>
+  );
+}
+
+export default function GridView5P() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
+      <PageContent />
+    </Suspense>
   );
 }

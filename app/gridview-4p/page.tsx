@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { Suspense, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 
-export default function GridView4P() {
+function PageContent() {
   const searchParams = useSearchParams();
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
@@ -1729,5 +1729,13 @@ export default function GridView4P() {
         </div>
       )}
     </>
+  );
+}
+
+export default function GridView4P() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
+      <PageContent />
+    </Suspense>
   );
 }

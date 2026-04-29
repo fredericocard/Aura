@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getCommanderProfile, type CommanderProfile } from '@/lib/commander-profile';
 
@@ -12,7 +12,7 @@ const BRACKETS = [
   { num: 5, name: 'cEDH', desc: 'High power with a very competitive and metagame focused mindset.', restrictions: [], note: 'No restrictions (other than the banned list)' },
 ];
 
-export default function DeckAccomplishmentsPage() {
+function PageContent() {
   const searchParams = useSearchParams();
   const deckId = searchParams.get('deckId') ?? '';
   const [bracketModalActive, setBracketModalActive] = useState(false);
@@ -1057,5 +1057,13 @@ export default function DeckAccomplishmentsPage() {
         </div>
       )}
     </>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
+      <PageContent />
+    </Suspense>
   );
 }

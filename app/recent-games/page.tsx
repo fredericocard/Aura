@@ -1326,7 +1326,7 @@ function RecentGamesContent() {
 
 export default function RecentGamesPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
       <RecentGamesContent />
     </Suspense>
   );

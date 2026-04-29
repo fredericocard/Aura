@@ -4,7 +4,7 @@
 // ============================================
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from '../../lib/auth-context';
 import { getGame, type GamePlayer } from '@/lib/games';
@@ -518,7 +518,7 @@ function MemoryCardOverlay({ onClose, card }: { onClose: () => void; card: GameC
   );
 }
 
-export default function ReviewPage() {
+function PageContent() {
   const { isGuest, isLoggedIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -739,5 +739,13 @@ export default function ReviewPage() {
 
       {showMemory && <MemoryCardOverlay card={gameCard} onClose={() => setShowMemory(false)} />}
     </div>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
+      <PageContent />
+    </Suspense>
   );
 }
