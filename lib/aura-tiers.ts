@@ -112,12 +112,12 @@ export async function getDeckTier(deckId: string): Promise<AuraTier> {
       .from("decks")
       .select("aura_score")
       .eq("id", deckId)
-      .single() as Promise<{ data: any; error: any }>,
+      .single() as unknown as Promise<{ data: any; error: any }>,
     supabase
       .from("game_players")
       .select("game_id, games!inner(state)")
       .eq("deck_id", deckId)
-      .eq("games.state", "completed"),
+      .eq("games.state", "completed") as unknown as Promise<{ data: any; error: any }>,
     getTierBoundaries(),
     getDevelopingMinGames(),
   ]);

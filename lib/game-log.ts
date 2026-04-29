@@ -110,11 +110,11 @@ export async function getGameLog(
         "game_id, user_id, is_winner, " +
           "decks!inner(commander_name, commander_art_url)"
       )
-      .in("game_id", gameIds),
+      .in("game_id", gameIds) as unknown as Promise<{ data: any; error: any }>,
     supabase
       .from("game_cards")
       .select("id, game_id, share_code, narrative")
-      .in("game_id", gameIds),
+      .in("game_id", gameIds) as unknown as Promise<{ data: any; error: any }>,
   ]);
 
   // Build lookup maps
@@ -234,20 +234,20 @@ export async function getPlayerStats(userId: string): Promise<PlayerStats> {
       supabase
         .from("game_players")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", userId),
+        .eq("user_id", userId) as unknown as Promise<{ data: any; error: any }>,
       supabase
         .from("game_players")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("is_winner", true),
+        .eq("is_winner", true) as unknown as Promise<{ data: any; error: any }>,
       supabase
         .from("decks")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", userId),
+        .eq("user_id", userId) as unknown as Promise<{ data: any; error: any }>,
       supabase
         .from("game_card_players")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", userId),
+        .eq("user_id", userId) as unknown as Promise<{ data: any; error: any }>,
     ]);
 
   const totalGames = gamesResult.count ?? 0;

@@ -124,13 +124,13 @@ export async function getCommanderProfile(
       .from("game_players")
       .select("id, games!inner(state)", { count: "exact", head: true })
       .eq("deck_id", deckId)
-      .eq("games.state", "completed"),
+      .eq("games.state", "completed") as unknown as Promise<{ data: any; error: any }>,
     // Count games at current bracket
     supabase
       .from("badge_vote_history")
       .select("id", { count: "exact", head: true })
       .eq("deck_id", deckId)
-      .eq("bracket_at_time", deck.bracket),
+      .eq("bracket_at_time", deck.bracket) as unknown as Promise<{ data: any; error: any }>,
   ]);
 
   const totalGames = gamesResult.count ?? 0;
@@ -252,7 +252,7 @@ export async function getUserCommanderSummaries(
         .from("game_players")
         .select("id, games!inner(state)", { count: "exact", head: true })
         .eq("deck_id", deck.id)
-        .eq("games.state", "completed"),
+        .eq("games.state", "completed") as unknown as Promise<{ data: any; error: any }>,
     ]);
 
     const totalGames = gamesResult.count ?? 0;
