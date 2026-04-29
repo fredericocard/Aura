@@ -159,21 +159,24 @@ export async function computeBadgeAttribution(gameId: string): Promise<{
     // Badges received = categories with > 0 votes
     pd.badges_received = ALL_BADGES.filter(b => pd.vote_counts[b] > 0);
 
-    // Brewed badge = highest vote count (alphabetical tiebreak for determinism)
-    let topBadge: BadgeKey | 'none' = 'none';
+    // Brewed badge = highest vote count (random tiebreak if tied)
     let topVotes = 0;
     for (const badge of ALL_BADGES) {
       if (pd.vote_counts[badge] > topVotes) {
         topVotes = pd.vote_counts[badge];
-        topBadge = badge;
-      } else if (pd.vote_counts[badge] === topVotes && topVotes > 0) {
-        // Alphabetical tiebreak
-        if (badge < topBadge) {
-          topBadge = badge;
-        }
       }
     }
-    pd.brewed_badge = topBadge;
+
+    // Collect all badges tied at the top
+    const tiedBadges = ALL_BADGES.filter(b => pd.vote_counts[b] === topVotes && topVotes > 0);
+    if (tiedBadges.length === 1) {
+      pd.brewed_badge = tiedBadges[0];
+    } else if (tiedBadges.length > 1) {
+      // Random pick from tied badges
+      pd.brewed_badge = tiedBadges[Math.floor(Math.random() * tiedBadges.length)];
+    } else {
+      pd.brewed_badge = 'none';
+    }
 
     // Initial archetype from all received badges
     pd.archetype_key = makeArchetypeKey(pd.badges_received);

@@ -15,6 +15,7 @@
 | **Ticket** |  |  | AF-B11 |
 | **Ticket** |  |  | AF-B12 |
 | **Ticket** |  |  | AF-B13 |
+| **Ticket** |  |  | AF-B14 |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
 | **Ticket** |  |  |  |
@@ -314,3 +315,29 @@
   - getGameBadgeAttributions(), getPlayerAttribution(), getPlayerArchetypeHistory()
 
 **Blocked by:** AF-B12 ✅ **Enables:** AF-B14, AF-B22
+
+---
+
+## AF-B14 · Badge count persistence ✅
+
+**Acceptance criteria:**
+
+* [x] Two layers tracked: badge VOTES received (for AURA) and brewed BADGE earned (for accomplishments)
+* [x] Badge votes = cumulative count of every vote a commander received per category across all games
+* [x] Brewed badge = the single badge the player won (most voted category, random tiebreak)
+* [x] Both counts never decrease — append-only
+* [x] Both persist across bracket changes
+* [x] Bracket at time recorded in both history tables
+
+**What was built:**
+- SQL migration: adds votes_fun/etc (vote totals) + badge_fun/etc (badge wins) to decks, creates badge_vote_history + badge_history tables
+- Updated lib/badge-attribution.ts: random tiebreak for brewed badge when tied
+- lib/badge-counts.ts:
+  - recordBadgeVotes() — records per-category votes + increments cumulative totals on deck
+  - recordBrewedBadge() — records winning badge + increments badge count
+  - processGameBadges() — processes both layers for all players in a game
+  - getDeckVoteCounts() — cumulative vote totals (for AURA)
+  - getDeckBadgeCounts() — brewed badge wins (for accomplishments)
+  - getDeckVotesByBracket() — vote breakdown by bracket
+
+**Blocked by:** AF-B13 ✅ **Enables:** AF-B22, AF-B24
