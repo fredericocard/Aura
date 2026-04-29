@@ -554,7 +554,7 @@ export default function ReviewPage() {
         .from('decks')
         .select('id, commander_name, commander_art_url')
         .in('id', deckIds) as { data: any };
-      const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
+      const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]));
 
       const loaded: PlayerInfo[] = game.players.map(p => {
         const deck: any = deckMap.get(p.deck_id);

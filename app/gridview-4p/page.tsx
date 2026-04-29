@@ -97,7 +97,7 @@ export default function GridView4P() {
         .from('decks')
         .select('id, commander_name, color_identity')
         .in('id', deckIds) as { data: any };
-      const deckMap = new Map((decks ?? []).map(d => [d.id, d]));
+      const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]));
 
       const newPlayers: Record<number, typeof players[1]> = {};
       const newUserIds: Record<number, string> = {};
