@@ -36,8 +36,9 @@ function PageContent() {
 
   const [countersModalOpen, setCountersModalOpen] = useState(false);
 
-  // Login/commander search state — skip overlay if already authenticated with a game
-  const [loginOverlayOpen, setLoginOverlayOpen] = useState(!gameId);
+  // Login/commander search state — NEVER show overlay when gameId exists in URL
+  // The commander was already chosen during pod creation / join
+  const [loginOverlayOpen, setLoginOverlayOpen] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -78,9 +79,9 @@ function PageContent() {
     loadDecks();
   }, [isLoggedIn]);
 
-  // Load game data from backend when gameId is available
+  // Load game data from backend when gameId is available AND user is loaded
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId || loading || !user?.id) return;
 
     async function loadGameData() {
       try {
@@ -89,14 +90,16 @@ function PageContent() {
 
         setPodSize(game.pod_size ?? 0);
 
-        // Fetch deck info for all players
-        const deckIds = game.players.map((p: any) => p.deck_id);
-        const { data: decks } = await supabase
-          .from('decks')
-          .select('id, commander_name, color_identity, aura_score, badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor')
-          .in('id', deckIds) as { data: any };
-
-        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+        // Fetch deck info for all players (filter out null deck_ids from empty seats)
+        const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
+        let deckMap = new Map();
+        if (deckIds.length > 0) {
+          const { data: decks } = await supabase
+            .from('decks')
+            .select('id, commander_name, color_identity, aura_score, badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor')
+            .in('id', deckIds) as { data: any };
+          deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+        }
 
         // Build opponents array (all players except current user)
         const opponentsList: any[] = [];
@@ -196,7 +199,7 @@ function PageContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [gameId, user?.id]);
+  }, [gameId, loading, user?.id]);
 
   // Fetch Scryfall data for opponent commanders
   useEffect(() => {
@@ -224,12 +227,13 @@ function PageContent() {
     });
   }, [opponents]);
 
-  // Auto-hide login overlay if authenticated and gameId exists
+  // Only show login overlay if there's NO gameId (standalone singleview, not from a game)
+  // If there IS a gameId, the commander was already chosen — never show the overlay
   useEffect(() => {
-    if (isLoggedIn && gameId) {
-      setLoginOverlayOpen(false);
+    if (!loading && !gameId && !isLoggedIn) {
+      setLoginOverlayOpen(true);
     }
-  }, [isLoggedIn, gameId]);
+  }, [loading, gameId, isLoggedIn]);
 
   // Long press ref
   const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
