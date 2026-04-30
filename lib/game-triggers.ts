@@ -259,6 +259,43 @@ export async function reviveSelf(gameId: string, userId: string): Promise<{ erro
 }
 
 /**
+ * Abandon a game entirely. This is NOT the same as conceding mid-game.
+ * Used when a player wants to leave and start fresh (e.g. internet crash, stale game).
+ * - Eliminates the player
+ * - Marks the game as 'completed' (not 'in_questionnaire') so it no longer blocks new games
+ * - If there's only one other player, they don't get stuck either
+ */
+export async function abandonGame(gameId: string, userId: string): Promise<{ error: string | null }> {
+  // Eliminate this player
+  await eliminatePlayer(gameId, userId);
+
+  // Check how many players are left
+  const { data: players } = await supabase
+    .from('game_players')
+    .select('user_id, is_eliminated')
+    .eq('game_id', gameId) as { data: any };
+
+  const alive = (players ?? []).filter((p: any) => !p.is_eliminated);
+
+  if (alive.length <= 1) {
+    // Game is effectively over — mark as completed so no one is stuck
+    await supabase
+      .from('games')
+      .update({
+        state: 'completed',
+        ended_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', gameId);
+  } else {
+    // More than 1 player still alive — just run the normal check
+    await checkLastStanding(gameId);
+  }
+
+  return { error: null };
+}
+
+/**
  * Check if a specific player can access the review.
  */
 export async function canPlayerReview(gameId: string, userId: string): Promise<boolean> {

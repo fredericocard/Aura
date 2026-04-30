@@ -234,7 +234,7 @@ export async function getMyGames(): Promise<{ data: Game[]; error: string | null
  * Only one active game at a time is allowed.
  */
 export async function getActiveGameForUser(): Promise<{
-  data: { gameId: string; podId: string; podSize: number; state: GameState; commanderName: string | null } | null;
+  data: { gameId: string; podId: string; podSize: number; state: GameState; commanderName: string | null; hasWinner: boolean } | null;
   error: string | null;
 }> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -253,7 +253,7 @@ export async function getActiveGameForUser(): Promise<{
   // Find games that are still active or in_questionnaire
   const { data: activeGames } = await supabase
     .from('games')
-    .select('id, pod_id, pod_size, state')
+    .select('id, pod_id, pod_size, state, winner_player_id')
     .in('id', gameIds)
     .in('state', ['active', 'in_questionnaire'])
     .limit(1) as { data: any };
@@ -281,6 +281,7 @@ export async function getActiveGameForUser(): Promise<{
       podSize: game.pod_size,
       state: game.state,
       commanderName,
+      hasWinner: !!game.winner_player_id,
     },
     error: null,
   };

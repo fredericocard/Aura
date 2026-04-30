@@ -488,9 +488,6 @@ export default function HomePage() {
   const [phase, setPhase] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
   const [loginRedirect, setLoginRedirect] = useState('/create');
-  const [activeGame, setActiveGame] = useState<{ gameId: string; podId: string; podSize: number; state: string; commanderName: string | null } | null>(null);
-  const [showActiveGameModal, setShowActiveGameModal] = useState(false);
-  const [abandoning, setAbandoning] = useState(false);
   const router = useRouter();
   const { isLoggedIn, isGuest, user, signOut, loading } = useAuth();
 
@@ -533,43 +530,6 @@ export default function HomePage() {
       router.push(loginRedirect);
     }
   }, [isLoggedIn, loading, showLogin, loginRedirect, router]);
-
-  // Check for active game when user is logged in
-  useEffect(() => {
-    if (!isLoggedIn || loading) return;
-    let cancelled = false;
-    (async () => {
-      const { getActiveGameForUser } = await import('../../lib/games');
-      const { data } = await getActiveGameForUser();
-      if (!cancelled && data) {
-        setActiveGame(data);
-        setShowActiveGameModal(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [isLoggedIn, loading]);
-
-  const handleRejoinGame = () => {
-    if (!activeGame) return;
-    const viewPath = activeGame.state === 'in_questionnaire'
-      ? `/review?podId=${activeGame.podId}&gameId=${activeGame.gameId}`
-      : `/gridview-${activeGame.podSize}p?podId=${activeGame.podId}&gameId=${activeGame.gameId}`;
-    router.push(viewPath);
-  };
-
-  const handleAbandonGame = async () => {
-    if (!activeGame || !user) return;
-    setAbandoning(true);
-    try {
-      const { concedeGame } = await import('../../lib/game-triggers');
-      await concedeGame(activeGame.gameId, user.id);
-    } catch (e) {
-      console.error('Failed to abandon game:', e);
-    }
-    setAbandoning(false);
-    setActiveGame(null);
-    setShowActiveGameModal(false);
-  };
 
   const ease = 'cubic-bezier(.22,.61,.36,1)';
 
@@ -698,11 +658,7 @@ export default function HomePage() {
         }}>
           <ActionTile variant="primary" icon="plus" label="Create a Pod" sub="BEGIN YOUR GAME" onClick={() => {
             if (isLoggedIn) {
-              if (activeGame) {
-                setShowActiveGameModal(true);
-              } else {
-                router.push('/create');
-              }
+              router.push('/create');
             } else {
               setLoginRedirect('/create');
               sessionStorage.setItem('loginRedirect', '/create');
@@ -729,126 +685,6 @@ export default function HomePage() {
           }} />
         </div>
       </div>
-
-      {/* Active game modal */}
-      {showActiveGameModal && activeGame && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 50,
-          display: 'flex', flexDirection: 'column',
-        }}>
-          {/* Backdrop */}
-          <div onClick={() => setShowActiveGameModal(false)} style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(43,33,24,0.55)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-          }} />
-
-          {/* Sheet */}
-          <div style={{
-            marginTop: 'auto', position: 'relative',
-            maxWidth: 430, width: '100%', alignSelf: 'center',
-            animation: 'slideUp 300ms cubic-bezier(.22,.61,.36,1)',
-          }}>
-            {/* Torn paper top edge */}
-            <div style={{ marginBottom: -1 }}>
-              <TornEdge width={430} color="#FAF5EA" />
-            </div>
-
-            <div style={{
-              position: 'relative',
-              background: '#FAF5EA',
-              padding: '8px 22px 32px',
-              fontFamily: "'Instrument Sans', sans-serif",
-            }}>
-              {/* Close button */}
-              <button onClick={() => setShowActiveGameModal(false)} aria-label="Close" style={{
-                position: 'absolute', top: 14, right: 16,
-                width: 32, height: 32, borderRadius: 999,
-                border: '1px solid rgba(43,33,24,0.08)',
-                background: '#EDE4D0',
-                color: '#5C5043', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                zIndex: 2,
-              }}>
-                <LIcon name="x" size={15} width={2} />
-              </button>
-
-              {/* Header */}
-              <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                  <AuraMark size={28} color="#B06B2C" />
-                </div>
-                <div style={{
-                  fontFamily: "'Instrument Sans', sans-serif", fontWeight: 700,
-                  fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
-                  color: '#B06B2C', marginBottom: 6,
-                }}>Game In Progress</div>
-                <div style={{
-                  fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400,
-                  fontSize: 26, letterSpacing: '-0.02em',
-                  color: '#2B2118', lineHeight: 1.1,
-                }}>You have an active game</div>
-                <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
-                  {activeGame.commanderName
-                    ? `You're playing ${activeGame.commanderName} in a ${activeGame.podSize}-player pod.`
-                    : `You're in a ${activeGame.podSize}-player pod.`
-                  }
-                  {activeGame.state === 'in_questionnaire'
-                    ? ' The game has ended — time to review.'
-                    : ' The game is still going.'
-                  }
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={handleRejoinGame} style={{
-                  width: '100%', cursor: 'pointer',
-                  background: '#2F5D3A', color: '#F5EFE2',
-                  border: 'none', borderRadius: 20,
-                  padding: '14px 18px',
-                  fontSize: 15, fontWeight: 600,
-                  boxShadow: '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)',
-                  fontFamily: "'Instrument Sans', sans-serif",
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}>
-                  <LIcon name="arrow" size={16} width={2} stroke="#F5EFE2" />
-                  {activeGame.state === 'in_questionnaire' ? 'Go to Review' : 'Rejoin Game'}
-                </button>
-
-                <button onClick={handleAbandonGame} disabled={abandoning} style={{
-                  width: '100%', cursor: abandoning ? 'default' : 'pointer',
-                  background: abandoning ? '#8A7E6F' : '#F5EFE2',
-                  color: abandoning ? '#F5EFE2' : '#9E2B2B',
-                  border: '1px solid rgba(158,43,43,0.2)',
-                  borderRadius: 20,
-                  padding: '14px 18px',
-                  fontSize: 15, fontWeight: 600,
-                  fontFamily: "'Instrument Sans', sans-serif",
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}>
-                  {abandoning ? 'Abandoning...' : 'Abandon Game'}
-                </button>
-              </div>
-
-              <div style={{
-                textAlign: 'center', fontSize: 11, color: '#8A7E6F',
-                marginTop: 14, lineHeight: 1.4,
-              }}>
-                Abandoning will concede your position in this game.
-              </div>
-            </div>
-          </div>
-
-          <style dangerouslySetInnerHTML={{__html: `
-            @keyframes slideUp {
-              from { transform: translateY(100%); }
-              to { transform: translateY(0); }
-            }
-          `}} />
-        </div>
-      )}
 
       {/* Login sheet */}
       {showLogin && <LoginSheet onClose={() => setShowLogin(false)} redirect={loginRedirect} />}
