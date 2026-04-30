@@ -230,13 +230,14 @@ function ErrorBanner({ message }: { message: string }) {
 }
 
 /* ── SSOView — initial login sheet ── */
-function SSOView({ setView, onLogin }: { setView: (v: string) => void; onLogin: () => void }) {
+function SSOView({ setView, onLogin, redirectTo }: { setView: (v: string) => void; onLogin: () => void; redirectTo?: string }) {
   const handleGoogleSSO = async () => {
     const { supabase } = await import('../../lib/supabase');
+    const dest = redirectTo || '/create';
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: typeof window !== 'undefined' ? window.location.origin + '/landing' : undefined,
+        redirectTo: typeof window !== 'undefined' ? window.location.origin + '/landing?next=' + encodeURIComponent(dest) : undefined,
       },
     });
   };
@@ -405,7 +406,7 @@ function SignInView({ setView }: { setView: (v: string) => void }) {
 }
 
 /* ── LoginSheet — bottom sheet with torn-paper edge ── */
-function LoginSheet({ onClose }: { onClose: () => void }) {
+function LoginSheet({ onClose, redirect }: { onClose: () => void; redirect?: string }) {
   const [view, setView] = useState('sso');
   const [slideUp, setSlideUp] = useState(false);
   const { isLoggedIn } = useAuth();
@@ -473,7 +474,7 @@ function LoginSheet({ onClose }: { onClose: () => void }) {
             <LIcon name="x" size={15} width={2} />
           </button>
 
-          {view === 'sso' && <SSOView setView={setView} onLogin={() => {}} />}
+          {view === 'sso' && <SSOView setView={setView} onLogin={() => {}} redirectTo={redirect} />}
           {view === 'signup' && <SignUpView setView={setView} />}
           {view === 'signin' && <SignInView setView={setView} />}
         </div>
@@ -501,7 +502,17 @@ export default function HomePage() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  // When login completes, redirect
+  // After OAuth redirect, check ?next= param and auto-redirect if logged in
+  useEffect(() => {
+    if (!isLoggedIn || loading) return;
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next');
+    if (next) {
+      router.push(next);
+    }
+  }, [isLoggedIn, loading]);
+
+  // When login completes via email/password (showLogin is still true), redirect
   useEffect(() => {
     if (isLoggedIn && showLogin) {
       setShowLogin(false);
@@ -663,7 +674,7 @@ export default function HomePage() {
       </div>
 
       {/* Login sheet */}
-      {showLogin && <LoginSheet onClose={() => setShowLogin(false)} />}
+      {showLogin && <LoginSheet onClose={() => setShowLogin(false)} redirect={loginRedirect} />}
     </div>
   );
 }
