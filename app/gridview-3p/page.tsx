@@ -306,12 +306,15 @@ function PageContent() {
           if (pod?.short_code) setPodShortCode(pod.short_code);
         }
 
-        const deckIds = game.players.map((p: any) => p.deck_id);
-        const { data: decks } = await supabase
-          .from('decks')
-          .select('id, commander_name, color_identity')
-          .in('id', deckIds) as { data: any };
-        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+        const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
+        let deckMap = new Map();
+        if (deckIds.length > 0) {
+          const { data: decks } = await supabase
+            .from('decks')
+            .select('id, commander_name, color_identity')
+            .in('id', deckIds) as { data: any };
+          deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+        }
 
         const playerSlots: Record<PlayerNum, Player> = {
           1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
@@ -326,18 +329,21 @@ function PageContent() {
           3: { poison: 0, experience: 0, energy: 0 }
         };
 
-        game.players.forEach((p: any, i: any) => {
-          const playerNum = (i + 1) as PlayerNum;
+        game.players.forEach((p: any) => {
+          const playerNum = (p.seat_number ?? 1) as PlayerNum;
           if (playerNum > 3) return;
 
-          const deck: any = deckMap.get(p.deck_id);
-          userIdMap[playerNum] = p.user_id;
+          const deck: any = p.deck_id ? deckMap.get(p.deck_id) : null;
+          const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
+          const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${playerNum}`;
+
+          if (p.user_id) userIdMap[playerNum] = p.user_id;
           playerSlots[playerNum] = {
             life: p.life_total ?? 40,
-            name: deck?.commander_name || `Player ${playerNum}`,
-            commander: deck?.commander_name || null,
+            name: displayName,
+            commander: deck?.commander_name ?? p.commander_name ?? null,
             colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : [],
-            claimed: true
+            claimed: !isEmptySeat
           };
           newCounters[playerNum] = {
             poison: p.poison_counters ?? 0,
@@ -355,15 +361,11 @@ function PageContent() {
           .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
             const row = payload.new;
             if (!row) return;
-            setPlayerUserIds(currentIds => {
-              const playerNum = Object.entries(currentIds).find(([, uid]) => uid === row.user_id)?.[0];
-              if (playerNum) {
-                const num = parseInt(playerNum) as PlayerNum;
-                setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
-                setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
-              }
-              return currentIds;
-            });
+            const num = row.seat_number as PlayerNum;
+            if (num && num <= 3) {
+              setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
+              setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
+            }
           })
           .subscribe();
         return () => { supabase.removeChannel(channel); };

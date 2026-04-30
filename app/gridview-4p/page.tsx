@@ -102,39 +102,41 @@ function PageContent() {
         if (pod?.short_code) setPodShortCode(pod.short_code);
       }
 
-      const deckIds = game.players.map((p: any) => p.deck_id);
-      const { data: decks } = await supabase
-        .from('decks')
-        .select('id, commander_name, color_identity')
-        .in('id', deckIds) as { data: any };
-      const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+      const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
+      let deckMap = new Map();
+      if (deckIds.length > 0) {
+        const { data: decks } = await supabase
+          .from('decks')
+          .select('id, commander_name, color_identity')
+          .in('id', deckIds) as { data: any };
+        deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+      }
 
       const newPlayers: Record<number, typeof players[1]> = {};
       const newUserIds: Record<number, string> = {};
       const newCounters: Record<number, { poison: number; experience: number; energy: number }> = {};
-      game.players.forEach((p: any, i: any) => {
-        const deck: any = deckMap.get(p.deck_id);
-        const slot = i + 1;
+      game.players.forEach((p: any) => {
+        const deck: any = p.deck_id ? deckMap.get(p.deck_id) : null;
+        const slot = p.seat_number ?? 1;
+        if (slot > 4) return;
+        const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
+        const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${slot}`;
+
         newPlayers[slot] = {
           life: p.life_total ?? 40,
-          name: deck?.commander_name?.split(',')[0] ?? `Player ${slot}`,
-          commander: deck?.commander_name ?? null,
-          claimed: true,
+          name: displayName.split(',')[0],
+          commander: deck?.commander_name ?? p.commander_name ?? null,
+          claimed: !isEmptySeat,
           colors: (deck?.color_identity ?? '').split('').filter((c: string) => 'WUBRG'.includes(c)),
           assignedColor: null,
         };
-        newUserIds[slot] = p.user_id;
+        if (p.user_id) newUserIds[slot] = p.user_id;
         newCounters[slot] = {
           poison: p.poison_counters ?? 0,
           experience: p.experience_counters ?? 0,
           energy: p.energy_counters ?? 0
         };
       });
-      // Fill remaining slots
-      for (let s = game.players.length + 1; s <= 4; s++) {
-        newPlayers[s] = { life: 40, name: `Player ${s}`, commander: null, claimed: false, colors: [], assignedColor: null };
-        newCounters[s] = { poison: 0, experience: 0, energy: 0 };
-      }
       setPlayers(newPlayers);
       setPlayerUserIds(newUserIds);
       setCounters(newCounters);
@@ -144,15 +146,11 @@ function PageContent() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
           const row = payload.new;
           if (!row) return;
-          setPlayerUserIds(currentIds => {
-            const playerNum = Object.entries(currentIds).find(([, uid]) => uid === row.user_id)?.[0];
-            if (playerNum) {
-              const num = parseInt(playerNum);
-              setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
-              setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
-            }
-            return currentIds;
-          });
+          const num = row.seat_number;
+          if (num && num <= 4) {
+            setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
+            setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
+          }
         })
         .subscribe();
       return () => { supabase.removeChannel(channel); };

@@ -233,8 +233,10 @@ CREATE POLICY "Game participants can update games"
 CREATE TABLE IF NOT EXISTS game_players (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  deck_id UUID NOT NULL REFERENCES decks(id),
+  user_id UUID REFERENCES auth.users(id),          -- NULL for guests / empty seats
+  deck_id UUID REFERENCES decks(id),               -- NULL for guests / empty seats
+  commander_name TEXT,                               -- set when guest picks a commander
+  seat_number SMALLINT NOT NULL DEFAULT 1,           -- 1-based seat position
   is_winner BOOLEAN NOT NULL DEFAULT FALSE,
   life_total INTEGER NOT NULL DEFAULT 40,
   poison_counters INTEGER NOT NULL DEFAULT 0,
@@ -244,7 +246,7 @@ CREATE TABLE IF NOT EXISTS game_players (
   eliminated_at TIMESTAMPTZ,
   can_review BOOLEAN NOT NULL DEFAULT FALSE,
   joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(game_id, user_id)
+  UNIQUE(game_id, seat_number)
 );
 
 CREATE INDEX idx_game_players_game_id ON game_players(game_id);

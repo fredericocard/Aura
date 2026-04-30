@@ -21,8 +21,10 @@ export interface Game {
 export interface GamePlayer {
   id: string;
   game_id: string;
-  user_id: string;
-  deck_id: string;
+  user_id: string | null;       // null for guests / empty seats
+  deck_id: string | null;       // null for guests / empty seats
+  commander_name: string | null; // set when guest picks a commander
+  seat_number: number;
   is_winner: boolean;
   joined_at: string;
 }
@@ -62,23 +64,31 @@ export async function createGame(podId: string, playerCount?: number): Promise<{
     return { data: null, error: gameError?.message ?? 'Failed to create game' };
   }
 
-  // Snapshot real pod members as game players
-  const gamePlayers = members
-    .filter((m: any) => m.deck_id != null)
-    .map((m: any) => ({
+  // Build ALL seat rows — real members fill first, remaining seats are placeholders.
+  // Three player types:
+  //   1. Logged-in user: user_id + deck_id (from pod_members with a deck)
+  //   2. Guest: user_id null, commander_name set (handled later when guest picks a commander)
+  //   3. Empty seat: user_id null, deck_id null, commander_name null
+  const realMembers = members.filter((m: any) => m.deck_id != null);
+
+  const gamePlayers = [];
+  for (let seat = 1; seat <= totalSeats; seat++) {
+    const member = realMembers[seat - 1]; // assign real members to first seats
+    gamePlayers.push({
       game_id: game.id,
-      user_id: m.user_id,
-      deck_id: m.deck_id,
-    }));
+      seat_number: seat,
+      user_id: member?.user_id ?? null,
+      deck_id: member?.deck_id ?? null,
+      commander_name: null, // filled later if guest picks a commander
+    });
+  }
 
-  if (gamePlayers.length > 0) {
-    const { error: playersError } = await supabase
-      .from('game_players')
-      .insert(gamePlayers);
+  const { error: playersError } = await supabase
+    .from('game_players')
+    .insert(gamePlayers);
 
-    if (playersError) {
-      return { data: game as Game, error: `Game created but failed to add players: ${playersError.message}` };
-    }
+  if (playersError) {
+    return { data: game as Game, error: `Game created but failed to add players: ${playersError.message}` };
   }
 
   return { data: game as Game, error: null };
@@ -102,7 +112,7 @@ export async function getGame(gameId: string): Promise<{ data: (Game & { players
     .from('game_players')
     .select('*')
     .eq('game_id', gameId)
-    .order('joined_at', { ascending: true });
+    .order('seat_number', { ascending: true });
 
   return {
     data: { ...(game as Game), players: (players as GamePlayer[]) ?? [] },

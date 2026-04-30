@@ -327,12 +327,15 @@ function PageContent() {
           return;
         }
 
-        const deckIds = game.players.map((p: any) => p.deck_id);
-        const { data: decks } = await supabase
-          .from('decks')
-          .select('id, commander_name, color_identity')
-          .in('id', deckIds) as { data: any };
-        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+        const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
+        let deckMap = new Map();
+        if (deckIds.length > 0) {
+          const { data: decks } = await supabase
+            .from('decks')
+            .select('id, commander_name, color_identity')
+            .in('id', deckIds) as { data: any };
+          deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+        }
 
         const newPlayers: Record<number, PlayerState> = {
           1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
@@ -343,21 +346,6 @@ function PageContent() {
         };
 
         const newPlayerUserIds: Record<number, string> = {};
-
-        game.players.forEach((p: any, i: any) => {
-          const slot = i + 1;
-          if (slot > 5) return;
-          const deck: any = deckMap.get(p.deck_id);
-          newPlayers[slot] = {
-            life: p.life_total ?? 40,
-            name: deck?.commander_name || `Player ${slot}`,
-            commander: deck?.commander_name || null,
-            claimed: true,
-            colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : []
-          };
-          newPlayerUserIds[slot] = p.user_id;
-        });
-
         const newCounters: Record<number, CountersState> = {
           1: { poison: 0, experience: 0, energy: 0 },
           2: { poison: 0, experience: 0, energy: 0 },
@@ -365,9 +353,22 @@ function PageContent() {
           4: { poison: 0, experience: 0, energy: 0 },
           5: { poison: 0, experience: 0, energy: 0 }
         };
-        game.players.forEach((p: any, i: any) => {
-          const slot = i + 1;
+
+        game.players.forEach((p: any) => {
+          const slot = p.seat_number ?? 1;
           if (slot > 5) return;
+          const deck: any = p.deck_id ? deckMap.get(p.deck_id) : null;
+          const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
+          const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${slot}`;
+
+          newPlayers[slot] = {
+            life: p.life_total ?? 40,
+            name: displayName,
+            commander: deck?.commander_name ?? p.commander_name ?? null,
+            claimed: !isEmptySeat,
+            colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : []
+          };
+          if (p.user_id) newPlayerUserIds[slot] = p.user_id;
           newCounters[slot] = {
             poison: p.poison_counters ?? 0,
             experience: p.experience_counters ?? 0,
@@ -405,15 +406,11 @@ function PageContent() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
         const row = payload.new;
         if (!row) return;
-        setPlayerUserIds(currentIds => {
-          const playerNum = Object.entries(currentIds).find(([, uid]) => uid === row.user_id)?.[0];
-          if (playerNum) {
-            const num = parseInt(playerNum);
-            setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
-            setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
-          }
-          return currentIds;
-        });
+        const num = row.seat_number;
+        if (num && num <= 5) {
+          setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
+          setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
+        }
       })
       .subscribe();
 

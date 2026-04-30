@@ -141,30 +141,36 @@ function PageContent() {
           if (pod?.short_code) setPodShortCode(pod.short_code);
         }
 
-        const deckIds = game.players.map((p: any) => p.deck_id);
-        const { data: decks } = await supabase
-          .from('decks')
-          .select('id, commander_name, color_identity')
-          .in('id', deckIds) as { data: any };
-        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+        const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
+        let deckMap = new Map();
+        if (deckIds.length > 0) {
+          const { data: decks } = await supabase
+            .from('decks')
+            .select('id, commander_name, color_identity')
+            .in('id', deckIds) as { data: any };
+          deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+        }
 
         const newPlayers = { ...players };
         const newPlayerUserIds: Record<number, string> = {};
         const newCounters = { ...counters };
 
-        game.players.forEach((p: any, i: any) => {
-          const playerNum = i + 1;
+        game.players.forEach((p: any) => {
+          const playerNum = p.seat_number ?? 1;
           if (playerNum > 2) return;
 
-          const deck: any = deckMap.get(p.deck_id);
-          newPlayerUserIds[playerNum] = p.user_id;
+          const deck: any = p.deck_id ? deckMap.get(p.deck_id) : null;
+          const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
+          const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${playerNum}`;
+
+          if (p.user_id) newPlayerUserIds[playerNum] = p.user_id;
           newPlayers[playerNum] = {
             ...newPlayers[playerNum],
             life: p.life_total ?? 40,
-            name: deck?.commander_name || `Player ${playerNum}`,
-            commander: deck?.commander_name || null,
+            name: displayName,
+            commander: deck?.commander_name ?? p.commander_name ?? null,
             colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : [],
-            claimed: true
+            claimed: !isEmptySeat
           };
           newCounters[playerNum] = {
             poison: p.poison_counters ?? 0,
@@ -201,26 +207,22 @@ function PageContent() {
           const row = payload.new;
           if (!row) return;
 
-          // Find which playerNum this user_id corresponds to
-          setPlayerUserIds(currentIds => {
-            const playerNum = Object.entries(currentIds).find(([, uid]) => uid === row.user_id)?.[0];
-            if (playerNum) {
-              const num = parseInt(playerNum);
-              setPlayers(prev => ({
-                ...prev,
-                [num]: { ...prev[num], life: row.life_total ?? prev[num].life }
-              }));
-              setCounters(prev => ({
-                ...prev,
-                [num]: {
-                  poison: row.poison_counters ?? prev[num].poison,
-                  experience: row.experience_counters ?? prev[num].experience,
-                  energy: row.energy_counters ?? prev[num].energy,
-                }
-              }));
-            }
-            return currentIds;
-          });
+          // Use seat_number directly (works for all player types including guests)
+          const num = row.seat_number;
+          if (num && num <= 2) {
+            setPlayers(prev => ({
+              ...prev,
+              [num]: { ...prev[num], life: row.life_total ?? prev[num].life }
+            }));
+            setCounters(prev => ({
+              ...prev,
+              [num]: {
+                poison: row.poison_counters ?? prev[num].poison,
+                experience: row.experience_counters ?? prev[num].experience,
+                energy: row.energy_counters ?? prev[num].energy,
+              }
+            }));
+          }
         }
       )
       .subscribe();

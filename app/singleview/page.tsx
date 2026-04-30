@@ -120,21 +120,27 @@ function PageContent() {
         const opponentsList: any[] = [];
         let currentPlayerData: any = null;
 
-        // Map user_id to player data for Realtime updates
-        const userIdMap: Record<string, string> = {};
+        game.players.forEach((p: any) => {
+          const seatNum = p.seat_number ?? 1;
+          const deck: any = p.deck_id ? deckMap.get(p.deck_id) : null;
+          const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
+          const isGuest = !p.user_id && (p.commander_name != null);
 
-        game.players.forEach((p: any, idx: number) => {
-          const deck: any = deckMap.get(p.deck_id);
+          // Determine display name: deck commander > guest commander > "Player N"
+          const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${seatNum}`;
+          const shortName = displayName.split(',')[0];
+
           const colorId = deck?.color_identity ?? '';
           const firstColor = colorId.split('').find((c: string) => 'WUBRG'.includes(c))?.toLowerCase() ?? 'm';
           const colorMap: Record<string, string> = { w: 'a', u: 'a', b: 'm', r: 'r', g: 'a' };
-          const avatarColor = colorMap[firstColor] ?? 'a';
+          const avatarColor = isEmptySeat ? 'a' : (colorMap[firstColor] ?? 'a');
 
           const playerData = {
-            key: `player-${idx}`,
-            userId: p.user_id,
-            name: deck?.commander_name ?? `Player ${idx + 1}`,
-            player: deck?.commander_name?.split(',')[0] ?? `Player ${idx + 1}`,
+            key: `seat-${seatNum}`,
+            seatNumber: seatNum,
+            userId: p.user_id ?? null,
+            name: displayName,
+            player: shortName,
             life: p.life_total ?? 40,
             color: avatarColor,
             lifeColor: (p.life_total ?? 40) <= 0 ? 'red' : (p.life_total ?? 40) < 10 ? 'red' : 'teal',
@@ -143,6 +149,8 @@ function PageContent() {
             poisonCounters: p.poison_counters ?? 0,
             experienceCounters: p.experience_counters ?? 0,
             energyCounters: p.energy_counters ?? 0,
+            isEmptySeat,
+            isGuest,
             badges: {
               brilliance: deck?.badge_brilliance ?? 0,
               flavor: deck?.badge_flavor ?? 0,
@@ -151,8 +159,6 @@ function PageContent() {
               fun: deck?.badge_fun ?? 0,
             },
           };
-
-          userIdMap[p.user_id] = `player-${idx}`;
 
           if (p.user_id === user?.id) {
             currentPlayerData = playerData;
@@ -185,16 +191,16 @@ function PageContent() {
           const row = payload.new;
           if (!row) return;
 
-          if (row.user_id === user?.id) {
+          if (row.user_id && row.user_id === user?.id) {
             // Update own life/counters (from another device)
             setLife(row.life_total ?? 40);
             setPoison(row.poison_counters ?? 0);
             setExperience(row.experience_counters ?? 0);
             setEnergy(row.energy_counters ?? 0);
           } else {
-            // Update opponent data
+            // Update opponent data — match by seat_number (works for guests/empty seats too)
             setOpponents(prev => prev.map(opp => {
-              if (opp.userId === row.user_id) {
+              if (opp.seatNumber === row.seat_number) {
                 return {
                   ...opp,
                   life: row.life_total ?? opp.life,
@@ -202,6 +208,11 @@ function PageContent() {
                   poisonCounters: row.poison_counters ?? opp.poisonCounters,
                   experienceCounters: row.experience_counters ?? opp.experienceCounters,
                   energyCounters: row.energy_counters ?? opp.energyCounters,
+                  // Update commander name if a guest just picked one
+                  name: row.commander_name ?? opp.name,
+                  player: row.commander_name ? row.commander_name.split(',')[0] : opp.player,
+                  isEmptySeat: !row.user_id && !row.deck_id && !row.commander_name,
+                  isGuest: !row.user_id && (row.commander_name != null),
                 };
               }
               return opp;
@@ -622,6 +633,10 @@ function PageContent() {
         .opponent-row.dimmed .expand-text { max-height: 0; overflow: hidden; margin: 0; opacity: 0; }
         .opponent-row.dimmed .life-chip { max-height: 0; max-width: 0; overflow: hidden; opacity: 0; padding: 0; border: none; }
         .opponent-row.dimmed .opponent-avatar { width: 28px; height: 28px; font-size: 12px; border-width: 2px; }
+
+        .opponent-row.empty-seat { opacity: 0.4; cursor: default; }
+        .opponent-row.empty-seat .opponent-avatar { border-style: dashed; }
+        .opponent-row.empty-seat .opponent-player { font-style: italic; color: rgb(160,160,160); }
 
         .opponent-avatar {
           width: 40px; height: 40px; border-radius: 50%;
@@ -1852,16 +1867,16 @@ function PageContent() {
           {opponents.map((opp: any) => (
             <div
               key={opp.key}
-              className={`opponent-row ${expandedOpponent === opp.key ? 'active-expanded' : ''} ${expandedOpponent && expandedOpponent !== opp.key ? 'dimmed' : ''}`}
-              onClick={() => expandedOpponent === opp.key ? collapseOpponent() : expandOpponent(opp.key)}
+              className={`opponent-row ${expandedOpponent === opp.key ? 'active-expanded' : ''} ${expandedOpponent && expandedOpponent !== opp.key ? 'dimmed' : ''} ${opp.isEmptySeat ? 'empty-seat' : ''}`}
+              onClick={() => opp.isEmptySeat ? null : (expandedOpponent === opp.key ? collapseOpponent() : expandOpponent(opp.key))}
             >
-              <div className={`opponent-avatar ${opp.color}`}>{opp.color.toUpperCase()}</div>
+              <div className={`opponent-avatar ${opp.color}`}>{opp.isEmptySeat ? '?' : opp.color.toUpperCase()}</div>
               <div className="opponent-info">
                 <div className={`opponent-name ${opp.name.includes('Korvold') ? 'korvold-color' : ''}`}>
                   {opp.name}
                 </div>
-                <div className="opponent-player">{opp.player}</div>
-                <div className="expand-text">▼  TAP TO EXPAND</div>
+                <div className="opponent-player">{opp.isEmptySeat ? 'Waiting to join...' : (opp.isGuest ? 'Guest' : opp.player)}</div>
+                {!opp.isEmptySeat && <div className="expand-text">▼  TAP TO EXPAND</div>}
               </div>
               <div className={`life-chip ${opp.lifeColor}`}>
                 <div className="life-chip-heart">♥</div>

@@ -137,36 +137,44 @@ async function revivePlayer(gameId: string, userId: string): Promise<void> {
  * (unless they were eliminated too).
  */
 async function checkLastStanding(gameId: string): Promise<void> {
-  const { data: players } = await supabase
+  const { data: allRows } = await supabase
     .from('game_players')
-    .select('user_id, deck_id, is_eliminated')
+    .select('user_id, deck_id, commander_name, seat_number, is_eliminated')
     .eq('game_id', gameId) as { data: any };
 
-  if (!players) return;
+  if (!allRows) return;
 
-  const alive = players.filter((p: any) => !p.is_eliminated);
-  const eliminated = players.filter((p: any) => p.is_eliminated);
+  // "Active players" = rows that have been claimed (logged-in user OR guest with commander).
+  // Empty placeholder seats (no user_id, no deck_id, no commander_name) don't count.
+  const claimedPlayers = allRows.filter(
+    (p: any) => p.user_id != null || p.deck_id != null || p.commander_name != null
+  );
 
-  if (alive.length === 1) {
-    // Last player standing = winner, give them review access
+  const alive = claimedPlayers.filter((p: any) => !p.is_eliminated);
+  const eliminated = claimedPlayers.filter((p: any) => p.is_eliminated);
+
+  if (alive.length === 1 && claimedPlayers.length >= 2) {
+    // Last player standing = winner (only if there were at least 2 claimed players)
     const winner = alive[0];
+
+    // Update winner's row — use seat_number since user_id could be null for guests
     await supabase
       .from('game_players')
       .update({ can_review: true })
       .eq('game_id', gameId)
-      .eq('user_id', winner.user_id);
+      .eq('seat_number', winner.seat_number);
 
     // Mark winner on game record
     await supabase
       .from('games')
       .update({
-        winner_player_id: winner.user_id,
-        winner_deck_id: winner.deck_id,
+        winner_player_id: winner.user_id ?? null,
+        winner_deck_id: winner.deck_id ?? null,
         state: 'in_questionnaire',
         ended_at: new Date().toISOString(),
       })
       .eq('id', gameId);
-  } else if (alive.length === 0) {
+  } else if (alive.length === 0 && claimedPlayers.length >= 2) {
     // Everyone eliminated (draw) — all can review, game ends
     await supabase
       .from('games')
@@ -183,7 +191,7 @@ async function checkLastStanding(gameId: string): Promise<void> {
         .from('game_players')
         .update({ can_review: false })
         .eq('game_id', gameId)
-        .eq('user_id', p.user_id)
+        .eq('seat_number', p.seat_number)
         .eq('is_eliminated', false);
     }
 
@@ -321,8 +329,10 @@ export async function canPlayerReview(gameId: string, userId: string): Promise<b
  */
 export async function getGamePlayerStates(gameId: string): Promise<{
   data: {
-    user_id: string;
-    deck_id: string;
+    user_id: string | null;
+    deck_id: string | null;
+    commander_name: string | null;
+    seat_number: number;
     life_total: number;
     poison_counters: number;
     experience_counters: number;
@@ -334,9 +344,9 @@ export async function getGamePlayerStates(gameId: string): Promise<{
 }> {
   const { data, error } = await supabase
     .from('game_players')
-    .select('user_id, deck_id, life_total, poison_counters, experience_counters, energy_counters, is_eliminated, can_review')
+    .select('user_id, deck_id, commander_name, seat_number, life_total, poison_counters, experience_counters, energy_counters, is_eliminated, can_review')
     .eq('game_id', gameId)
-    .order('joined_at', { ascending: true });
+    .order('seat_number', { ascending: true });
 
   return { data: data ?? [], error: error?.message ?? null };
 }
