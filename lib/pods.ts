@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getActiveGameForUser } from './games';
 
 export type PodState = 'waiting' | 'active' | 'in_questionnaire' | 'completed' | 'abandoned';
 
@@ -45,6 +46,12 @@ function generateShortCode(): string {
 export async function createPod(deckId?: string): Promise<{ data: Pod | null; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not signed in' };
+
+  // Block if user already has an active game
+  const { data: activeGame } = await getActiveGameForUser();
+  if (activeGame) {
+    return { data: null, error: 'You already have an active game. Rejoin or abandon it before creating a new pod.' };
+  }
 
   // Generate a unique short code (retry on collision)
   let shortCode = generateShortCode();
@@ -97,6 +104,12 @@ export async function createPod(deckId?: string): Promise<{ data: Pod | null; er
 export async function joinPod(shortCode: string, deckId?: string): Promise<{ data: Pod | null; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not signed in' };
+
+  // Block if user already has an active game
+  const { data: activeGame } = await getActiveGameForUser();
+  if (activeGame) {
+    return { data: null, error: 'You already have an active game. Rejoin or abandon it before joining a new pod.' };
+  }
 
   // Find the pod
   const { data: pod, error: findError } = await supabase

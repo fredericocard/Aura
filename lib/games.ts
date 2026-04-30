@@ -227,3 +227,61 @@ export async function getMyGames(): Promise<{ data: Game[]; error: string | null
 
   return { data: (games as Game[]) ?? [], error: error?.message ?? null };
 }
+
+/**
+ * Check if the current user has an active game (state = 'active' or 'in_questionnaire').
+ * Returns the game + pod info so the UI can offer rejoin or abandon.
+ * Only one active game at a time is allowed.
+ */
+export async function getActiveGameForUser(): Promise<{
+  data: { gameId: string; podId: string; podSize: number; state: GameState; commanderName: string | null } | null;
+  error: string | null;
+}> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: null };
+
+  // Find game_players rows for this user
+  const { data: entries, error: entryError } = await supabase
+    .from('game_players')
+    .select('game_id, deck_id')
+    .eq('user_id', user.id) as { data: any; error: any };
+
+  if (entryError || !entries || entries.length === 0) return { data: null, error: null };
+
+  const gameIds = [...new Set(entries.map((e: any) => e.game_id))];
+
+  // Find games that are still active or in_questionnaire
+  const { data: activeGames } = await supabase
+    .from('games')
+    .select('id, pod_id, pod_size, state')
+    .in('id', gameIds)
+    .in('state', ['active', 'in_questionnaire'])
+    .limit(1) as { data: any };
+
+  if (!activeGames || activeGames.length === 0) return { data: null, error: null };
+
+  const game = activeGames[0];
+
+  // Get the commander name for context
+  const entry = entries.find((e: any) => e.game_id === game.id);
+  let commanderName: string | null = null;
+  if (entry?.deck_id) {
+    const { data: deck } = await supabase
+      .from('decks')
+      .select('commander_name')
+      .eq('id', entry.deck_id)
+      .single() as { data: any };
+    commanderName = deck?.commander_name ?? null;
+  }
+
+  return {
+    data: {
+      gameId: game.id,
+      podId: game.pod_id,
+      podSize: game.pod_size,
+      state: game.state,
+      commanderName,
+    },
+    error: null,
+  };
+}
