@@ -266,33 +266,40 @@ export async function reviveSelf(gameId: string, userId: string): Promise<{ erro
  * - If there's only one other player, they don't get stuck either
  */
 export async function abandonGame(gameId: string, userId: string): Promise<{ error: string | null }> {
-  // Eliminate this player
-  await eliminatePlayer(gameId, userId);
+  const now = new Date().toISOString();
 
-  // Check how many players are left
-  const { data: players } = await supabase
+  // 1. Eliminate this player
+  const { error: elimError } = await supabase
     .from('game_players')
-    .select('user_id, is_eliminated')
-    .eq('game_id', gameId) as { data: any };
+    .update({
+      is_eliminated: true,
+      eliminated_at: now,
+      can_review: false,
+    })
+    .eq('game_id', gameId)
+    .eq('user_id', userId);
 
-  const alive = (players ?? []).filter((p: any) => !p.is_eliminated);
-
-  if (alive.length <= 1) {
-    // Game is effectively over — mark as completed so no one is stuck
-    await supabase
-      .from('games')
-      .update({
-        state: 'completed',
-        ended_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', gameId);
-  } else {
-    // More than 1 player still alive — just run the normal check
-    await checkLastStanding(gameId);
+  if (elimError) {
+    console.error('abandonGame: failed to eliminate player', elimError);
   }
 
-  return { error: null };
+  // 2. Always force the game to 'completed' — abandon means done, no review needed
+  const { error: gameError } = await supabase
+    .from('games')
+    .update({
+      state: 'completed',
+      ended_at: now,
+      completed_at: now,
+    })
+    .eq('id', gameId);
+
+  if (gameError) {
+    console.error('abandonGame: failed to update game state', gameError);
+    // If RLS blocks updating games table, try via the pod instead
+    // At minimum, the player is eliminated so getActiveGameForUser won't find an 'active' game
+  }
+
+  return { error: gameError?.message ?? null };
 }
 
 /**

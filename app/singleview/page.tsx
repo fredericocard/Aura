@@ -55,10 +55,25 @@ function PageContent() {
   // Debounced sync refs (same pattern as gridview)
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
 
+  // Track pending sync functions so we can flush on unmount
+  const pendingSyncRef = useRef<Record<string, () => void>>({});
+
   const debouncedSync = (key: string, fn: () => void) => {
     if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
-    syncTimerRef.current[key] = setTimeout(fn, 300);
+    pendingSyncRef.current[key] = fn;
+    syncTimerRef.current[key] = setTimeout(() => {
+      fn();
+      delete pendingSyncRef.current[key];
+    }, 300);
   };
+
+  // Flush any pending syncs when component unmounts (e.g. navigating away)
+  useEffect(() => {
+    return () => {
+      Object.values(pendingSyncRef.current).forEach(fn => fn());
+      Object.values(syncTimerRef.current).forEach(t => clearTimeout(t));
+    };
+  }, []);
 
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -243,16 +258,22 @@ function PageContent() {
     if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
   };
 
+  // Track latest life value for debounced sync (avoids stale closure)
+  const latestLifeRef = useRef(life);
+
   // Life control functions — synced to backend
   const adjustLife = (delta: number) => {
     setLife(prev => {
       const newLife = Math.max(0, prev + delta);
       if (newLife === 0) stopLongPress();
+      latestLifeRef.current = newLife;
 
-      // Debounced sync to backend
+      // Debounced sync to backend — reads from ref to get latest value
       if (gameId && user?.id) {
         debouncedSync('life', () => {
-          updateLifeTotal(gameId, user.id, newLife).catch(() => {});
+          updateLifeTotal(gameId, user.id, latestLifeRef.current).catch((e) => {
+            console.error('Failed to sync life:', e);
+          });
         });
       }
       return newLife;

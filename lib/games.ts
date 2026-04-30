@@ -240,15 +240,20 @@ export async function getActiveGameForUser(): Promise<{
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: null };
 
-  // Find game_players rows for this user
+  // Find game_players rows for this user that are NOT eliminated
+  // If the player was eliminated (e.g. abandoned), they should be free to start a new game
   const { data: entries, error: entryError } = await supabase
     .from('game_players')
-    .select('game_id, deck_id')
+    .select('game_id, deck_id, is_eliminated')
     .eq('user_id', user.id) as { data: any; error: any };
 
   if (entryError || !entries || entries.length === 0) return { data: null, error: null };
 
-  const gameIds = [...new Set(entries.map((e: any) => e.game_id))];
+  // Only consider entries where the player is NOT eliminated
+  const activeEntries = entries.filter((e: any) => !e.is_eliminated);
+  if (activeEntries.length === 0) return { data: null, error: null };
+
+  const gameIds = [...new Set(activeEntries.map((e: any) => e.game_id))];
 
   // Find games that are still active or in_questionnaire
   const { data: activeGames } = await supabase
@@ -263,7 +268,7 @@ export async function getActiveGameForUser(): Promise<{
   const game = activeGames[0];
 
   // Get the commander name for context
-  const entry = entries.find((e: any) => e.game_id === game.id);
+  const entry = activeEntries.find((e: any) => e.game_id === game.id);
   let commanderName: string | null = null;
   if (entry?.deck_id) {
     const { data: deck } = await supabase
