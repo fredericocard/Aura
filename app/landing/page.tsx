@@ -505,27 +505,31 @@ export default function HomePage() {
   // After any login (email/password, Google OAuth), redirect to saved destination
   useEffect(() => {
     if (!isLoggedIn || loading) return;
-    // Check sessionStorage first (survives OAuth page reload)
+
+    // 1. Check sessionStorage (survives OAuth page reload, same-origin same-tab)
     const saved = sessionStorage.getItem('loginRedirect');
     if (saved) {
       sessionStorage.removeItem('loginRedirect');
       setShowLogin(false);
-      router.push(saved);
+      // Use window.location for reliable navigation after OAuth redirect
+      window.location.href = saved;
       return;
     }
-    // Also check ?next= param (backup for OAuth)
+
+    // 2. Check ?next= param (set in OAuth redirectTo URL)
     const params = new URLSearchParams(window.location.search);
     const next = params.get('next');
     if (next) {
-      router.push(next);
+      window.location.href = next;
       return;
     }
-    // Email/password login while sheet is open
+
+    // 3. Email/password login while login sheet is open
     if (showLogin) {
       setShowLogin(false);
       router.push(loginRedirect);
     }
-  }, [isLoggedIn, loading]);
+  }, [isLoggedIn, loading, showLogin, loginRedirect, router]);
 
   const ease = 'cubic-bezier(.22,.61,.36,1)';
 
