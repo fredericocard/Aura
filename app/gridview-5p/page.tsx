@@ -4,7 +4,7 @@ import React, { Suspense, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
-import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { getQrCodeUrl } from '@/lib/pods';
 import { useWakeLock } from '@/lib/use-wake-lock';
@@ -36,6 +36,7 @@ function PageContent() {
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
   const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+  const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
   const [podShortCode, setPodShortCode] = useState<string>('');
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const debouncedSync = (key: string, fn: () => void) => {
@@ -153,16 +154,22 @@ function PageContent() {
     if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
   };
 
+  // Sync life to backend — uses userId if available, otherwise falls back to seat_number
+  const syncLife = (playerNum: number, newLife: number) => {
+    if (!gameId) return;
+    const userId = playerUserIds[playerNum];
+    const seat = playerSeatNumbers[playerNum];
+    if (userId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
+    else if (seat) updateLifeBySeat(gameId, seat, newLife).catch(() => {});
+  };
+
   const updateLife = (playerNum: number, delta: number) => {
     setPlayers(prev => {
       const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
       if (newLife === 0) stopLongPress();
-      const userId = playerUserIds[playerNum];
-      if (gameId && userId) {
-        debouncedSync(`life-${playerNum}`, () => {
-          updateLifeTotal(gameId, userId, newLife).catch(() => {});
-        });
-      }
+      debouncedSync(`life-${playerNum}`, () => {
+        syncLife(playerNum, newLife);
+      });
       return {
         ...prev,
         [playerNum]: { ...prev[playerNum], life: newLife }
@@ -268,11 +275,18 @@ function PageContent() {
     setCounters(prev => {
       const newVal = Math.max(0, prev[playerNum][type] + delta);
       const userId = playerUserIds[playerNum];
-      if (gameId && userId) {
+      const seat = playerSeatNumbers[playerNum];
+      if (gameId) {
         debouncedSync(`${type}-${playerNum}`, () => {
-          if (type === 'poison') updatePoisonCounters(gameId, userId, newVal).catch(() => {});
-          else if (type === 'experience') updateExperienceCounters(gameId, userId, newVal).catch(() => {});
-          else if (type === 'energy') updateEnergyCounters(gameId, userId, newVal).catch(() => {});
+          if (userId) {
+            if (type === 'poison') updatePoisonCounters(gameId, userId, newVal).catch(() => {});
+            else if (type === 'experience') updateExperienceCounters(gameId, userId, newVal).catch(() => {});
+            else if (type === 'energy') updateEnergyCounters(gameId, userId, newVal).catch(() => {});
+          } else if (seat) {
+            if (type === 'poison') updatePoisonBySeat(gameId, seat, newVal).catch(() => {});
+            else if (type === 'experience') updateExperienceBySeat(gameId, seat, newVal).catch(() => {});
+            else if (type === 'energy') updateEnergyBySeat(gameId, seat, newVal).catch(() => {});
+          }
         });
       }
       return {
@@ -294,10 +308,7 @@ function PageContent() {
       ...prev,
       [playerNum]: { ...prev[playerNum], life: 1 }
     }));
-    const userId = playerUserIds[playerNum];
-    if (gameId && userId) {
-      updateLifeTotal(gameId, userId, 1).catch(() => {});
-    }
+    syncLife(playerNum, 1);
   };
 
   const startLongPress = (playerNum: number, delta: number) => {
@@ -346,6 +357,7 @@ function PageContent() {
         };
 
         const newPlayerUserIds: Record<number, string> = {};
+        const newSeatNumbers: Record<number, number> = {};
         const newCounters: Record<number, CountersState> = {
           1: { poison: 0, experience: 0, energy: 0 },
           2: { poison: 0, experience: 0, energy: 0 },
@@ -369,6 +381,7 @@ function PageContent() {
             colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : []
           };
           if (p.user_id) newPlayerUserIds[slot] = p.user_id;
+          newSeatNumbers[slot] = slot;
           newCounters[slot] = {
             poison: p.poison_counters ?? 0,
             experience: p.experience_counters ?? 0,
@@ -377,6 +390,7 @@ function PageContent() {
         });
 
         setPlayerUserIds(newPlayerUserIds);
+        setPlayerSeatNumbers(newSeatNumbers);
         setPlayers(newPlayers);
         setCounters(newCounters);
 

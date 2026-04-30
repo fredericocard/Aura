@@ -2019,7 +2019,7 @@ function PageContent() {
             </div>
             <div className="nav-label">Counters</div>
           </div>
-          <Link href={`/gridview-${podSize}p?podId=${podId}&gameId=${gameId}`} className="grid-view-button" style={{ textDecoration: 'none' }}>
+          <Link href={podSize >= 2 && podSize <= 5 ? `/gridview-${podSize}p?podId=${podId}&gameId=${gameId}` : '#'} className="grid-view-button" style={{ textDecoration: 'none', opacity: podSize >= 2 ? 1 : 0.4, pointerEvents: podSize >= 2 ? 'auto' : 'none' }}>
             <div className="grid-icon">
               <div className="grid-square" />
               <div className="grid-square" />

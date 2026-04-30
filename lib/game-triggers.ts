@@ -73,6 +73,65 @@ export async function updateEnergyCounters(gameId: string, userId: string, count
   return { error: error?.message ?? null };
 }
 
+// ── Seat-based updates (for empty seats / guests without a user_id) ──
+
+/**
+ * Update life by seat_number. Works for any player type (logged-in, guest, empty).
+ */
+export async function updateLifeBySeat(gameId: string, seatNumber: number, newLife: number): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('game_players')
+    .update({ life_total: newLife })
+    .eq('game_id', gameId)
+    .eq('seat_number', seatNumber);
+
+  if (error) return { error: error.message };
+
+  // For seat-based updates we skip elimination/revive logic —
+  // empty seats don't participate in winner detection.
+  // If a logged-in player changes life, the userId-based function handles that.
+  return { error: null };
+}
+
+/**
+ * Update poison counters by seat_number.
+ */
+export async function updatePoisonBySeat(gameId: string, seatNumber: number, count: number): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('game_players')
+    .update({ poison_counters: count })
+    .eq('game_id', gameId)
+    .eq('seat_number', seatNumber);
+
+  return { error: error?.message ?? null };
+}
+
+/**
+ * Update experience counters by seat_number.
+ */
+export async function updateExperienceBySeat(gameId: string, seatNumber: number, count: number): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('game_players')
+    .update({ experience_counters: count })
+    .eq('game_id', gameId)
+    .eq('seat_number', seatNumber);
+
+  return { error: error?.message ?? null };
+}
+
+/**
+ * Update energy counters by seat_number.
+ */
+export async function updateEnergyBySeat(gameId: string, seatNumber: number, count: number): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('game_players')
+    .update({ energy_counters: count })
+    .eq('game_id', gameId)
+    .eq('seat_number', seatNumber);
+
+  return { error: error?.message ?? null };
+}
+
 /**
  * Mark a player as eliminated. They can now access the review.
  */

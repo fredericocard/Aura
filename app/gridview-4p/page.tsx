@@ -4,7 +4,7 @@ import React, { Suspense, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
-import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
@@ -84,6 +84,7 @@ function PageContent() {
 
   // Map player slot → user_id for backend sync
   const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+  const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
 
   const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
   const repeatTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
@@ -114,6 +115,7 @@ function PageContent() {
 
       const newPlayers: Record<number, typeof players[1]> = {};
       const newUserIds: Record<number, string> = {};
+      const newSeatNumbers: Record<number, number> = {};
       const newCounters: Record<number, { poison: number; experience: number; energy: number }> = {};
       game.players.forEach((p: any) => {
         const deck: any = p.deck_id ? deckMap.get(p.deck_id) : null;
@@ -131,6 +133,7 @@ function PageContent() {
           assignedColor: null,
         };
         if (p.user_id) newUserIds[slot] = p.user_id;
+        newSeatNumbers[slot] = slot;
         newCounters[slot] = {
           poison: p.poison_counters ?? 0,
           experience: p.experience_counters ?? 0,
@@ -139,6 +142,7 @@ function PageContent() {
       });
       setPlayers(newPlayers);
       setPlayerUserIds(newUserIds);
+      setPlayerSeatNumbers(newSeatNumbers);
       setCounters(newCounters);
 
       const channel = supabase
@@ -219,10 +223,13 @@ function PageContent() {
         if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
       }
 
-      const userId = playerUserIds[playerNum];
-      if (gameId && userId) {
+      // Sync to backend — userId or seat fallback
+      if (gameId) {
         debouncedSync(`life-${playerNum}`, () => {
-          updateLifeTotal(gameId, userId, newLife).catch(() => {});
+          const userId = playerUserIds[playerNum];
+          const seat = playerSeatNumbers[playerNum];
+          if (userId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
+          else if (seat) updateLifeBySeat(gameId, seat, newLife).catch(() => {});
         });
       }
 
@@ -256,8 +263,10 @@ function PageContent() {
     }));
 
     const userId = playerUserIds[playerNum];
-    if (gameId && userId) {
-      updateLifeTotal(gameId, userId, 1).catch(() => {});
+    const seat = playerSeatNumbers[playerNum];
+    if (gameId) {
+      if (userId) updateLifeTotal(gameId, userId, 1).catch(() => {});
+      else if (seat) updateLifeBySeat(gameId, seat, 1).catch(() => {});
     }
   };
 
@@ -289,11 +298,18 @@ function PageContent() {
       const newVal = action === 'plus' ? prev[playerNum][type] + 1 : Math.max(0, prev[playerNum][type] - 1);
 
       const userId = playerUserIds[playerNum];
-      if (gameId && userId) {
+      const seat = playerSeatNumbers[playerNum];
+      if (gameId) {
         debouncedSync(`${type}-${playerNum}`, () => {
-          if (type === 'poison') updatePoisonCounters(gameId, userId, newVal).catch(() => {});
-          else if (type === 'experience') updateExperienceCounters(gameId, userId, newVal).catch(() => {});
-          else if (type === 'energy') updateEnergyCounters(gameId, userId, newVal).catch(() => {});
+          if (userId) {
+            if (type === 'poison') updatePoisonCounters(gameId, userId, newVal).catch(() => {});
+            else if (type === 'experience') updateExperienceCounters(gameId, userId, newVal).catch(() => {});
+            else if (type === 'energy') updateEnergyCounters(gameId, userId, newVal).catch(() => {});
+          } else if (seat) {
+            if (type === 'poison') updatePoisonBySeat(gameId, seat, newVal).catch(() => {});
+            else if (type === 'experience') updateExperienceBySeat(gameId, seat, newVal).catch(() => {});
+            else if (type === 'energy') updateEnergyBySeat(gameId, seat, newVal).catch(() => {});
+          }
         });
       }
 
