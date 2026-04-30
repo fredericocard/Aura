@@ -1575,19 +1575,18 @@ function PageContent() {
             </div>
             <div className="nav-label">Counters</div>
           </div>
-          <div
-            className="nav-item"
-            onClick={() => showToast('Coming Soon')}
-          >
-            <div className="nav-icon">
-              <div className="list-icon">
-                <span></span>
-                <span></span>
-                <span></span>
+          <Link href={`/singleview?podId=${podId}&gameId=${gameId}`} style={{ textDecoration: 'none' }}>
+            <div className="nav-item">
+              <div className="nav-icon">
+                <div className="list-icon">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
               </div>
+              <div className="nav-label">Single View</div>
             </div>
-            <div className="nav-label">Single View</div>
-          </div>
+          </Link>
         </div>
       </div>
 

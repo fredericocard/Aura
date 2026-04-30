@@ -1631,7 +1631,7 @@ function PageContent() {
           <div className="nav-label">Counters</div>
         </button>
         <button className="nav-item">
-          <Link href="/singleview" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none', width: '100%', height: '100%' }}>
+          <Link href={`/singleview?podId=${podId}&gameId=${gameId}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none', width: '100%', height: '100%' }}>
             <div className="nav-icon">
               <div className="list-icon">
                 <span></span><span></span><span></span>

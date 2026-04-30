@@ -1530,7 +1530,7 @@ function PageContent() {
           </div>
           <div className="nav-label">Counters</div>
         </div>
-        <Link href="/singleview">
+        <Link href={`/singleview?podId=${podId}&gameId=${gameId}`} style={{ textDecoration: 'none' }}>
           <div className="nav-item">
             <div className="nav-icon">
               <div className="list-icon">
