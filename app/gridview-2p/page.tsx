@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
+import { getQrCodeUrl } from '@/lib/pods';
 import { useWakeLock } from '@/lib/use-wake-lock';
 
 interface PlayerState {
@@ -29,9 +30,13 @@ function PageContent() {
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
   const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+  const [podShortCode, setPodShortCode] = useState<string>('');
+  const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
 
-  const syncLife = (userId: string, newLife: number) => {
-    if (gameId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
+  // Debounced sync — waits 300ms after last change before writing to DB
+  const debouncedSync = (key: string, fn: () => void) => {
+    if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
+    syncTimerRef.current[key] = setTimeout(fn, 300);
   };
 
   const [players, setPlayers] = useState<{ [key: number]: PlayerState }>({
@@ -70,10 +75,10 @@ function PageContent() {
     G: { grad: [[14, 92, 77], [26, 122, 106], [42, 143, 120]], border: [56, 158, 133], shadow: [14, 92, 77] }
   };
 
-  const simulatedProfiles = [
-    { name: 'Manel', commander: 'Korvold, Fae-Cursed King', colors: ['B', 'R', 'G'] }
-  ];
-  const [simIndex, setSimIndex] = useState(0);
+  // QR code URL for the join modal
+  const qrCodeUrl = podShortCode
+    ? getQrCodeUrl(podShortCode, typeof window !== 'undefined' ? window.location.origin : 'https://auramtg.com')
+    : '';
 
   // Apply color identity to tile
   const applyColorIdentity = (playerNum: number) => {
@@ -117,7 +122,7 @@ function PageContent() {
     };
   }, []);
 
-  // Load game data from backend
+  // Load game data from backend + subscribe to realtime changes
   useEffect(() => {
     if (!gameId) return;
 
@@ -125,6 +130,16 @@ function PageContent() {
       try {
         const { data: game } = await getGame(gameId);
         if (!game) return;
+
+        // Fetch the pod's short_code for the join QR
+        if (game.pod_id) {
+          const { data: pod } = await supabase
+            .from('pods')
+            .select('short_code')
+            .eq('id', game.pod_id)
+            .single() as { data: any };
+          if (pod?.short_code) setPodShortCode(pod.short_code);
+        }
 
         const deckIds = game.players.map((p: any) => p.deck_id);
         const { data: decks } = await supabase
@@ -135,24 +150,32 @@ function PageContent() {
 
         const newPlayers = { ...players };
         const newPlayerUserIds: Record<number, string> = {};
+        const newCounters = { ...counters };
 
         game.players.forEach((p: any, i: any) => {
           const playerNum = i + 1;
-          if (playerNum > 2) return; // Only support 2 players
+          if (playerNum > 2) return;
 
           const deck: any = deckMap.get(p.deck_id);
           newPlayerUserIds[playerNum] = p.user_id;
           newPlayers[playerNum] = {
             ...newPlayers[playerNum],
+            life: p.life_total ?? 40,
             name: deck?.commander_name || `Player ${playerNum}`,
             commander: deck?.commander_name || null,
             colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : [],
             claimed: true
           };
+          newCounters[playerNum] = {
+            poison: p.poison_counters ?? 0,
+            experience: p.experience_counters ?? 0,
+            energy: p.energy_counters ?? 0,
+          };
         });
 
         setPlayerUserIds(newPlayerUserIds);
         setPlayers(newPlayers);
+        setCounters(newCounters);
 
         // Apply color identities
         if (newPlayers[1].claimed && newPlayers[1].colors.length > 0) {
@@ -167,6 +190,44 @@ function PageContent() {
     };
 
     loadGameData();
+
+    // Subscribe to realtime updates on game_players for this game
+    const channel = supabase
+      .channel(`game-${gameId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
+        (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+
+          // Find which playerNum this user_id corresponds to
+          setPlayerUserIds(currentIds => {
+            const playerNum = Object.entries(currentIds).find(([, uid]) => uid === row.user_id)?.[0];
+            if (playerNum) {
+              const num = parseInt(playerNum);
+              setPlayers(prev => ({
+                ...prev,
+                [num]: { ...prev[num], life: row.life_total ?? prev[num].life }
+              }));
+              setCounters(prev => ({
+                ...prev,
+                [num]: {
+                  poison: row.poison_counters ?? prev[num].poison,
+                  experience: row.experience_counters ?? prev[num].experience,
+                  energy: row.energy_counters ?? prev[num].energy,
+                }
+              }));
+            }
+            return currentIds;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [gameId]);
 
   // Long press ref and cleanup (must be before changeLife so it can call stopLongPress)
@@ -183,19 +244,32 @@ function PageContent() {
     }
   };
 
-  // Revive player
+  // Revive player — syncs to backend
   const revivePlayer = (playerNum: number) => {
     setPlayers(prev => ({
       ...prev,
       [playerNum]: { ...prev[playerNum], life: 1 }
     }));
+    const userId = playerUserIds[playerNum];
+    if (gameId && userId) {
+      updateLifeTotal(gameId, userId, 1).catch(() => {});
+    }
   };
 
-  // Handle life button change — stops long press when life hits 0
+  // Handle life button change — stops long press when life hits 0, syncs to backend
   const changeLife = (playerNum: number, delta: number) => {
     setPlayers(prev => {
       const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
       if (newLife === 0) stopLongPress();
+
+      // Debounced sync to backend
+      const userId = playerUserIds[playerNum];
+      if (gameId && userId) {
+        debouncedSync(`life-${playerNum}`, () => {
+          updateLifeTotal(gameId, userId, newLife).catch(() => {});
+        });
+      }
+
       return {
         ...prev,
         [playerNum]: { ...prev[playerNum], life: newLife }
@@ -219,27 +293,11 @@ function PageContent() {
     onPopupOpen();
   };
 
-  // Handle simulate join
-  const simulateJoin = () => {
-    if (!joinSlot) return;
-    setJoinModalOpen(false);
-
-    const profile = simulatedProfiles[simIndex % simulatedProfiles.length];
-    setSimIndex(prev => prev + 1);
-
-    const newPlayers = { ...players };
-    newPlayers[joinSlot] = {
-      life: 40,
-      name: profile.name,
-      commander: profile.commander,
-      claimed: true,
-      colors: profile.colors || []
-    };
-    setPlayers(newPlayers);
-
-    // Apply color identity
-    applyColorIdentity(joinSlot);
-    onPopupClose();
+  // Copy pod code to clipboard
+  const copyPodCode = () => {
+    if (podShortCode) {
+      navigator.clipboard.writeText(podShortCode).catch(() => {});
+    }
   };
 
   // Dice rolling
@@ -265,15 +323,27 @@ function PageContent() {
     }, 70);
   };
 
-  // Counter management
+  // Counter management — syncs to backend
   const updateCounter = (type: string, action: 'plus' | 'minus') => {
-    setCounters(prev => ({
-      ...prev,
-      [selectedCounterPlayer]: {
-        ...prev[selectedCounterPlayer],
-        [type]: action === 'plus' ? prev[selectedCounterPlayer][type as keyof CounterState] + 1 : Math.max(0, prev[selectedCounterPlayer][type as keyof CounterState] - 1)
+    setCounters(prev => {
+      const current = prev[selectedCounterPlayer][type as keyof CounterState];
+      const newVal = action === 'plus' ? current + 1 : Math.max(0, current - 1);
+
+      // Debounced sync to backend
+      const userId = playerUserIds[selectedCounterPlayer];
+      if (gameId && userId) {
+        debouncedSync(`${type}-${selectedCounterPlayer}`, () => {
+          if (type === 'poison') updatePoisonCounters(gameId, userId, newVal).catch(() => {});
+          else if (type === 'experience') updateExperienceCounters(gameId, userId, newVal).catch(() => {});
+          else if (type === 'energy') updateEnergyCounters(gameId, userId, newVal).catch(() => {});
+        });
       }
-    }));
+
+      return {
+        ...prev,
+        [selectedCounterPlayer]: { ...prev[selectedCounterPlayer], [type]: newVal }
+      };
+    });
   };
 
   // Nav collapse/expand
@@ -1727,19 +1797,27 @@ function PageContent() {
       <div className={`join-modal ${joinModalOpen ? 'active' : ''}`} onClick={() => { setJoinModalOpen(false); onPopupClose(); }}>
         <div className="join-modal-card" onClick={e => e.stopPropagation()}>
           <button className="modal-close" onClick={() => { setJoinModalOpen(false); onPopupClose(); }}>✕</button>
-          <div className="join-modal-title">Join Slot {joinSlot}</div>
-          <div className="join-modal-subtitle">Scan to claim this player slot</div>
-          <div className="join-qr-box">
-            <div className="join-qr-pattern">
-              <div className="join-qr-center">
-                <div className="join-qr-badge" style={{ background: `linear-gradient(135deg,${playerColors[joinSlot!]},rgb(184,146,46))` }}>
-                  {joinSlot}
-                </div>
-              </div>
-            </div>
+          <div className="join-modal-title">Player {joinSlot} — Scan to Join</div>
+          <div className="join-modal-subtitle">Share this code so they can join the pod</div>
+          <div style={{
+            width: 150, height: 150, margin: '0 auto',
+            padding: 10, background: '#FFFFFF',
+            borderRadius: 12,
+            boxShadow: '0 0 0 1px rgba(43,33,24,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {qrCodeUrl ? (
+              <img src={qrCodeUrl} alt={`QR code to join pod`} width={130} height={130} style={{ imageRendering: 'pixelated' }} />
+            ) : (
+              <div style={{ color: '#B8AE9E', fontSize: 12 }}>No pod code</div>
+            )}
           </div>
-          <div className="join-slot-code"><span>SLOT-{joinSlot}-ARC7</span></div>
-          <button className="join-simulate-btn" onClick={simulateJoin}>✓ Simulate: Player Joins</button>
+          <div className="join-slot-code" onClick={copyPodCode} style={{ cursor: 'pointer' }}>
+            <span>{podShortCode ? `${podShortCode.slice(0, 3)}—${podShortCode.slice(3)}` : '------'}</span>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 11, color: 'rgb(90,110,98)', textAlign: 'center' }}>
+            Tap the code to copy
+          </div>
         </div>
       </div>
     </div>
