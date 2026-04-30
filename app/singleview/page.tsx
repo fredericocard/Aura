@@ -193,7 +193,6 @@ function PageContent() {
   };
 
   const handleSSOComplete = () => {
-    setIsLoggedIn(true);
     setShowSSO(false);
     setToastMessage('Welcome back!');
     setShowToast(true);
