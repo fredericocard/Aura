@@ -1,10 +1,20 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
+import { getGame } from '@/lib/games';
+import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 
-export default function SingleViewPage() {
+function PageContent() {
   useWakeLock();
+  const searchParams = useSearchParams();
+  const podId = searchParams.get('podId') ?? '';
+  const gameId = searchParams.get('gameId') ?? '';
+  const { user, isLoggedIn, loading } = useAuth();
+
   // Life counter state
   const [life, setLife] = useState(40);
   const [isLifeExpanded, setIsLifeExpanded] = useState(false);
@@ -25,7 +35,6 @@ export default function SingleViewPage() {
 
   // Login/commander search state
   const [loginOverlayOpen, setLoginOverlayOpen] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState<number | null>(null);
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -37,19 +46,84 @@ export default function SingleViewPage() {
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
-  // Opponent data
-  const opponents = [
-    { key: 'kess', name: 'Kess, Dissident Mage', player: 'Marta', life: 16, color: 'm', lifeColor: 'teal', aura: 72, badges: { brilliance: 2, flavor: 1, rivalry: 0, allegiance: 3, fun: 0 } },
-    { key: 'korvold', name: 'Korvold, Fae-Cursed King', player: 'Rafa', life: 12, color: 'r', lifeColor: 'red', poison: 2, aura: 45, badges: { brilliance: 1, flavor: 0, rivalry: 2, allegiance: 0, fun: 1 } },
-    { key: 'ghave', name: 'Ghave, Guru of Spores', player: 'Ana', life: 24, color: 'a', lifeColor: 'teal', aura: 88, badges: { brilliance: 4, flavor: 2, rivalry: 1, allegiance: 1, fun: 3 } },
-  ];
+  // Game data state
+  const [podSize, setPodSize] = useState(0);
+  const [opponents, setOpponents] = useState<any[]>([]);
+  const [currentUserData, setCurrentUserData] = useState<any>(null);
 
+  // Fallback mock data for UI (if needed)
   const myDecks = [
     { name: 'Omnath', color: 'G' },
     { name: 'Korvold', color: 'R' },
     { name: 'Atraxa', color: 'U' },
     { name: 'Urza', color: 'U' },
   ];
+
+  // Load game data from backend when gameId is available
+  useEffect(() => {
+    if (!gameId) return;
+    async function loadGameData() {
+      try {
+        const { data: game } = await getGame(gameId) as { data: any };
+        if (!game) return;
+
+        setPodSize(game.pod_size ?? 0);
+
+        // Fetch deck info for all players
+        const deckIds = game.players.map((p: any) => p.deck_id);
+        const { data: decks } = await supabase
+          .from('decks')
+          .select('id, commander_name, color_identity, aura_score, badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor')
+          .in('id', deckIds) as { data: any };
+
+        const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+
+        // Build opponents array (all players except current user)
+        const opponentsList: any[] = [];
+        let currentPlayerData: any = null;
+
+        game.players.forEach((p: any, idx: number) => {
+          const deck: any = deckMap.get(p.deck_id);
+          const playerData = {
+            key: `player-${idx}`,
+            name: deck?.commander_name ?? `Player ${idx + 1}`,
+            player: deck?.commander_name?.split(',')[0] ?? `Player ${idx + 1}`,
+            life: p.life_total ?? 40,
+            color: 'm',
+            lifeColor: 'teal',
+            aura: deck?.aura_score ?? 0,
+            badges: {
+              brilliance: deck?.badge_brilliance ?? 0,
+              flavor: deck?.badge_flavor ?? 0,
+              rivalry: deck?.badge_rivalry ?? 0,
+              allegiance: deck?.badge_allegiance ?? 0,
+              fun: deck?.badge_fun ?? 0,
+            },
+          };
+
+          if (p.user_id === user?.id) {
+            currentPlayerData = playerData;
+          } else {
+            opponentsList.push(playerData);
+          }
+        });
+
+        setCurrentUserData(currentPlayerData);
+        setOpponents(opponentsList);
+      } catch (err) {
+        console.error('Failed to load game data:', err);
+      }
+    }
+
+    loadGameData();
+  }, [gameId, user?.id]);
+
+  // Auto-hide login overlay if authenticated and gameId exists
+  useEffect(() => {
+    if (isLoggedIn && gameId) {
+      setLoginOverlayOpen(false);
+    }
+  }, [isLoggedIn, gameId]);
 
   // Long press ref
   const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
@@ -1787,7 +1861,7 @@ export default function SingleViewPage() {
             </div>
             <div className="nav-label">Counters</div>
           </div>
-          <a href="/gridview-4p" className="grid-view-button" style={{ textDecoration: 'none' }}>
+          <Link href={`/gridview-${podSize}p?podId=${podId}&gameId=${gameId}`} className="grid-view-button" style={{ textDecoration: 'none' }}>
             <div className="grid-icon">
               <div className="grid-square" />
               <div className="grid-square" />
@@ -1795,7 +1869,7 @@ export default function SingleViewPage() {
               <div className="grid-square" />
             </div>
             <span style={{ fontSize: '11px' }}>Grid</span>
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -1891,5 +1965,13 @@ export default function SingleViewPage() {
         {toastMessage}
       </div>
     </>
+  );
+}
+
+export default function SingleViewPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PageContent />
+    </Suspense>
   );
 }
