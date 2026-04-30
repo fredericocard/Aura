@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { registerCommander, getMyCommanders, BRACKETS, type Deck } from '@/lib/commanders';
-import { createPod } from '@/lib/pods';
+import { createPod, getQrCodeUrl } from '@/lib/pods';
 import { createGame } from '@/lib/games';
 import { validateCommander, searchCommanders, type CardData } from '@/lib/scryfall';
 
@@ -197,13 +197,10 @@ export default function Page() {
     setSearchResults([]);
   };
 
-  // Generate decorative QR pattern
-  const qrCells = Array.from({ length: 121 }).map((_: any, i: any) => {
-    const r = Math.floor(i / 11), c = i % 11;
-    const corner = (r < 3 && c < 3) || (r < 3 && c > 7) || (r > 7 && c < 3);
-    const filled = corner || (Math.sin(i * 1.7) + Math.cos(i * 0.9)) > 0.2;
-    return filled;
-  });
+  // Build real QR code URL from the pod's short code
+  const qrCodeUrl = createdPod
+    ? getQrCodeUrl(createdPod.short_code, typeof window !== 'undefined' ? window.location.origin : 'https://auramtg.com')
+    : '';
 
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Young+Serif&display=swap');
@@ -1006,11 +1003,25 @@ export default function Page() {
               <div className="qr-title">Share this code so others can join</div>
             </div>
 
-            {/* Decorative QR */}
-            <div className="qr-grid-wrap">
-              {qrCells.map((filled, i) => (
-                <div key={i} className={`qr-cell ${filled ? 'filled' : ''}`} />
-              ))}
+            {/* Real QR Code */}
+            <div style={{
+              width: 200, height: 200, margin: '0 auto',
+              padding: 12, background: '#FFFFFF',
+              borderRadius: 14,
+              boxShadow: '0 0 0 1px rgba(43,33,24,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {qrCodeUrl ? (
+                <img
+                  src={qrCodeUrl}
+                  alt={`QR code to join pod ${createdPod?.short_code}`}
+                  width={176}
+                  height={176}
+                  style={{ imageRendering: 'pixelated' }}
+                />
+              ) : (
+                <div style={{ color: '#B8AE9E', fontSize: 13 }}>Generating...</div>
+              )}
             </div>
 
             <div className="qr-code-text">
