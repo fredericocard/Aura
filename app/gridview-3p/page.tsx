@@ -40,10 +40,6 @@ function PageContent() {
     syncTimerRef.current[key] = setTimeout(fn, 300);
   };
 
-  const syncLife = (userId: string, newLife: number) => {
-    if (gameId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
-  };
-
   const [players, setPlayers] = useState<Record<PlayerNum, Player>>({
     1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W','U','B','G'] },
     2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] },
