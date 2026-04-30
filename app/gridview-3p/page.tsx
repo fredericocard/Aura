@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
+import { getQrCodeUrl } from '@/lib/pods';
 import { useWakeLock } from '@/lib/use-wake-lock';
 
 type PlayerNum = 1 | 2 | 3;
@@ -31,6 +32,12 @@ function PageContent() {
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
   const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+  const [podShortCode, setPodShortCode] = useState<string>('');
+  const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const debouncedSync = (key: string, fn: () => void) => {
+    if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
+    syncTimerRef.current[key] = setTimeout(fn, 300);
+  };
 
   const syncLife = (userId: string, newLife: number) => {
     if (gameId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
@@ -63,7 +70,6 @@ function PageContent() {
   const navTimerRef = useRef<NodeJS.Timeout>(null);
   const pulseTimerRef = useRef<NodeJS.Timeout>(null);
   const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
-  const [simIndex, setSimIndex] = useState(0);
 
   const PULSE_SCHEDULE = [30000, 30000, 60000, 60000];
   const PULSE_ONGOING = 300000;
@@ -84,10 +90,9 @@ function PageContent() {
     G: { grad: [[14,92,77],[26,122,106],[42,143,120]], border: [56,158,133], shadow: [14,92,77] }
   };
 
-  const simulatedProfiles = [
-    { name: 'Manel', commander: 'Korvold, Fae-Cursed King', colors: ['B','R','G'] },
-    { name: 'Sofia', commander: 'Yuriko, the Tiger\'s Shadow', colors: ['U','B'] }
-  ];
+  const qrCodeUrl = podShortCode
+    ? getQrCodeUrl(podShortCode, typeof window !== 'undefined' ? window.location.origin : 'https://auramtg.com')
+    : '';
 
   const pickPlayerColor = (playerNum: PlayerNum, currentUsedColors: string[]): string | null => {
     const p = players[playerNum];
@@ -146,6 +151,14 @@ function PageContent() {
     setPlayers(prev => {
       const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
       if (newLife === 0) stopLongPress();
+
+      const userId = playerUserIds[playerNum];
+      if (gameId && userId) {
+        debouncedSync(`life-${playerNum}`, () => {
+          updateLifeTotal(gameId, userId, newLife).catch(() => {});
+        });
+      }
+
       return {
         ...prev,
         [playerNum]: { ...prev[playerNum], life: newLife }
@@ -158,6 +171,11 @@ function PageContent() {
       ...prev,
       [playerNum]: { ...prev[playerNum], life: 1 }
     }));
+
+    const userId = playerUserIds[playerNum];
+    if (gameId && userId) {
+      updateLifeTotal(gameId, userId, 1).catch(() => {});
+    }
   };
 
   const startLongPress = (playerNum: PlayerNum, delta: number) => {
@@ -174,25 +192,10 @@ function PageContent() {
     setShowJoinModal(true);
   };
 
-  const simulatePlayerJoin = () => {
-    if (!joinSlot) return;
-
-    const profile = simulatedProfiles[simIndex % simulatedProfiles.length];
-    setSimIndex(prev => prev + 1);
-
-    setPlayers(prev => ({
-      ...prev,
-      [joinSlot]: {
-        ...prev[joinSlot],
-        name: profile.name,
-        commander: profile.commander,
-        claimed: true,
-        colors: profile.colors || []
-      }
-    }));
-
-    setShowJoinModal(false);
-    applyColorIdentity(joinSlot);
+  const copyPodCode = () => {
+    if (podShortCode) {
+      navigator.clipboard.writeText(podShortCode).catch(() => {});
+    }
   };
 
   const handleDiceRoll = () => {
@@ -219,13 +222,25 @@ function PageContent() {
   };
 
   const updateCounters = (playerNum: PlayerNum, type: keyof Counters, amount: number) => {
-    setCounters(prev => ({
-      ...prev,
-      [playerNum]: {
-        ...prev[playerNum],
-        [type]: Math.max(0, prev[playerNum][type] + amount)
+    setCounters(prev => {
+      const newVal = Math.max(0, prev[playerNum][type] + amount);
+      const userId = playerUserIds[playerNum];
+      if (gameId && userId) {
+        debouncedSync(`${type}-${playerNum}`, () => {
+          if (type === 'poison') updatePoisonCounters(gameId, userId, newVal).catch(() => {});
+          else if (type === 'experience') updateExperienceCounters(gameId, userId, newVal).catch(() => {});
+          else if (type === 'energy') updateEnergyCounters(gameId, userId, newVal).catch(() => {});
+        });
       }
-    }));
+
+      return {
+        ...prev,
+        [playerNum]: {
+          ...prev[playerNum],
+          [type]: newVal
+        }
+      };
+    });
   };
 
   const openDiceModal = () => {
@@ -286,6 +301,11 @@ function PageContent() {
         const { data: game } = await getGame(gameId);
         if (!game) return;
 
+        if (game.pod_id) {
+          const { data: pod } = await supabase.from('pods').select('short_code').eq('id', game.pod_id).single() as { data: any };
+          if (pod?.short_code) setPodShortCode(pod.short_code);
+        }
+
         const deckIds = game.players.map((p: any) => p.deck_id);
         const { data: decks } = await supabase
           .from('decks')
@@ -300,6 +320,11 @@ function PageContent() {
         };
 
         const userIdMap: Record<number, string> = {};
+        const newCounters: Record<PlayerNum, Counters> = {
+          1: { poison: 0, experience: 0, energy: 0 },
+          2: { poison: 0, experience: 0, energy: 0 },
+          3: { poison: 0, experience: 0, energy: 0 }
+        };
 
         game.players.forEach((p: any, i: any) => {
           const playerNum = (i + 1) as PlayerNum;
@@ -308,16 +333,40 @@ function PageContent() {
           const deck: any = deckMap.get(p.deck_id);
           userIdMap[playerNum] = p.user_id;
           playerSlots[playerNum] = {
-            life: 40,
+            life: p.life_total ?? 40,
             name: deck?.commander_name || `Player ${playerNum}`,
             commander: deck?.commander_name || null,
             colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : [],
             claimed: true
           };
+          newCounters[playerNum] = {
+            poison: p.poison_counters ?? 0,
+            experience: p.experience_counters ?? 0,
+            energy: p.energy_counters ?? 0
+          };
         });
 
         setPlayers(playerSlots);
         setPlayerUserIds(userIdMap);
+        setCounters(newCounters);
+
+        const channel = supabase
+          .channel(`game-${gameId}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
+            const row = payload.new;
+            if (!row) return;
+            setPlayerUserIds(currentIds => {
+              const playerNum = Object.entries(currentIds).find(([, uid]) => uid === row.user_id)?.[0];
+              if (playerNum) {
+                const num = parseInt(playerNum);
+                setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
+                setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
+              }
+              return currentIds;
+            });
+          })
+          .subscribe();
+        return () => { supabase.removeChannel(channel); };
       } catch (error) {
         console.error('Failed to load game data:', error);
       }
@@ -1466,17 +1515,19 @@ function PageContent() {
             <button className="modal-close" onClick={() => setShowJoinModal(false)}>✕</button>
             <div className="join-modal-title">Join Slot {joinSlot}</div>
             <div className="join-modal-subtitle">Scan to claim this player slot</div>
-            <div className="join-qr-box">
-              <div className="join-qr-pattern">
-                <div className="join-qr-center">
-                  <div className="join-qr-badge" style={{ background: `linear-gradient(135deg,${playerColors[joinSlot]},rgb(184,146,46))` }}>
-                    {joinSlot}
-                  </div>
-                </div>
-              </div>
+            <div style={{ width: 150, height: 150, margin: '0 auto', padding: 10, background: '#FFFFFF', borderRadius: 12, boxShadow: '0 0 0 1px rgba(43,33,24,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {qrCodeUrl ? (
+                <img src={qrCodeUrl} alt="QR code to join pod" width={130} height={130} style={{ imageRendering: 'pixelated' }} />
+              ) : (
+                <div style={{ color: '#B8AE9E', fontSize: 12 }}>No pod code</div>
+              )}
             </div>
-            <div className="join-slot-code"><span>SLOT-{joinSlot}-ARC7</span></div>
-            <button className="join-simulate-btn" onClick={simulatePlayerJoin}>✓ Simulate: Player Joins</button>
+            <div className="join-slot-code" onClick={copyPodCode} style={{ cursor: 'pointer' }}>
+              <span>{podShortCode ? `${podShortCode.slice(0, 3)}—${podShortCode.slice(3)}` : '------'}</span>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: 'rgb(90,110,98)', textAlign: 'center' }}>
+              Tap the code to copy
+            </div>
           </div>
         </div>
       )}

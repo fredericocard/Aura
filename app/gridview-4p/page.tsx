@@ -7,6 +7,7 @@ import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
+import { getQrCodeUrl } from '@/lib/pods';
 
 function PageContent() {
   useWakeLock();
@@ -73,12 +74,13 @@ function PageContent() {
   const [toast, setToast] = useState('');
   const [facingLeft, setFacingLeft] = useState(true);
   const [cellSizes, setCellSizes] = useState<Record<number, { lifeSize: number; btnSize: number; btnFont: number }>>({});
-  const [simulatedProfiles] = useState([
-    { name: 'Manel', commander: 'Korvold, Fae-Cursed King', colors: ['B', 'R', 'G'] },
-    { name: 'Sofia', commander: 'Yuriko, the Tiger\'s Shadow', colors: ['U', 'B'] },
-    { name: 'Tomás', commander: 'Prossh, Skyraider of Kher', colors: ['B', 'R', 'G'] }
-  ]);
-  const [simIndex, setSimIndex] = useState(0);
+
+  const [podShortCode, setPodShortCode] = useState<string>('');
+  const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const debouncedSync = (key: string, fn: () => void) => {
+    if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
+    syncTimerRef.current[key] = setTimeout(fn, 300);
+  };
 
   // Map player slot → user_id for backend sync
   const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
@@ -94,6 +96,12 @@ function PageContent() {
     async function loadGame() {
       const { data: game } = await getGame(gameId);
       if (!game) return;
+
+      if (game.pod_id) {
+        const { data: pod } = await supabase.from('pods').select('short_code').eq('id', game.pod_id).single() as { data: any };
+        if (pod?.short_code) setPodShortCode(pod.short_code);
+      }
+
       const deckIds = game.players.map((p: any) => p.deck_id);
       const { data: decks } = await supabase
         .from('decks')
@@ -103,11 +111,12 @@ function PageContent() {
 
       const newPlayers: Record<number, typeof players[1]> = {};
       const newUserIds: Record<number, string> = {};
+      const newCounters: Record<number, { poison: number; experience: number; energy: number }> = {};
       game.players.forEach((p: any, i: any) => {
         const deck: any = deckMap.get(p.deck_id);
         const slot = i + 1;
         newPlayers[slot] = {
-          life: 40,
+          life: p.life_total ?? 40,
           name: deck?.commander_name?.split(',')[0] ?? `Player ${slot}`,
           commander: deck?.commander_name ?? null,
           claimed: true,
@@ -115,13 +124,38 @@ function PageContent() {
           assignedColor: null,
         };
         newUserIds[slot] = p.user_id;
+        newCounters[slot] = {
+          poison: p.poison_counters ?? 0,
+          experience: p.experience_counters ?? 0,
+          energy: p.energy_counters ?? 0
+        };
       });
       // Fill remaining slots
       for (let s = game.players.length + 1; s <= 4; s++) {
         newPlayers[s] = { life: 40, name: `Player ${s}`, commander: null, claimed: false, colors: [], assignedColor: null };
+        newCounters[s] = { poison: 0, experience: 0, energy: 0 };
       }
       setPlayers(newPlayers);
       setPlayerUserIds(newUserIds);
+      setCounters(newCounters);
+
+      const channel = supabase
+        .channel(`game-${gameId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+          setPlayerUserIds(currentIds => {
+            const playerNum = Object.entries(currentIds).find(([, uid]) => uid === row.user_id)?.[0];
+            if (playerNum) {
+              const num = parseInt(playerNum);
+              setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
+              setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
+            }
+            return currentIds;
+          });
+        })
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
     }
     loadGame();
   }, [gameId]);
@@ -154,6 +188,10 @@ function PageContent() {
     return p.colors[0];
   };
 
+  const qrCodeUrl = podShortCode
+    ? getQrCodeUrl(podShortCode, typeof window !== 'undefined' ? window.location.origin : 'https://auramtg.com')
+    : '';
+
   const applyColorIdentity = (playerNum: number) => {
     const p = players[playerNum];
     if (!p.claimed || !p.colors || p.colors.length === 0) return;
@@ -182,6 +220,14 @@ function PageContent() {
         if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
         if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
       }
+
+      const userId = playerUserIds[playerNum];
+      if (gameId && userId) {
+        debouncedSync(`life-${playerNum}`, () => {
+          updateLifeTotal(gameId, userId, newLife).catch(() => {});
+        });
+      }
+
       return {
         ...prev,
         [playerNum]: { ...prev[playerNum], life: newLife }
@@ -199,37 +245,10 @@ function PageContent() {
     setJoinModalOpen(true);
   };
 
-  const handleJoinSimulate = () => {
-    if (!joinSlot) return;
-    setJoinModalOpen(false);
-
-    const slot = joinSlot!;
-    const profile = simulatedProfiles[simIndex % simulatedProfiles.length];
-    setSimIndex(prev => prev + 1);
-
-    setPlayers(prev => ({
-      ...prev,
-      [slot]: {
-        ...prev[slot],
-        name: profile.name,
-        commander: profile.commander,
-        claimed: true,
-        colors: profile.colors || []
-      }
-    }));
-
-    const newUsedColors = [...usedColors];
-    const mana = pickPlayerColor(slot, newUsedColors);
-    setUsedColors(newUsedColors);
-
-    if (mana) {
-      setPlayers(prev => ({
-        ...prev,
-        [slot]: { ...prev[slot], assignedColor: mana }
-      }));
+  const copyPodCode = () => {
+    if (podShortCode) {
+      navigator.clipboard.writeText(podShortCode).catch(() => {});
     }
-
-    showToast(`${profile.name} joined as Player ${slot}!`);
   };
 
   const handleRevive = (playerNum: number) => {
@@ -237,6 +256,11 @@ function PageContent() {
       ...prev,
       [playerNum]: { ...prev[playerNum], life: 1 }
     }));
+
+    const userId = playerUserIds[playerNum];
+    if (gameId && userId) {
+      updateLifeTotal(gameId, userId, 1).catch(() => {});
+    }
   };
 
   const handleDiceRoll = () => {
@@ -263,13 +287,26 @@ function PageContent() {
 
   const handleCounterChange = (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => {
     const playerNum = selectedCounterPlayer;
-    setCounters(prev => ({
-      ...prev,
-      [playerNum]: {
-        ...prev[playerNum],
-        [type]: action === 'plus' ? prev[playerNum][type] + 1 : Math.max(0, prev[playerNum][type] - 1)
+    setCounters(prev => {
+      const newVal = action === 'plus' ? prev[playerNum][type] + 1 : Math.max(0, prev[playerNum][type] - 1);
+
+      const userId = playerUserIds[playerNum];
+      if (gameId && userId) {
+        debouncedSync(`${type}-${playerNum}`, () => {
+          if (type === 'poison') updatePoisonCounters(gameId, userId, newVal).catch(() => {});
+          else if (type === 'experience') updateExperienceCounters(gameId, userId, newVal).catch(() => {});
+          else if (type === 'energy') updateEnergyCounters(gameId, userId, newVal).catch(() => {});
+        });
       }
-    }));
+
+      return {
+        ...prev,
+        [playerNum]: {
+          ...prev[playerNum],
+          [type]: newVal
+        }
+      };
+    });
   };
 
   const onPopupOpen = () => {
@@ -1701,26 +1738,19 @@ function PageContent() {
             </button>
             <div className="join-modal-title">Join Slot {joinSlot}</div>
             <div className="join-modal-subtitle">Scan to claim this player slot</div>
-            <div className="join-qr-box">
-              <div className="join-qr-pattern">
-                <div className="join-qr-center">
-                  <div
-                    className="join-qr-badge"
-                    style={{
-                      background: `linear-gradient(135deg, ${playerColors[joinSlot!]}, rgb(184,146,46))`
-                    }}
-                  >
-                    {joinSlot}
-                  </div>
-                </div>
-              </div>
+            <div style={{ width: 150, height: 150, margin: '0 auto', padding: 10, background: '#FFFFFF', borderRadius: 12, boxShadow: '0 0 0 1px rgba(43,33,24,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {qrCodeUrl ? (
+                <img src={qrCodeUrl} alt="QR code to join pod" width={130} height={130} style={{ imageRendering: 'pixelated' }} />
+              ) : (
+                <div style={{ color: '#B8AE9E', fontSize: 12 }}>No pod code</div>
+              )}
             </div>
-            <div className="join-slot-code">
-              <span>SLOT-{joinSlot}-ARC7</span>
+            <div className="join-slot-code" onClick={copyPodCode} style={{ cursor: 'pointer' }}>
+              <span>{podShortCode ? `${podShortCode.slice(0, 3)}—${podShortCode.slice(3)}` : '------'}</span>
             </div>
-            <button className="join-simulate-btn" onClick={handleJoinSimulate}>
-              ✓ Simulate: Player Joins
-            </button>
+            <div style={{ marginTop: 8, fontSize: 11, color: 'rgb(90,110,98)', textAlign: 'center' }}>
+              Tap the code to copy
+            </div>
           </div>
         </div>
       )}
