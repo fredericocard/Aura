@@ -7,6 +7,9 @@ import { useAuth } from '@/lib/auth-context';
 import { getGame } from '@/lib/games';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
+import { getMyCommanders } from '@/lib/commanders';
+import { searchCommanders } from '@/lib/scryfall';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters } from '@/lib/game-triggers';
 
 function PageContent() {
   useWakeLock();
@@ -33,15 +36,28 @@ function PageContent() {
 
   const [countersModalOpen, setCountersModalOpen] = useState(false);
 
-  // Login/commander search state
-  const [loginOverlayOpen, setLoginOverlayOpen] = useState(true);
-  const [selectedDeck, setSelectedDeck] = useState<number | null>(null);
+  // Login/commander search state — skip overlay if already authenticated with a game
+  const [loginOverlayOpen, setLoginOverlayOpen] = useState(!gameId);
+  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const [showSearchMode, setShowSearchMode] = useState(false);
   const [showSSO, setShowSSO] = useState(false);
   const [ssoView, setSsoView] = useState('ssoViewSignin');
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Real decks from backend
+  const [myDecks, setMyDecks] = useState<any[]>([]);
+
+  // Debounced sync refs (same pattern as gridview)
+  const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+
+  const debouncedSync = (key: string, fn: () => void) => {
+    if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
+    syncTimerRef.current[key] = setTimeout(fn, 300);
+  };
 
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -50,18 +66,22 @@ function PageContent() {
   const [podSize, setPodSize] = useState(0);
   const [opponents, setOpponents] = useState<any[]>([]);
   const [currentUserData, setCurrentUserData] = useState<any>(null);
+  const [commanderDetails, setCommanderDetails] = useState<Record<string, any>>({});
 
-  // Fallback mock data for UI (if needed)
-  const myDecks = [
-    { name: 'Omnath', color: 'G' },
-    { name: 'Korvold', color: 'R' },
-    { name: 'Atraxa', color: 'U' },
-    { name: 'Urza', color: 'U' },
-  ];
+  // Load user's decks from backend
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    async function loadDecks() {
+      const { data } = await getMyCommanders();
+      setMyDecks(data ?? []);
+    }
+    loadDecks();
+  }, [isLoggedIn]);
 
   // Load game data from backend when gameId is available
   useEffect(() => {
     if (!gameId) return;
+
     async function loadGameData() {
       try {
         const { data: game } = await getGame(gameId) as { data: any };
@@ -82,16 +102,29 @@ function PageContent() {
         const opponentsList: any[] = [];
         let currentPlayerData: any = null;
 
+        // Map user_id to player data for Realtime updates
+        const userIdMap: Record<string, string> = {};
+
         game.players.forEach((p: any, idx: number) => {
           const deck: any = deckMap.get(p.deck_id);
+          const colorId = deck?.color_identity ?? '';
+          const firstColor = colorId.split('').find((c: string) => 'WUBRG'.includes(c))?.toLowerCase() ?? 'm';
+          const colorMap: Record<string, string> = { w: 'a', u: 'a', b: 'm', r: 'r', g: 'a' };
+          const avatarColor = colorMap[firstColor] ?? 'a';
+
           const playerData = {
             key: `player-${idx}`,
+            userId: p.user_id,
             name: deck?.commander_name ?? `Player ${idx + 1}`,
             player: deck?.commander_name?.split(',')[0] ?? `Player ${idx + 1}`,
             life: p.life_total ?? 40,
-            color: 'm',
-            lifeColor: 'teal',
+            color: avatarColor,
+            lifeColor: (p.life_total ?? 40) <= 0 ? 'red' : (p.life_total ?? 40) < 10 ? 'red' : 'teal',
             aura: deck?.aura_score ?? 0,
+            colorIdentity: colorId,
+            poisonCounters: p.poison_counters ?? 0,
+            experienceCounters: p.experience_counters ?? 0,
+            energyCounters: p.energy_counters ?? 0,
             badges: {
               brilliance: deck?.badge_brilliance ?? 0,
               flavor: deck?.badge_flavor ?? 0,
@@ -101,8 +134,15 @@ function PageContent() {
             },
           };
 
+          userIdMap[p.user_id] = `player-${idx}`;
+
           if (p.user_id === user?.id) {
             currentPlayerData = playerData;
+            // Initialize local life and counters from backend
+            setLife(p.life_total ?? 40);
+            setPoison(p.poison_counters ?? 0);
+            setExperience(p.experience_counters ?? 0);
+            setEnergy(p.energy_counters ?? 0);
           } else {
             opponentsList.push(playerData);
           }
@@ -116,7 +156,73 @@ function PageContent() {
     }
 
     loadGameData();
+
+    // Subscribe to realtime updates on game_players for this game
+    const channel = supabase
+      .channel(`game-singleview-${gameId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
+        (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+
+          if (row.user_id === user?.id) {
+            // Update own life/counters (from another device)
+            setLife(row.life_total ?? 40);
+            setPoison(row.poison_counters ?? 0);
+            setExperience(row.experience_counters ?? 0);
+            setEnergy(row.energy_counters ?? 0);
+          } else {
+            // Update opponent data
+            setOpponents(prev => prev.map(opp => {
+              if (opp.userId === row.user_id) {
+                return {
+                  ...opp,
+                  life: row.life_total ?? opp.life,
+                  lifeColor: (row.life_total ?? opp.life) < 10 ? 'red' : 'teal',
+                  poisonCounters: row.poison_counters ?? opp.poisonCounters,
+                  experienceCounters: row.experience_counters ?? opp.experienceCounters,
+                  energyCounters: row.energy_counters ?? opp.energyCounters,
+                };
+              }
+              return opp;
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [gameId, user?.id]);
+
+  // Fetch Scryfall data for opponent commanders
+  useEffect(() => {
+    if (opponents.length === 0) return;
+    opponents.forEach(async (opp: any) => {
+      if (!opp.name || commanderDetails[opp.key]) return;
+      try {
+        const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(opp.name)}`);
+        if (!res.ok) return;
+        const card = await res.json();
+        setCommanderDetails(prev => ({
+          ...prev,
+          [opp.key]: {
+            name: card.name,
+            typeLine: card.type_line ?? '',
+            oracleText: card.oracle_text ?? '',
+            flavorText: card.flavor_text ?? '',
+            manaCost: card.mana_cost ?? '',
+            power: card.power,
+            toughness: card.toughness,
+            colorIdentity: card.color_identity ?? [],
+          }
+        }));
+      } catch { /* Scryfall fetch failed, card detail stays empty */ }
+    });
+  }, [opponents]);
 
   // Auto-hide login overlay if authenticated and gameId exists
   useEffect(() => {
@@ -133,11 +239,18 @@ function PageContent() {
     if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
   };
 
-  // Life control functions
+  // Life control functions — synced to backend
   const adjustLife = (delta: number) => {
     setLife(prev => {
       const newLife = Math.max(0, prev + delta);
       if (newLife === 0) stopLongPress();
+
+      // Debounced sync to backend
+      if (gameId && user?.id) {
+        debouncedSync('life', () => {
+          updateLifeTotal(gameId, user.id, newLife).catch(() => {});
+        });
+      }
       return newLife;
     });
   };
@@ -153,6 +266,9 @@ function PageContent() {
 
   const handleRevive = () => {
     setLife(1);
+    if (gameId && user?.id) {
+      updateLifeTotal(gameId, user.id, 1).catch(() => {});
+    }
   };
 
   // Opponent expansion
@@ -201,25 +317,46 @@ function PageContent() {
 
   const handleConfirmDeck = () => {
     if (selectedDeck !== null) {
+      const deck = myDecks.find((d: any) => d.id === selectedDeck);
       setLoginOverlayOpen(false);
-      setToastMessage(`Deck selected: ${myDecks[selectedDeck].name}`);
+      setToastMessage(`Deck selected: ${deck?.commander_name ?? 'Unknown'}`);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 2500);
     }
   };
 
-  // Search for commanders (simulated)
+  // Search for commanders via Scryfall API (debounced)
   const handleSearch = (text: string) => {
     setSearchText(text);
-    if (text.trim()) {
-      const mockResults = [
-        { name: 'Omnath, Locus of Mana', type: 'Legendary Creature — Spirit', art: '' },
-        { name: 'Atraxa, Praetors\' Voice', type: 'Legendary Creature — Angel Horror', art: '' },
-      ];
-      setSearchResults(mockResults);
-    } else {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    if (!text.trim() || text.trim().length < 2) {
       setSearchResults([]);
+      setIsSearching(false);
+      return;
     }
+
+    setIsSearching(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await searchCommanders(text.trim());
+        setSearchResults(results.map((card: any) => ({
+          name: card.name,
+          type: card.type_line ?? '',
+          art: card.image_uris?.art_crop ?? card.image_uris?.small ?? '',
+          colorIdentity: card.color_identity?.join('') ?? '',
+          manaCost: card.mana_cost ?? '',
+          oracleText: card.oracle_text ?? '',
+          flavorText: card.flavor_text ?? '',
+          power: card.power,
+          toughness: card.toughness,
+        })));
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
   };
 
   const handleSelectCard = (card: any) => {
@@ -1426,14 +1563,18 @@ function PageContent() {
                       <button className="search-confirm-btn" onClick={handleConfirmCommander}>Confirm</button>
                     </div>
                     <div className="search-results">
-                      {searchResults.length > 0 ? (
+                      {isSearching ? (
+                        <div className="search-loading">Searching...</div>
+                      ) : searchResults.length > 0 ? (
                         searchResults.map((card: any, idx: any) => (
                           <div
                             key={idx}
                             className={`search-item ${selectedCard?.name === card.name ? 'selected' : ''}`}
                             onClick={() => handleSelectCard(card)}
                           >
-                            <div className="search-item-art" />
+                            <div className="search-item-art">
+                              {card.art && <img src={card.art} alt={card.name} />}
+                            </div>
                             <div className="search-item-info">
                               <div className="search-item-name">{card.name}</div>
                               <div className="search-item-type">{card.type}</div>
@@ -1441,7 +1582,7 @@ function PageContent() {
                             <div className="search-item-check">✓</div>
                           </div>
                         ))
-                      ) : searchText && (
+                      ) : searchText && searchText.length >= 2 && (
                         <div className="search-empty">No commanders found</div>
                       )}
                     </div>
@@ -1458,16 +1599,17 @@ function PageContent() {
                 ) : (
                   <div>
                     <div className="decks-grid" style={{ marginTop: '16px' }}>
-                      {myDecks.map((deck: any, idx: any) => (
+                      {myDecks.map((deck: any) => (
                         <div
-                          key={idx}
-                          className={`deck-option ${selectedDeck === idx ? 'selected' : ''}`}
-                          onClick={() => setSelectedDeck(idx)}
+                          key={deck.id}
+                          className={`deck-option ${selectedDeck === deck.id ? 'selected' : ''}`}
+                          onClick={() => setSelectedDeck(deck.id)}
                         >
                           <div className="deck-option-art">
+                            {deck.commander_art_url && <img src={deck.commander_art_url} alt={deck.commander_name} />}
                             <div className="deck-option-check">✓</div>
                           </div>
-                          <div className="deck-option-name">{deck.name}</div>
+                          <div className="deck-option-name">{deck.commander_name}</div>
                         </div>
                       ))}
                     </div>
@@ -1699,9 +1841,11 @@ function PageContent() {
               <div className={`life-chip ${opp.lifeColor}`}>
                 <div className="life-chip-heart">♥</div>
                 <div className="life-chip-value">{opp.life}</div>
-                {opp.poison && (
+                {(opp.poisonCounters > 0 || opp.experienceCounters > 0 || opp.energyCounters > 0) && (
                   <div className="counter-badges">
-                    <div className="counter-pip poison">{opp.poison}</div>
+                    {opp.poisonCounters > 0 && <div className="counter-pip poison">{opp.poisonCounters}</div>}
+                    {opp.experienceCounters > 0 && <div className="counter-pip experience">{opp.experienceCounters}</div>}
+                    {opp.energyCounters > 0 && <div className="counter-pip energy">{opp.energyCounters}</div>}
                   </div>
                 )}
               </div>
@@ -1713,58 +1857,33 @@ function PageContent() {
                   <span className="expand-aura-score">{opp.aura}</span>
                 </div>
 
-                {/* Commander Card */}
-                <div className="commander-card">
-                  <div className="commander-header">
-                    <div className="commander-header-text">{opp.name.toUpperCase()}</div>
-                    <div className="commander-mana">
-                      {opp.key === 'kess' && (
-                        <>
-                          <div className="mana-pip u">U</div>
-                          <div className="mana-pip b">B</div>
-                          <div className="mana-pip r">R</div>
-                        </>
-                      )}
-                      {opp.key === 'korvold' && (
-                        <>
-                          <div className="mana-pip b">B</div>
-                          <div className="mana-pip r">R</div>
-                          <div className="mana-pip u" style={{ background: 'rgb(155,211,174)' }}>G</div>
-                        </>
-                      )}
-                      {opp.key === 'ghave' && (
-                        <>
-                          <div className="mana-pip u" style={{ background: 'rgb(255,251,213)' }}>W</div>
-                          <div className="mana-pip b">B</div>
-                          <div className="mana-pip u" style={{ background: 'rgb(155,211,174)' }}>G</div>
-                        </>
-                      )}
+                {/* Commander Card — dynamically loaded from Scryfall */}
+                {(() => {
+                  const detail = commanderDetails[opp.key];
+                  const colorBgMap: Record<string, string> = { W: 'rgb(255,251,213)', U: 'rgb(92,143,209)', B: 'rgb(51,51,56)', R: 'rgb(217,102,77)', G: 'rgb(155,211,174)' };
+                  const colors = detail?.colorIdentity ?? (opp.colorIdentity ?? '').split('').filter((c: string) => 'WUBRG'.includes(c));
+                  return (
+                    <div className="commander-card">
+                      <div className="commander-header">
+                        <div className="commander-header-text">{(detail?.name ?? opp.name).toUpperCase()}</div>
+                        <div className="commander-mana">
+                          {colors.map((c: string, i: number) => (
+                            <div key={i} className="mana-pip" style={{ background: colorBgMap[c] ?? 'rgb(140,140,140)' }}>{c}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="commander-body">
+                        <div className="commander-type">{detail?.typeLine ?? 'Legendary Creature'}</div>
+                        <div className="commander-divider" />
+                        {detail?.oracleText && <div className="commander-rules">{detail.oracleText}</div>}
+                        {detail?.flavorText && <div className="commander-flavor">{detail.flavorText}</div>}
+                        {detail?.power != null && detail?.toughness != null && (
+                          <div className="commander-pt">{detail.power} / {detail.toughness}</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="commander-body">
-                    <div className="commander-type">
-                      {opp.key === 'kess' && 'Legendary Creature — Human Wizard'}
-                      {opp.key === 'korvold' && 'Legendary Creature — Dragon Noble'}
-                      {opp.key === 'ghave' && 'Legendary Creature — Fungus Shaman'}
-                    </div>
-                    <div className="commander-divider" />
-                    <div className="commander-rules">
-                      {opp.key === 'kess' && 'Flying.\nAt the beginning of each opponent\'s end step, if you didn\'t cast a creature spell this turn, you may cast target instant or sorcery from that player\'s graveyard.'}
-                      {opp.key === 'korvold' && 'Flying\nWhenever Korvold, Fae-Cursed King enters the battlefield or attacks, sacrifice another permanent.\nWhenever you sacrifice a permanent, put a +1/+1 counter on Korvold and draw a card.'}
-                      {opp.key === 'ghave' && 'Ghave enters with five +1/+1 counters.\n{1}, Remove a +1/+1 counter from a creature you control: Create a 1/1 green Saproling creature token.\n{1}, Sacrifice a creature: Put a +1/+1 counter on target creature.'}
-                    </div>
-                    <div className="commander-flavor">
-                      {opp.key === 'kess' && '"Knowledge outlives even its keeper."'}
-                      {opp.key === 'korvold' && '"All that remains is mine."'}
-                      {opp.key === 'ghave' && '"From death, life. From life, death."'}
-                    </div>
-                    <div className="commander-pt">
-                      {opp.key === 'kess' && '3 / 2'}
-                      {opp.key === 'korvold' && '4 / 4'}
-                      {opp.key === 'ghave' && '0 / 0'}
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Brewed For Divider */}
                 <div className="brewed-for-divider">
@@ -1917,9 +2036,9 @@ function PageContent() {
                 <div className="counter-name">Poison</div>
               </div>
               <div className="counter-controls">
-                <button className="counter-btn" onClick={() => setPoison(Math.max(0, poison - 1))}>−</button>
+                <button className="counter-btn" onClick={() => { const v = Math.max(0, poison - 1); setPoison(v); if (gameId && user?.id) debouncedSync('poison', () => updatePoisonCounters(gameId, user.id, v).catch(() => {})); }}>−</button>
                 <div className="counter-value">{poison}</div>
-                <button className="counter-btn" onClick={() => setPoison(poison + 1)}>+</button>
+                <button className="counter-btn" onClick={() => { const v = poison + 1; setPoison(v); if (gameId && user?.id) debouncedSync('poison', () => updatePoisonCounters(gameId, user.id, v).catch(() => {})); }}>+</button>
               </div>
             </div>
 
@@ -1934,9 +2053,9 @@ function PageContent() {
                 <div className="counter-name">Experience</div>
               </div>
               <div className="counter-controls">
-                <button className="counter-btn" onClick={() => setExperience(Math.max(0, experience - 1))}>−</button>
+                <button className="counter-btn" onClick={() => { const v = Math.max(0, experience - 1); setExperience(v); if (gameId && user?.id) debouncedSync('experience', () => updateExperienceCounters(gameId, user.id, v).catch(() => {})); }}>−</button>
                 <div className="counter-value">{experience}</div>
-                <button className="counter-btn" onClick={() => setExperience(experience + 1)}>+</button>
+                <button className="counter-btn" onClick={() => { const v = experience + 1; setExperience(v); if (gameId && user?.id) debouncedSync('experience', () => updateExperienceCounters(gameId, user.id, v).catch(() => {})); }}>+</button>
               </div>
             </div>
 
@@ -1950,9 +2069,9 @@ function PageContent() {
                 <div className="counter-name">Energy</div>
               </div>
               <div className="counter-controls">
-                <button className="counter-btn" onClick={() => setEnergy(Math.max(0, energy - 1))}>−</button>
+                <button className="counter-btn" onClick={() => { const v = Math.max(0, energy - 1); setEnergy(v); if (gameId && user?.id) debouncedSync('energy', () => updateEnergyCounters(gameId, user.id, v).catch(() => {})); }}>−</button>
                 <div className="counter-value">{energy}</div>
-                <button className="counter-btn" onClick={() => setEnergy(energy + 1)}>+</button>
+                <button className="counter-btn" onClick={() => { const v = energy + 1; setEnergy(v); if (gameId && user?.id) debouncedSync('energy', () => updateEnergyCounters(gameId, user.id, v).catch(() => {})); }}>+</button>
               </div>
             </div>
           </div>
