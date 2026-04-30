@@ -14,15 +14,17 @@ export default function ProfilePage() {
   const [showToast, setShowToast] = useState(false);
   const [commanders, setCommanders] = useState<CommanderSummary[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(true);
-  const { signOut } = useAuth();
+  const { signOut, user, loading: authLoading } = useAuth();
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoadingDecks(false); return; }
-      setNameInputValue(user.user_metadata?.display_name ?? user.email?.split('@')[0] ?? '');
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) { setLoadingDecks(false); return; }
+      setNameInputValue(authUser.user_metadata?.display_name ?? authUser.email?.split('@')[0] ?? '');
+      setUserEmail(authUser.email ?? '');
       try {
-        const summaries = await getUserCommanderSummaries(user.id);
+        const summaries = await getUserCommanderSummaries(authUser.id);
         setCommanders(summaries);
       } catch {}
       setLoadingDecks(false);
@@ -750,9 +752,9 @@ export default function ProfilePage() {
           {/* Avatar + Name */}
           <div className="profile-header">
             <div className="avatar">
-              <span className="avatar-letter">F</span>
+              <span className="avatar-letter">{(nameInputValue || '?').charAt(0).toUpperCase()}</span>
             </div>
-            <div className="profile-name">Frederico</div>
+            <div className="profile-name">{nameInputValue || 'Player'}</div>
           </div>
 
           {/* Create / Join Pod */}
@@ -906,7 +908,7 @@ export default function ProfilePage() {
                 className="account-avatar"
                 onClick={() => showToastMessage('Change Photo — Coming Soon')}
               >
-                <span className="account-avatar-letter">F</span>
+                <span className="account-avatar-letter">{(nameInputValue || '?').charAt(0).toUpperCase()}</span>
                 <div className="account-avatar-badge">
                   <svg viewBox="0 0 16 16" fill="none" stroke="rgb(90,110,98)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M2 5H4L5.5 3H10.5L12 5H14V13H2Z"/>
@@ -932,7 +934,7 @@ export default function ProfilePage() {
               <input
                 className="account-field-input"
                 type="email"
-                value="frederico@email.com"
+                value={userEmail}
                 readOnly
                 style={{ color: 'rgb(90,110,98)' }}
               />
@@ -940,10 +942,17 @@ export default function ProfilePage() {
 
             <button
               className="account-save-btn"
-              onClick={() => {
-                setSettingsOpen(false);
-                setAccountViewOpen(false);
-                showToastMessage('Changes Saved');
+              onClick={async () => {
+                const { error } = await supabase.auth.updateUser({
+                  data: { display_name: nameInputValue },
+                });
+                if (error) {
+                  showToastMessage('Failed to save: ' + error.message);
+                } else {
+                  setSettingsOpen(false);
+                  setAccountViewOpen(false);
+                  showToastMessage('Changes Saved');
+                }
               }}
             >
               Save Changes
