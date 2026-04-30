@@ -502,23 +502,30 @@ export default function HomePage() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  // After OAuth redirect, check ?next= param and auto-redirect if logged in
+  // After any login (email/password, Google OAuth), redirect to saved destination
   useEffect(() => {
     if (!isLoggedIn || loading) return;
+    // Check sessionStorage first (survives OAuth page reload)
+    const saved = sessionStorage.getItem('loginRedirect');
+    if (saved) {
+      sessionStorage.removeItem('loginRedirect');
+      setShowLogin(false);
+      router.push(saved);
+      return;
+    }
+    // Also check ?next= param (backup for OAuth)
     const params = new URLSearchParams(window.location.search);
     const next = params.get('next');
     if (next) {
       router.push(next);
+      return;
     }
-  }, [isLoggedIn, loading]);
-
-  // When login completes via email/password (showLogin is still true), redirect
-  useEffect(() => {
-    if (isLoggedIn && showLogin) {
+    // Email/password login while sheet is open
+    if (showLogin) {
       setShowLogin(false);
       router.push(loginRedirect);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, loading]);
 
   const ease = 'cubic-bezier(.22,.61,.36,1)';
 
@@ -650,6 +657,7 @@ export default function HomePage() {
               router.push('/create');
             } else {
               setLoginRedirect('/create');
+              sessionStorage.setItem('loginRedirect', '/create');
               setShowLogin(true);
             }
           }} />
@@ -667,6 +675,7 @@ export default function HomePage() {
               router.push('/profile');
             } else {
               setLoginRedirect('/profile');
+              sessionStorage.setItem('loginRedirect', '/profile');
               setShowLogin(true);
             }
           }} />
