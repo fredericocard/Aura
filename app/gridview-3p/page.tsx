@@ -358,7 +358,7 @@ function PageContent() {
             setPlayerUserIds(currentIds => {
               const playerNum = Object.entries(currentIds).find(([, uid]) => uid === row.user_id)?.[0];
               if (playerNum) {
-                const num = parseInt(playerNum);
+                const num = parseInt(playerNum) as PlayerNum;
                 setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
                 setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
               }
