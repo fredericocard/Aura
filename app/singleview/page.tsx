@@ -145,11 +145,16 @@ function CommAvatar({ src, size = 36, ring = 'var(--line-strong)', dim = false }
       background: 'var(--parchment-deep)',
       boxShadow: `0 0 0 1.5px ${ring}, 0 0 0 4px var(--parchment)`,
       overflow: 'hidden', position: 'relative',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <img src={src} alt="" style={{
-        width: '100%', height: '100%', objectFit: 'cover',
-        opacity: dim ? 0.5 : 1, filter: dim ? 'grayscale(0.4)' : 'none',
-      }}/>
+      {src ? (
+        <img src={src} alt="" style={{
+          width: '100%', height: '100%', objectFit: 'cover',
+          opacity: dim ? 0.5 : 1, filter: dim ? 'grayscale(0.4)' : 'none',
+        }}/>
+      ) : (
+        <Icon name="user" size={size * 0.5} stroke="var(--ink-4)" width={1.5}/>
+      )}
     </div>
   );
 }
@@ -164,7 +169,7 @@ function SVBackdrop({ src }: any) {
       }}/>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(245,239,226,0.30) 0%, rgba(245,239,226,0.85) 35%, var(--parchment) 90%)',
+        background: 'linear-gradient(180deg, rgba(245,239,226,0.30) 0%, rgba(245,239,226,0.85) 30%, var(--parchment) 35%)',
       }}/>
       <div style={{
         position: 'absolute', inset: 0,
@@ -176,7 +181,7 @@ function SVBackdrop({ src }: any) {
 }
 
 // ─── Header ribbon ──────────────────────────────────────────────────────────
-function SVHeader({ podName, onBack, onSettings }: any) {
+function SVHeader({ onBack, onSettings }: any) {
   return (
     <div style={{
       position: 'relative', zIndex: 5,
@@ -186,12 +191,7 @@ function SVHeader({ podName, onBack, onSettings }: any) {
       <button style={iconBtn()} onClick={onBack}>
         <Icon name="chevron-left" size={18} stroke="var(--ink)"/>
       </button>
-      <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-        <div style={{
-          fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1.1,
-          color: 'var(--ink)', letterSpacing: '-0.01em',
-        }}>Move</div>
-      </div>
+      <div style={{ flex: 1 }}/>
       <button style={iconBtn()} onClick={onSettings}>
         <Icon name="settings" size={18} stroke="var(--ink)"/>
       </button>
@@ -199,14 +199,7 @@ function SVHeader({ podName, onBack, onSettings }: any) {
   );
 }
 
-// ─── Identity strip — commander image at top ────────────────────────────────
-function SVIdentity({ art }: any) {
-  return (
-    <div style={{ position: 'relative', zIndex: 5, padding: '6px 0 0', display: 'flex', justifyContent: 'center' }}>
-      <CommAvatar src={art} size={52} ring="var(--copper)"/>
-    </div>
-  );
-}
+// (SVIdentity removed — life dial is the main focus)
 
 // ─── Life dial ──────────────────────────────────────────────────────────────
 const CMDR_DMG_COLORS = ['#E8A54B', '#D4783C', '#B8432E', '#8C2318', '#5E1610'];
@@ -240,18 +233,6 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
   return (
     <div style={{ position: 'relative', width: sz, height: sz }}>
       <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`}>
-        {/* Tick marks */}
-        <g stroke="var(--ink-3)" strokeWidth="1">
-          {Array.from({ length: 60 }).map((_, i) => {
-            const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
-            const r1 = 87, r2 = i % 5 === 0 ? 78 : 82;
-            return <line key={i}
-              x1={cx + Math.cos(a) * r1} y1={cx + Math.sin(a) * r1}
-              x2={cx + Math.cos(a) * r2} y2={cx + Math.sin(a) * r2}
-              opacity={i % 5 === 0 ? 0.45 : 0.18}/>;
-          })}
-        </g>
-
         {/* Base ring */}
         <circle cx={cx} cy={cx} r={radius}
           fill="none" stroke="var(--line-strong)" strokeWidth="2"/>
@@ -785,6 +766,10 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
 
 // ─── Opponent overlay — commander broadside ─────────────────────────────────
 function OpponentOverlay({ p, myLife, miniRoster, onClose, onLifeAdj, onSelectPlayer }: any) {
+  if (!p) return null;
+  const isEmpty = p.isEmptySeat;
+  const showSelector = miniRoster.length > 1;
+
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 40,
@@ -802,33 +787,36 @@ function OpponentOverlay({ p, myLife, miniRoster, onClose, onLifeAdj, onSelectPl
         <MiniRoundBtn glyph="+" onClick={() => onLifeAdj(1)}/>
       </div>
 
-      <div style={{
-        margin: '10px 14px 0',
-        background: 'var(--parchment-card)',
-        border: '1px solid var(--line-strong)',
-        borderRadius: 12, padding: '6px 8px',
-        display: 'flex', justifyContent: 'space-between', gap: 6,
-      }}>
-        {miniRoster.map((m: any, i: number) => {
-          const isActive = m.id === p.id;
-          return (
-            <button key={i} onClick={() => onSelectPlayer?.(m)} style={{
-              flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-              padding: '4px 6px', borderRadius: 8, border: 'none',
-              background: isActive ? 'rgba(176,107,44,0.12)' : 'transparent',
-              cursor: 'pointer',
-              outline: isActive ? '1.5px solid var(--copper)' : 'none',
-            }}>
-              <CommAvatar src={m.art} size={18} ring={isActive ? 'var(--copper)' : 'var(--line-strong)'} dim={m.dead}/>
-              <div style={{
-                fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1,
-                color: m.dead ? 'var(--ink-4)' : 'var(--ink)',
-                fontVariantNumeric: 'tabular-nums',
-              }}>{m.dead ? '—' : m.life}</div>
-            </button>
-          );
-        })}
-      </div>
+      {/* Mini roster selector — only show when multiple opponents */}
+      {showSelector && (
+        <div style={{
+          margin: '10px 14px 0',
+          background: 'var(--parchment-card)',
+          border: '1px solid var(--line-strong)',
+          borderRadius: 12, padding: '6px 8px',
+          display: 'flex', justifyContent: 'space-between', gap: 6,
+        }}>
+          {miniRoster.map((m: any, i: number) => {
+            const isActive = m.id === p.id;
+            return (
+              <button key={i} onClick={() => onSelectPlayer?.(m)} style={{
+                flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+                padding: '4px 6px', borderRadius: 8, border: 'none',
+                background: isActive ? 'rgba(176,107,44,0.12)' : 'transparent',
+                cursor: 'pointer',
+                outline: isActive ? '1.5px solid var(--copper)' : 'none',
+              }}>
+                <CommAvatar src={m.art} size={18} ring={isActive ? 'var(--copper)' : 'var(--line-strong)'} dim={m.dead}/>
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1,
+                  color: m.dead ? 'var(--ink-4)' : 'var(--ink)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}>{m.dead ? '—' : m.life}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div style={{
         margin: '14px 14px',
@@ -840,15 +828,18 @@ function OpponentOverlay({ p, myLife, miniRoster, onClose, onLifeAdj, onSelectPl
         display: 'flex', flexDirection: 'column', gap: 10,
         animation: 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)',
       }}>
+        {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CommAvatar src={p.art} size={42} ring="var(--copper)"/>
+            <CommAvatar src={p.art} size={42} ring={isEmpty ? 'var(--line-strong)' : 'var(--copper)'}/>
             <div style={{ minWidth: 0 }}>
               <div style={kicker(9)}>{p.name}</div>
-              <div style={{
-                fontFamily: 'var(--font-display)', fontSize: 17, lineHeight: 1.1,
-                color: 'var(--ink)', letterSpacing: '-0.01em',
-              }}>{p.commander}</div>
+              {!isEmpty && p.commander && (
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontSize: 17, lineHeight: 1.1,
+                  color: 'var(--ink)', letterSpacing: '-0.01em',
+                }}>{p.commander}</div>
+              )}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -861,54 +852,73 @@ function OpponentOverlay({ p, myLife, miniRoster, onClose, onLifeAdj, onSelectPl
           </button>
         </div>
 
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '6px 10px',
-          background: 'var(--parchment)', border: '1px solid var(--line)',
-          borderRadius: 10,
-        }}>
-          <div style={{
-            fontSize: 11, fontWeight: 600,
-            color: 'var(--ink-2)', letterSpacing: '0.04em',
-          }}>{p.typeLine || 'Legendary Creature'}</div>
-          <ManaDots colors={p.colors} size={7}/>
-        </div>
+        {/* Commander details — only for real players */}
+        {!isEmpty && (
+          <>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '6px 10px',
+              background: 'var(--parchment)', border: '1px solid var(--line)',
+              borderRadius: 10,
+            }}>
+              <div style={{
+                fontSize: 11, fontWeight: 600,
+                color: 'var(--ink-2)', letterSpacing: '0.04em',
+              }}>{p.typeLine || 'Legendary Creature'}</div>
+              <ManaDots colors={p.colors} size={7}/>
+            </div>
 
-        {p.rulesText && (
+            {p.rulesText && (
+              <div style={{
+                background: 'var(--parchment)', border: '1px solid var(--line)',
+                borderRadius: 12, padding: '10px 12px',
+                fontSize: 12, lineHeight: 1.45,
+                color: 'var(--ink-2)', fontStyle: 'italic',
+              }}>
+                {p.keywords && (
+                  <span style={{ fontStyle: 'normal', fontWeight: 700, color: 'var(--ink)' }}>
+                    {p.keywords}
+                  </span>
+                )}
+                {' '}{p.rulesText}
+                {p.pt && (
+                  <span style={{
+                    display: 'block', marginTop: 6, fontStyle: 'normal',
+                    fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase',
+                    color: 'var(--ink-3)', fontWeight: 700,
+                  }}>Power · Toughness — {p.pt}</span>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Empty seat message */}
+        {isEmpty && (
           <div style={{
-            background: 'var(--parchment)', border: '1px solid var(--line)',
-            borderRadius: 12, padding: '10px 12px',
-            fontSize: 12, lineHeight: 1.45,
-            color: 'var(--ink-2)', fontStyle: 'italic',
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--ink-3)', fontSize: 13, fontStyle: 'italic',
           }}>
-            {p.keywords && (
-              <span style={{ fontStyle: 'normal', fontWeight: 700, color: 'var(--ink)' }}>
-                {p.keywords}
-              </span>
-            )}
-            {' '}{p.rulesText}
-            {p.pt && (
-              <span style={{
-                display: 'block', marginTop: 6, fontStyle: 'normal',
-                fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase',
-                color: 'var(--ink-3)', fontWeight: 700,
-              }}>Power · Toughness — {p.pt}</span>
-            )}
+            Waiting for a player to join this seat.
           </div>
         )}
 
-        <div>
-          <div style={kicker(9)}>Counters</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-            {(p.counters || []).map((c: any, i: number) => (
-              <CounterChip key={i} kind={c.kind} value={c.value}/>
-            ))}
-            {!(p.counters || []).length && (
-              <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>None on the table.</div>
-            )}
+        {/* Counters */}
+        {!isEmpty && (
+          <div>
+            <div style={kicker(9)}>Counters</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+              {(p.counters || []).map((c: any, i: number) => (
+                <CounterChip key={i} kind={c.kind} value={c.value}/>
+              ))}
+              {!(p.counters || []).length && (
+                <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>None on the table.</div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
+        {/* Commander damage boxes */}
         <div style={{
           marginTop: 'auto',
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
@@ -1456,23 +1466,26 @@ function PageContent() {
     if (opp.energyCounters > 0) counters.push({ kind: 'energy', value: opp.energyCounters });
 
     const colorIdentityArray = opp.colorIdentity.split('').filter((c: string) => 'WUBRG'.includes(c));
-    const art = detail.art_crop || 'https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg';
+    const isEmptySeat = opp.isEmptySeat === true;
+    const art = isEmptySeat ? null : (detail.art_crop || 'https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg');
 
     return {
       id: opp.id,
       name: opp.name,
-      commander: opp.name,
-      typeLine: detail.typeLine || 'Legendary Creature',
+      commander: isEmptySeat ? null : opp.name,
+      typeLine: isEmptySeat ? null : (detail.typeLine || 'Legendary Creature'),
       art: art,
-      colors: colorIdentityArray,
+      colors: isEmptySeat ? [] : colorIdentityArray,
       life: opp.life,
       cmdrDmg: cmdrDmg[opp.id] || 0,
       cmdrDmgFromYou: 0,
       counters: counters,
-      keywords: detail.keywords || null,
-      rulesText: detail.oracleText || null,
-      pt: detail.power && detail.toughness ? `${detail.power}/${detail.toughness}` : null,
+      keywords: isEmptySeat ? null : (detail.keywords || null),
+      rulesText: isEmptySeat ? null : (detail.oracleText || null),
+      pt: isEmptySeat ? null : (detail.power && detail.toughness ? `${detail.power}/${detail.toughness}` : null),
       dead: opp.life <= 0,
+      isEmptySeat: isEmptySeat,
+      isGuest: opp.isGuest === true,
     };
   });
 
@@ -1529,6 +1542,7 @@ function PageContent() {
     art: p.art,
     life: p.life,
     dead: p.dead,
+    isEmptySeat: p.isEmptySeat,
   }));
 
   return (
@@ -1541,10 +1555,9 @@ function PageContent() {
       fontFamily: 'var(--font-ui)',
     }}>
       <SVBackdrop src={myArt}/>
-      <SVHeader podName={podName}
+      <SVHeader
         onBack={() => router.back()}
         onSettings={() => setShowSettings(true)}/>
-      <SVIdentity art={myArt}/>
 
       {/* Life dial + buttons */}
       <div style={{
