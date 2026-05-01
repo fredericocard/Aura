@@ -165,11 +165,11 @@ function SVBackdrop({ src }: any) {
     <>
       <img src={src} alt="" style={{
         position: 'absolute', inset: 0, width: '100%', height: '100%',
-        objectFit: 'cover', opacity: 0.22,
+        objectFit: 'cover',
       }}/>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(245,239,226,0.30) 0%, rgba(245,239,226,0.85) 15%, var(--parchment) 100%)',
+        background: 'linear-gradient(180deg, rgba(245,239,226,0.05) 0%, rgba(245,239,226,0.50) 15%, var(--parchment) 100%)',
       }}/>
       <div style={{
         position: 'absolute', inset: 0,
