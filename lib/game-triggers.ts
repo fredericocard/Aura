@@ -73,6 +73,34 @@ export async function updateEnergyCounters(gameId: string, userId: string, count
   return { error: error?.message ?? null };
 }
 
+/**
+ * Update commander damage received from a specific opponent.
+ * Stores as JSONB: { "seat-2": 5, "seat-3": 12 }
+ * 21+ from any single source = eliminated.
+ */
+export async function updateCommanderDamage(
+  gameId: string,
+  userId: string,
+  damageMap: Record<string, number>
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('game_players')
+    .update({ commander_damage_received: damageMap })
+    .eq('game_id', gameId)
+    .eq('user_id', userId);
+
+  if (error) return { error: error.message };
+
+  // Check if any single source hit 21+
+  const maxDmg = Math.max(0, ...Object.values(damageMap));
+  if (maxDmg >= 21) {
+    await eliminatePlayer(gameId, userId);
+  }
+
+  await checkLastStanding(gameId);
+  return { error: null };
+}
+
 // ── Seat-based updates (for empty seats / guests without a user_id) ──
 
 /**
@@ -396,6 +424,7 @@ export async function getGamePlayerStates(gameId: string): Promise<{
     poison_counters: number;
     experience_counters: number;
     energy_counters: number;
+    commander_damage_received: Record<string, number>;
     is_eliminated: boolean;
     can_review: boolean;
   }[];
@@ -403,7 +432,7 @@ export async function getGamePlayerStates(gameId: string): Promise<{
 }> {
   const { data, error } = await supabase
     .from('game_players')
-    .select('user_id, deck_id, commander_name, seat_number, life_total, poison_counters, experience_counters, energy_counters, is_eliminated, can_review')
+    .select('user_id, deck_id, commander_name, seat_number, life_total, poison_counters, experience_counters, energy_counters, commander_damage_received, is_eliminated, can_review')
     .eq('game_id', gameId)
     .order('seat_number', { ascending: true });
 

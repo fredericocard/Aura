@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS game_players (
   poison_counters INTEGER NOT NULL DEFAULT 0,
   experience_counters INTEGER NOT NULL DEFAULT 0,
   energy_counters INTEGER NOT NULL DEFAULT 0,
+  commander_damage_received JSONB NOT NULL DEFAULT '{}',
   is_eliminated BOOLEAN NOT NULL DEFAULT FALSE,
   eliminated_at TIMESTAMPTZ,
   can_review BOOLEAN NOT NULL DEFAULT FALSE,

@@ -26,6 +26,13 @@ export interface GamePlayer {
   commander_name: string | null; // set when guest picks a commander
   seat_number: number;
   is_winner: boolean;
+  life_total: number;
+  poison_counters: number;
+  experience_counters: number;
+  energy_counters: number;
+  commander_damage_received: Record<string, number>;
+  is_eliminated: boolean;
+  can_review: boolean;
   joined_at: string;
 }
 

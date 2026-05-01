@@ -1,63 +1,1223 @@
 'use client';
 
-import React, { useState, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getGame } from '@/lib/games';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getMyCommanders } from '@/lib/commanders';
 import { searchCommanders } from '@/lib/scryfall';
-import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters } from '@/lib/game-triggers';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, updateCommanderDamage, abandonGame } from '@/lib/game-triggers';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Design tokens (injected once into <head>)
+// ─────────────────────────────────────────────────────────────────────────────
+const TOKENS_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;600;700&display=swap');
+
+:root {
+  --parchment:        #F5EFE2;
+  --parchment-card:   #EFE6D2;
+  --parchment-deep:   #E8DDC4;
+  --ink:              #2B2118;
+  --ink-2:            #4D3F30;
+  --ink-3:            #7A6B57;
+  --ink-4:            #A89F8E;
+  --line:             rgba(43,33,24,0.10);
+  --line-strong:      rgba(43,33,24,0.18);
+  --copper:           #B06B2C;
+  --copper-deep:      #8C521E;
+  --forest:           #1F4C2C;
+  --forest-deep:      #143620;
+  --forest-soft:      #DCE6DD;
+  --forest-line:      rgba(31,76,44,0.25);
+  --shadow-rest:      0 1px 0 rgba(43,33,24,0.05), 0 6px 14px -8px rgba(43,33,24,0.18);
+  --font-display:     'Cinzel', 'Trajan Pro', Georgia, serif;
+  --font-ui:          'Inter', system-ui, sans-serif;
+  --r-card:           14px;
+}
+
+@keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
+@keyframes slideUpCard { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes dialShrinkUp { from{transform:scale(1.8) translateY(60px);opacity:0.3} to{transform:scale(1) translateY(0);opacity:1} }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--parchment);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+`;
+
+function ensureTokens() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('aura-sv-tokens')) return;
+  const s = document.createElement('style');
+  s.id = 'aura-sv-tokens';
+  s.textContent = TOKENS_CSS;
+  document.head.appendChild(s);
+}
+
+// ─── Mana color vocabulary ──────────────────────────────────────────────────
+const MANA = {
+  W: '#F8E7B9', U: '#A6C8E6', B: '#3F3A36',
+  R: '#D27B5C', G: '#7BA37A', C: '#A89F8E',
+};
+
+function ManaDots({ colors = [], size = 8 }: any) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+      {colors.map((c: string, i: number) => (
+        <span key={i} style={{
+          width: size, height: size, borderRadius: 999,
+          background: (MANA as any)[c] || '#A89F8E',
+          boxShadow: 'inset 0 0 0 1px rgba(43,33,24,0.18)',
+        }}/>
+      ))}
+    </span>
+  );
+}
+
+// ─── Counter vocabulary ─────────────────────────────────────────────────────
+const COUNTER_VOCAB: any = {
+  poison:      { label: 'Poison',      tone: '#4F8A4D', soft: '#E2EBDB', glyph: 'skull' },
+  energy:      { label: 'Energy',      tone: '#C99B2F', soft: '#F6ECD2', glyph: 'bolt' },
+  experience:  { label: 'Experience',  tone: '#7E4E8A', soft: '#EADDEE', glyph: 'star' },
+  commander:   { label: 'Cmdr',        tone: '#B06B2C', soft: '#F3E3D1', glyph: 'sword' },
+};
+
+// ─── Icon set (24×24 viewBox, stroke-based) ─────────────────────────────────
+function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: any) {
+  const p: any = {
+    width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+    stroke, strokeWidth: width, strokeLinecap: 'round', strokeLinejoin: 'round',
+  };
+  const paths: any = {
+    'chevron-left':  <polyline points="15 18 9 12 15 6"/>,
+    'memory-log':    <><path d="M4 5a2 2 0 0 1 2-2h11l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5z"/><path d="M8 8h8M8 12h8M8 16h5"/></>,
+    plus:            <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+    x:               <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+    grid:            <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></>,
+    user:            <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+    dice:            <><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill={stroke} stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill={stroke} stroke="none"/><circle cx="12" cy="12" r="1.2" fill={stroke} stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill={stroke} stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill={stroke} stroke="none"/></>,
+    bolt:            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
+    star:            <polygon points="12 2 15.1 8.6 22 9.6 17 14.5 18.2 21.5 12 18.2 5.8 21.5 7 14.5 2 9.6 8.9 8.6 12 2"/>,
+    skull:           <><path d="M8 21h8v-3a4 4 0 0 0 4-4v-2a8 8 0 1 0-16 0v2a4 4 0 0 0 4 4v3z"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M11 17h2"/></>,
+    sword:           <><path d="m14.5 17.5 4-4-9-9H4v6l9 9z"/><line x1="14.5" y1="17.5" x2="20" y2="23"/><path d="m9.5 4.5 4 4"/></>,
+    flame:           <path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 1 2 3 2 3-3z"/>,
+    settings:        <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+    warning:         <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
+  };
+  return <svg {...p}>{paths[name] || null}</svg>;
+}
+
+// ─── Style helpers ──────────────────────────────────────────────────────────
+function kicker(size = 10) {
+  return {
+    fontSize: size, fontWeight: 700, letterSpacing: '0.22em',
+    textTransform: 'uppercase', color: 'var(--ink-3)',
+  };
+}
+function iconBtn() {
+  return {
+    width: 36, height: 36, borderRadius: 999,
+    background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', padding: 0,
+  };
+}
+
+// ─── Avatar ─────────────────────────────────────────────────────────────────
+function CommAvatar({ src, size = 36, ring = 'var(--line-strong)', dim = false }: any) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 999, flexShrink: 0,
+      background: 'var(--parchment-deep)',
+      boxShadow: `0 0 0 1.5px ${ring}, 0 0 0 4px var(--parchment)`,
+      overflow: 'hidden', position: 'relative',
+    }}>
+      <img src={src} alt="" style={{
+        width: '100%', height: '100%', objectFit: 'cover',
+        opacity: dim ? 0.5 : 1, filter: dim ? 'grayscale(0.4)' : 'none',
+      }}/>
+    </div>
+  );
+}
+
+// ─── Backdrop — softened commander art ──────────────────────────────────────
+function SVBackdrop({ src }: any) {
+  return (
+    <>
+      <img src={src} alt="" style={{
+        position: 'absolute', inset: 0, width: '100%', height: '100%',
+        objectFit: 'cover', opacity: 0.22,
+      }}/>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(245,239,226,0.30) 0%, rgba(245,239,226,0.85) 35%, var(--parchment) 90%)',
+      }}/>
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: 'radial-gradient(circle at 50% 28%, rgba(176,107,44,0.10), transparent 55%)',
+        pointerEvents: 'none',
+      }}/>
+    </>
+  );
+}
+
+// ─── Header ribbon ──────────────────────────────────────────────────────────
+function SVHeader({ turn, podName, isYourTurn, onBack, onSettings }: any) {
+  return (
+    <div style={{
+      position: 'relative', zIndex: 5,
+      padding: '52px 14px 8px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    }}>
+      <button style={iconBtn()} onClick={onBack}>
+        <Icon name="chevron-left" size={18} stroke="var(--ink)"/>
+      </button>
+      <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+        <div style={kicker(9)}>{podName}</div>
+        <div style={{
+          fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1.1,
+          color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
+        }}>
+          Turn {turn} · {isYourTurn
+            ? <span style={{ color: 'var(--forest)' }}>Your turn</span>
+            : "Opponent's turn"}
+        </div>
+      </div>
+      <button style={iconBtn()} onClick={onSettings}>
+        <Icon name="settings" size={18} stroke="var(--ink)"/>
+      </button>
+    </div>
+  );
+}
+
+// ─── Identity strip — YOU badge + commander name + mana dots ────────────────
+function SVIdentity({ name, colors, art }: any) {
+  return (
+    <div style={{ position: 'relative', zIndex: 5, padding: '14px 24px 0', textAlign: 'center' }}>
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 10,
+        padding: '4px 12px 4px 4px', borderRadius: 999,
+        background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
+      }}>
+        <CommAvatar src={art} size={26} ring="var(--copper)"/>
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+          textTransform: 'uppercase', color: 'var(--copper)',
+        }}>You</span>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-display)', fontSize: 22, lineHeight: 1.15,
+        letterSpacing: '-0.01em', color: 'var(--ink)', marginTop: 10,
+        textWrap: 'balance',
+      }}>{name}</div>
+      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
+        <ManaDots colors={colors} size={8}/>
+      </div>
+    </div>
+  );
+}
+
+// ─── Life dial ──────────────────────────────────────────────────────────────
+const CMDR_DMG_COLORS = ['#E8A54B', '#D4783C', '#B8432E', '#8C2318', '#5E1610'];
+
+function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
+  const radius = 110;
+  const c = 2 * Math.PI * radius;
+
+  const totalDmg = cmdrDmgSegments.reduce((sum: number, s: any) => sum + s.dmg, 0);
+  const hasDmg = totalDmg > 0;
+
+  const sorted = [...cmdrDmgSegments]
+    .map((s: any, i: number) => ({ ...s, colorIdx: i }))
+    .sort((a: any, b: any) => b.dmg - a.dmg);
+
+  const segments: any[] = [];
+  const seen = new Set();
+  sorted.forEach((s: any) => {
+    if (s.dmg === 0) return;
+    let frac = Math.min(s.dmg, 21) / 21;
+    const key = s.dmg;
+    if (seen.has(key)) {
+      frac = Math.max(0, frac - 0.015);
+    }
+    seen.add(key);
+    segments.push({ frac, color: CMDR_DMG_COLORS[s.colorIdx % CMDR_DMG_COLORS.length] });
+  });
+
+  return (
+    <div style={{ position: 'relative', width: 240, height: 240 }}>
+      <svg width="240" height="240" viewBox="0 0 240 240">
+        {/* Tick marks */}
+        <g stroke="var(--ink-3)" strokeWidth="1">
+          {Array.from({ length: 60 }).map((_, i) => {
+            const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+            const r1 = 116, r2 = i % 5 === 0 ? 105 : 110;
+            return <line key={i}
+              x1={120 + Math.cos(a) * r1} y1={120 + Math.sin(a) * r1}
+              x2={120 + Math.cos(a) * r2} y2={120 + Math.sin(a) * r2}
+              opacity={i % 5 === 0 ? 0.45 : 0.18}/>;
+          })}
+        </g>
+
+        {/* Base ring */}
+        <circle cx="120" cy="120" r={radius}
+          fill="none" stroke="var(--line-strong)" strokeWidth="2"/>
+
+        {/* Commander damage segments */}
+        {segments.map((seg: any, i: number) => (
+          <circle key={i} cx="120" cy="120" r={radius}
+            fill="none" stroke={seg.color}
+            strokeWidth={6}
+            strokeDasharray={`${c * seg.frac} ${c}`}
+            strokeLinecap="butt"
+            transform="rotate(-90 120 120)"
+            opacity={0.92}/>
+        ))}
+
+        {/* Inner well */}
+        <circle cx="120" cy="120" r="92"
+          fill="var(--parchment-card)" stroke="var(--line)" strokeWidth="1"/>
+      </svg>
+
+      {/* Center content */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        {!dead ? (
+          <>
+            <div style={kicker(9)}>Life</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 100, lineHeight: 1, letterSpacing: '-0.04em',
+              color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
+            }}>{life}</div>
+            {hasDmg ? (
+              <div style={{
+                marginTop: 4, fontSize: 11,
+                color: totalDmg >= 21 ? '#8C2318' : 'var(--copper)',
+                fontWeight: 600,
+              }}>
+                Cmdr dmg {totalDmg}/21
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 64, lineHeight: 1, color: 'var(--copper)',
+            }}>×</div>
+            <div style={{
+              marginTop: 10, fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.24em', textTransform: 'uppercase',
+              color: 'var(--copper-deep)',
+            }}>Eliminated</div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Round +/- buttons ──────────────────────────────────────────────────────
+function RoundBtn({ glyph, onTap, onLongStart, onLongEnd }: any) {
+  return (
+    <button
+      onClick={onTap}
+      onPointerDown={onLongStart}
+      onPointerUp={onLongEnd}
+      onPointerLeave={onLongEnd}
+      style={{
+        width: 56, height: 56, borderRadius: 999,
+        background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
+        color: 'var(--ink)',
+        fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', padding: 0,
+        boxShadow: 'var(--shadow-rest)',
+      }}
+    >{glyph}</button>
+  );
+}
+
+// ─── Counter chip ───────────────────────────────────────────────────────────
+function CounterChip({ kind, value, label, dense = false }: any) {
+  const v = COUNTER_VOCAB[kind] || { label: kind, tone: 'var(--ink)', soft: 'var(--parchment-deep)', glyph: 'flame' };
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: dense ? '4px 8px' : '6px 12px',
+      borderRadius: 999,
+      background: v.soft, border: `1px solid ${v.tone}55`, color: v.tone,
+      fontSize: dense ? 11 : 12, fontWeight: 700, letterSpacing: '0.02em',
+    }}>
+      <Icon name={v.glyph} size={dense ? 12 : 14} stroke={v.tone}/>
+      <span style={{
+        fontFamily: 'var(--font-display)', fontWeight: 400,
+        fontSize: dense ? 13 : 15, lineHeight: 1, letterSpacing: '-0.01em',
+      }}>{value}</span>
+      {label !== false && <span style={{
+        fontSize: dense ? 9 : 10, fontWeight: 700,
+        letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.85,
+      }}>{label || v.label}</span>}
+    </div>
+  );
+}
+
+// ─── Counter orbit (row of chips below dial) ────────────────────────────────
+function CounterOrbit({ items = [] }: any) {
+  if (!items.length) return null;
+  return (
+    <div style={{
+      display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center',
+      padding: '0 24px', marginTop: 14,
+    }}>
+      {items.map((it: any, i: number) => <CounterChip key={i} {...it}/>)}
+    </div>
+  );
+}
+
+// ─── Opponent row ───────────────────────────────────────────────────────────
+function OpponentRow({ p, onTap }: any) {
+  return (
+    <button onClick={() => onTap(p)} style={{
+      width: '100%', padding: '8px 10px',
+      background: 'var(--parchment-card)',
+      border: '1px solid var(--line-strong)',
+      borderRadius: 14,
+      display: 'flex', alignItems: 'center', gap: 10,
+      cursor: 'pointer', textAlign: 'left',
+    }}>
+      <CommAvatar src={p.art} size={32}
+        ring={p.dead ? 'var(--ink-4)' : 'var(--copper)'} dim={p.dead}/>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={kicker(9)}>{p.name}</div>
+        <div style={{
+          fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
+          color: p.dead ? 'var(--ink-3)' : 'var(--ink)',
+          letterSpacing: '-0.01em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{p.commander}</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {(p.counters || []).map((c: any, i: number) => {
+          const v = COUNTER_VOCAB[c.kind] || {};
+          return (
+            <div key={i} title={v.label || c.kind} style={{
+              width: 22, height: 22, borderRadius: 6,
+              background: v.soft || 'var(--parchment-deep)',
+              border: `1px solid ${(v.tone || 'var(--line-strong)')}55`,
+              color: v.tone || 'var(--ink)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 9, fontWeight: 800, fontFamily: 'var(--font-display)',
+            }}>{c.value}</div>
+          );
+        })}
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 22, lineHeight: 1, letterSpacing: '-0.02em',
+          color: p.dead ? 'var(--ink-4)' : 'var(--ink)',
+          fontVariantNumeric: 'tabular-nums',
+          minWidth: 30, textAlign: 'right',
+        }}>{p.dead ? '—' : p.life}</div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Bottom nav ─────────────────────────────────────────────────────────────
+function GameNav({ active = 'single', onNav }: any) {
+  const items = [
+    { id: 'grid',   icon: 'grid',       label: 'Grid' },
+    { id: 'single', icon: 'user',       label: 'You' },
+    { id: 'dice',   icon: 'dice',       label: 'Dice' },
+    { id: 'count',  icon: 'plus',       label: 'Counters' },
+    { id: 'cmdr',   icon: 'sword',      label: 'Cmdr Dmg' },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      padding: '10px 16px 32px', zIndex: 8,
+      background: 'linear-gradient(180deg, rgba(245,239,226,0) 0%, rgba(245,239,226,0.92) 30%, var(--parchment) 100%)',
+    }}>
+      <div style={{
+        background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
+        borderRadius: 999, boxShadow: 'var(--shadow-rest)',
+        padding: 6, display: 'flex', justifyContent: 'space-between',
+      }}>
+        {items.map(it => {
+          const on = it.id === active;
+          return (
+            <button key={it.id} onClick={() => onNav?.(it.id)} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '6px 0', border: 'none',
+              background: on ? 'var(--forest)' : 'transparent',
+              color: on ? 'var(--parchment)' : 'var(--ink-2)',
+              borderRadius: 999,
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+              textTransform: 'uppercase', gap: 2,
+              cursor: 'pointer',
+            }}>
+              <Icon name={it.icon} size={16}
+                stroke={on ? 'var(--parchment)' : 'var(--ink-2)'}/>
+              <span>{it.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Mini life dial (compact, for opponent overlay) ─────────────────────────
+function MiniLifeDial({ life }: any) {
+  const r = 38, c = 2 * Math.PI * r;
+  return (
+    <div style={{ position: 'relative', width: 96, height: 96 }}>
+      <svg width="96" height="96" viewBox="0 0 96 96">
+        <circle cx="48" cy="48" r={r} fill="none" stroke="var(--line-strong)" strokeWidth="1.5"/>
+        <circle cx="48" cy="48" r={r} fill="none" stroke="var(--forest)" strokeWidth="2"
+          strokeDasharray={`${c * 0.27} ${c}`} strokeDashoffset={-c * 0.05}
+          strokeLinecap="round" transform="rotate(-90 48 48)"/>
+        <circle cx="48" cy="48" r="32" fill="var(--parchment-card)" stroke="var(--line)" strokeWidth="1"/>
+      </svg>
+      <div style={{
+        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-display)', fontWeight: 400,
+          fontSize: 36, lineHeight: 1, letterSpacing: '-0.04em',
+          color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
+        }}>{life}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Mini round button (compact +/- for overlay) ───────────────────────────
+function MiniRoundBtn({ glyph, onClick }: any) {
+  return (
+    <button onClick={onClick} style={{
+      width: 36, height: 36, borderRadius: 999,
+      background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
+      color: 'var(--ink)', fontFamily: 'var(--font-display)',
+      fontSize: 22, lineHeight: 1,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      cursor: 'pointer', padding: 0, boxShadow: 'var(--shadow-rest)',
+    }}>{glyph}</button>
+  );
+}
+
+// ─── Dice bottom sheet ──────────────────────────────────────────────────────
+function DiceSheet({ onClose, opponents = [] }: any) {
+  const [results, setResults] = useState({ d6: null, d20: null, coin: null, player: null });
+  const [lastRolled, setLastRolled] = useState(null);
+
+  const roll = (type: string) => {
+    let result: any;
+    if (type === 'd6') result = Math.floor(Math.random() * 6) + 1;
+    else if (type === 'd20') result = Math.floor(Math.random() * 20) + 1;
+    else if (type === 'coin') result = Math.random() < 0.5 ? 'Heads' : 'Tails';
+    else {
+      const names = ['You', ...opponents.map((o: any) => o.name)];
+      result = names[Math.floor(Math.random() * names.length)];
+    }
+    setResults(prev => ({ ...prev, [type]: result }));
+    setLastRolled(type);
+  };
+
+  const dice = [
+    { key: 'd6',     label: 'D6',            tone: 'var(--forest)' },
+    { key: 'd20',    label: 'D20',           tone: 'var(--copper)' },
+    { key: 'coin',   label: 'Coin',          tone: 'var(--ink)' },
+    { key: 'player', label: 'Random Player', tone: '#7E4E8A' },
+  ];
+
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0, zIndex: 28,
+        background: 'rgba(43,33,24,0.15)',
+      }}/>
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
+        background: 'var(--parchment)',
+        borderTop: '1px solid var(--line-strong)',
+        borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        padding: '14px 18px 32px',
+        boxShadow: '0 -20px 40px -10px rgba(43,33,24,0.18)',
+      }}>
+        <div style={{
+          width: 40, height: 4, borderRadius: 999,
+          background: 'var(--line-strong)', margin: '0 auto 14px',
+        }}/>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <div>
+            <div style={kicker(10)}>Your</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 22,
+              color: 'var(--ink)', letterSpacing: '-0.01em',
+              lineHeight: 1.15, marginTop: 2,
+            }}>Dice</div>
+          </div>
+          <button onClick={onClose} style={{
+            padding: '6px 12px', borderRadius: 999,
+            background: 'transparent', border: '1px solid var(--line-strong)',
+            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            cursor: 'pointer',
+          }}>Close</button>
+        </div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: 10, marginTop: 14,
+        }}>
+          {dice.map((d) => {
+            const isLast = lastRolled === d.key;
+            const val = (results as any)[d.key];
+            return (
+              <button key={d.key} onClick={() => roll(d.key)} style={{
+                background: 'var(--parchment-card)',
+                border: isLast ? `1.5px solid ${d.tone}` : '1px solid var(--line-strong)',
+                borderRadius: 16, padding: '14px 12px',
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                gap: 4, cursor: 'pointer',
+                boxShadow: isLast ? `0 0 0 3px ${d.tone}1a` : 'none',
+              }}>
+                <span style={kicker(10)}>{d.label}</span>
+                <span style={{
+                  fontFamily: 'var(--font-display)', fontSize: 28,
+                  lineHeight: 1, letterSpacing: '-0.02em', color: d.tone,
+                }}>{val ?? '—'}</span>
+                <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>
+                  {val ? (isLast ? 'Just rolled' : 'Previous roll') : 'Tap to roll'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Counter bottom sheet ──────────────────────────────────────────────────
+function CounterSheet({ onClose, counters, onAdjust }: any) {
+  const counterTypes = Object.entries(COUNTER_VOCAB).map(([key, v]: any) => ({
+    key, ...v, value: counters[key] || 0,
+  }));
+
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0, zIndex: 28,
+        background: 'rgba(43,33,24,0.15)',
+      }}/>
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
+        background: 'var(--parchment)',
+        borderTop: '1px solid var(--line-strong)',
+        borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        padding: '14px 18px 32px',
+        boxShadow: '0 -20px 40px -10px rgba(43,33,24,0.18)',
+      }}>
+        <div style={{
+          width: 40, height: 4, borderRadius: 999,
+          background: 'var(--line-strong)', margin: '0 auto 14px',
+        }}/>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <div>
+            <div style={kicker(10)}>You</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 22,
+              color: 'var(--ink)', letterSpacing: '-0.01em',
+              lineHeight: 1.15, marginTop: 2,
+            }}>Counters</div>
+          </div>
+          <button onClick={onClose} style={{
+            padding: '6px 12px', borderRadius: 999,
+            background: 'transparent', border: '1px solid var(--line-strong)',
+            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            cursor: 'pointer',
+          }}>Close</button>
+        </div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: 10, marginTop: 14,
+        }}>
+          {counterTypes.map((ct: any) => {
+            const active = ct.value > 0;
+            return (
+              <div key={ct.key} style={{
+                background: active ? ct.soft : 'var(--parchment-card)',
+                border: active ? `1.5px solid ${ct.tone}` : '1px solid var(--line-strong)',
+                borderRadius: 16, padding: '12px',
+                display: 'flex', flexDirection: 'column', gap: 8,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name={ct.glyph} size={16} stroke={ct.tone}/>
+                  <span style={kicker(10)}>{ct.label}</span>
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontSize: 28,
+                  lineHeight: 1, letterSpacing: '-0.02em', color: active ? ct.tone : 'var(--ink-3)',
+                }}>{ct.value}</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => onAdjust(ct.key, -1)} style={{
+                    flex: 1, height: 32, borderRadius: 10,
+                    background: 'var(--parchment)', border: '1px solid var(--line-strong)',
+                    fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', padding: 0,
+                    opacity: ct.value === 0 ? 0.3 : 1,
+                  }}>−</button>
+                  <button onClick={() => onAdjust(ct.key, 1)} style={{
+                    flex: 1, height: 32, borderRadius: 10,
+                    background: 'var(--parchment)', border: '1px solid var(--line-strong)',
+                    fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', padding: 0,
+                  }}>+</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Commander damage bottom sheet ─────────────────────────────────────────
+function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0, zIndex: 28,
+        background: 'rgba(43,33,24,0.15)',
+      }}/>
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
+        background: 'var(--parchment)',
+        borderTop: '1px solid var(--line-strong)',
+        borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        padding: '14px 18px 32px',
+        boxShadow: '0 -20px 40px -10px rgba(43,33,24,0.18)',
+      }}>
+        <div style={{
+          width: 40, height: 4, borderRadius: 999,
+          background: 'var(--line-strong)', margin: '0 auto 14px',
+        }}/>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <div>
+            <div style={kicker(10)}>Damage from</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 22,
+              color: 'var(--ink)', letterSpacing: '-0.01em',
+              lineHeight: 1.15, marginTop: 2,
+            }}>Opponents to you</div>
+          </div>
+          <button onClick={onClose} style={{
+            padding: '6px 12px', borderRadius: 999,
+            background: 'transparent', border: '1px solid var(--line-strong)',
+            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            cursor: 'pointer',
+          }}>Close</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+          {opponents.map((opp: any) => {
+            const dmg = cmdrDmg[opp.id] || 0;
+            const frac = Math.min(dmg / 21, 1);
+            return (
+              <div key={opp.id} style={{
+                background: 'var(--parchment-card)',
+                border: dmg > 0 ? '1.5px solid var(--copper)' : '1px solid var(--line-strong)',
+                borderRadius: 16, padding: '12px 14px',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <CommAvatar src={opp.art} size={36} ring="var(--copper)"/>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={kicker(9)}>{opp.name}</div>
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
+                    color: 'var(--ink)', letterSpacing: '-0.01em',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{opp.commander}</div>
+                  <div style={{
+                    marginTop: 6, height: 4, borderRadius: 999,
+                    background: 'var(--line)',
+                  }}>
+                    <div style={{
+                      height: '100%', borderRadius: 999,
+                      background: frac >= 1 ? '#9E2B2B' : 'var(--copper)',
+                      width: `${frac * 100}%`,
+                      transition: 'width 0.2s ease',
+                    }}/>
+                  </div>
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1,
+                  letterSpacing: '-0.02em', color: dmg > 0 ? 'var(--copper-deep)' : 'var(--ink-3)',
+                  fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'center',
+                }}>{dmg}<span style={{ fontSize: 12, color: 'var(--ink-4)' }}>/21</span></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <button onClick={() => onAdjust(opp.id, 1)} style={{
+                    width: 32, height: 32, borderRadius: 10,
+                    background: 'var(--parchment)', border: '1px solid var(--line-strong)',
+                    fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', padding: 0,
+                  }}>+</button>
+                  <button onClick={() => onAdjust(opp.id, -1)} style={{
+                    width: 32, height: 32, borderRadius: 10,
+                    background: 'var(--parchment)', border: '1px solid var(--line-strong)',
+                    fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', padding: 0,
+                    opacity: dmg === 0 ? 0.3 : 1,
+                  }}>−</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Opponent overlay — commander broadside ─────────────────────────────────
+function OpponentOverlay({ p, myLife, miniRoster, onClose, onLifeAdj, onSelectPlayer }: any) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 40,
+      background: 'rgba(43,33,24,0.22)',
+      backdropFilter: 'blur(2px)',
+      display: 'flex', flexDirection: 'column',
+      animation: 'overlayFadeIn 0.25s ease-out',
+    }}>
+      <div style={{
+        margin: '52px auto 0', display: 'flex', alignItems: 'center', gap: 14,
+        animation: 'dialShrinkUp 0.4s cubic-bezier(0.22,1,0.36,1)',
+      }}>
+        <MiniRoundBtn glyph={'−'} onClick={() => onLifeAdj(-1)}/>
+        <MiniLifeDial life={myLife}/>
+        <MiniRoundBtn glyph="+" onClick={() => onLifeAdj(1)}/>
+      </div>
+
+      <div style={{
+        margin: '10px 14px 0',
+        background: 'var(--parchment-card)',
+        border: '1px solid var(--line-strong)',
+        borderRadius: 12, padding: '6px 8px',
+        display: 'flex', justifyContent: 'space-between', gap: 6,
+      }}>
+        {miniRoster.map((m: any, i: number) => {
+          const isActive = m.id === p.id;
+          return (
+            <button key={i} onClick={() => onSelectPlayer?.(m)} style={{
+              flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+              padding: '4px 6px', borderRadius: 8, border: 'none',
+              background: isActive ? 'rgba(176,107,44,0.12)' : 'transparent',
+              cursor: 'pointer',
+              outline: isActive ? '1.5px solid var(--copper)' : 'none',
+            }}>
+              <CommAvatar src={m.art} size={18} ring={isActive ? 'var(--copper)' : 'var(--line-strong)'} dim={m.dead}/>
+              <div style={{
+                fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1,
+                color: m.dead ? 'var(--ink-4)' : 'var(--ink)',
+                fontVariantNumeric: 'tabular-nums',
+              }}>{m.dead ? '—' : m.life}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{
+        margin: '14px 14px',
+        background: 'var(--parchment-card)',
+        border: '1px solid var(--line-strong)',
+        borderRadius: 24,
+        boxShadow: '0 30px 60px -20px rgba(43,33,24,0.35)',
+        padding: 14, flex: 1, position: 'relative', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', gap: 10,
+        animation: 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CommAvatar src={p.art} size={42} ring="var(--copper)"/>
+            <div style={{ minWidth: 0 }}>
+              <div style={kicker(9)}>{p.name}</div>
+              <div style={{
+                fontFamily: 'var(--font-display)', fontSize: 17, lineHeight: 1.1,
+                color: 'var(--ink)', letterSpacing: '-0.01em',
+              }}>{p.commander}</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: 999,
+            background: 'transparent', border: '1px solid var(--line-strong)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', padding: 0,
+          }}>
+            <Icon name="x" size={14} stroke="var(--ink-2)"/>
+          </button>
+        </div>
+
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '6px 10px',
+          background: 'var(--parchment)', border: '1px solid var(--line)',
+          borderRadius: 10,
+        }}>
+          <div style={{
+            fontSize: 11, fontWeight: 600,
+            color: 'var(--ink-2)', letterSpacing: '0.04em',
+          }}>{p.typeLine || 'Legendary Creature'}</div>
+          <ManaDots colors={p.colors} size={7}/>
+        </div>
+
+        {p.rulesText && (
+          <div style={{
+            background: 'var(--parchment)', border: '1px solid var(--line)',
+            borderRadius: 12, padding: '10px 12px',
+            fontSize: 12, lineHeight: 1.45,
+            color: 'var(--ink-2)', fontStyle: 'italic',
+          }}>
+            {p.keywords && (
+              <span style={{ fontStyle: 'normal', fontWeight: 700, color: 'var(--ink)' }}>
+                {p.keywords}
+              </span>
+            )}
+            {' '}{p.rulesText}
+            {p.pt && (
+              <span style={{
+                display: 'block', marginTop: 6, fontStyle: 'normal',
+                fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: 'var(--ink-3)', fontWeight: 700,
+              }}>Power · Toughness — {p.pt}</span>
+            )}
+          </div>
+        )}
+
+        <div>
+          <div style={kicker(9)}>Counters</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            {(p.counters || []).map((c: any, i: number) => (
+              <CounterChip key={i} kind={c.kind} value={c.value}/>
+            ))}
+            {!(p.counters || []).length && (
+              <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>None on the table.</div>
+            )}
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: 'auto',
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
+        }}>
+          <div style={{
+            background: '#FDF0E6',
+            border: '1px solid rgba(176,107,44,0.30)',
+            borderRadius: 12, padding: '8px 12px',
+          }}>
+            <div style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.2em',
+              textTransform: 'uppercase', color: 'var(--copper-deep)',
+            }}>Dmg to you</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 34, lineHeight: 1,
+              letterSpacing: '-0.03em', color: 'var(--copper-deep)', marginTop: 4,
+              fontVariantNumeric: 'tabular-nums',
+            }}>{p.cmdrDmg ?? 0}<span style={{ fontSize: 14, color: 'var(--ink-4)' }}> /21</span></div>
+          </div>
+          <div style={{
+            background: 'var(--forest-soft)',
+            border: '1px solid var(--forest-line)',
+            borderRadius: 12, padding: '8px 12px',
+          }}>
+            <div style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.2em',
+              textTransform: 'uppercase', color: 'var(--forest)',
+            }}>Dmg from you</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 34, lineHeight: 1,
+              letterSpacing: '-0.03em', color: 'var(--forest-deep)', marginTop: 4,
+              fontVariantNumeric: 'tabular-nums',
+            }}>{p.cmdrDmgFromYou ?? 0}<span style={{ fontSize: 14, color: 'var(--ink-4)' }}> /21</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Settings overlay ──────────────────────────────────────────────────────
+function SettingsOverlay({ onClose, onAbandon }: any) {
+  const [confirmingAbandon, setConfirmingAbandon] = useState(false);
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 50,
+      background: 'rgba(43,33,24,0.22)',
+      backdropFilter: 'blur(2px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'overlayFadeIn 0.25s ease-out',
+    }}>
+      <div style={{
+        width: 'calc(100% - 48px)', maxWidth: 340,
+        background: 'var(--parchment)',
+        border: '1px solid var(--line-strong)',
+        borderRadius: 24,
+        boxShadow: '0 30px 60px -20px rgba(43,33,24,0.35)',
+        padding: 20,
+        animation: 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <div>
+            <div style={kicker(10)}>Game</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 22,
+              color: 'var(--ink)', letterSpacing: '-0.01em',
+              lineHeight: 1.15, marginTop: 2,
+            }}>Settings</div>
+          </div>
+          <button onClick={onClose} style={{
+            padding: '6px 12px', borderRadius: 999,
+            background: 'transparent', border: '1px solid var(--line-strong)',
+            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            cursor: 'pointer',
+          }}>Close</button>
+        </div>
+
+        {!confirmingAbandon ? (
+          <button onClick={() => setConfirmingAbandon(true)} style={{
+            width: '100%', cursor: 'pointer',
+            background: '#F5EFE2',
+            color: '#9E2B2B',
+            border: '1px solid rgba(158,43,43,0.2)',
+            borderRadius: 20,
+            padding: '14px 18px',
+            fontSize: 15, fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}>Abandon Game</button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{
+              textAlign: 'center', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.4,
+              marginBottom: 4,
+            }}>
+              Are you sure? This action cannot be undone.
+            </div>
+            <button onClick={onAbandon} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#F5EFE2',
+              color: '#9E2B2B',
+              border: '1px solid rgba(158,43,43,0.2)',
+              borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>Confirm Abandon</button>
+            <button onClick={() => setConfirmingAbandon(false)} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#F5EFE2',
+              color: 'var(--ink-2)',
+              border: '1px solid var(--line-strong)',
+              borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>Cancel</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Eliminated popup ─────────────────────────────────────────────────────
+function TornEdgeMini() {
+  const teeth = 24, w = 430, h = 14;
+  const seg = w / teeth;
+  let d = `M 0 ${h} `;
+  for (let i = 0; i <= teeth; i++) {
+    const x = i * seg;
+    const jitter = (Math.sin(i * 12.9898) * 43758.5453 % 1 + 1) % 1;
+    const y = i % 2 === 0 ? 2 + jitter * 3 : 6 + jitter * 4;
+    d += `L ${x.toFixed(1)} ${y.toFixed(1)} `;
+  }
+  d += `L ${w} ${h} Z`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+      style={{ display: 'block', width: '100%', marginBottom: -1 }} aria-hidden="true">
+      <path d={d} fill="#FAF5EA"/>
+    </svg>
+  );
+}
+
+function EliminatedPopup({ onRevive, onReview }: any) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 60,
+      display: 'flex', flexDirection: 'column',
+      fontFamily: 'var(--font-ui)',
+    }}>
+      <div onClick={onRevive} style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(43,33,24,0.55)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+      }}/>
+
+      <div style={{
+        marginTop: 'auto', position: 'relative',
+        maxWidth: 430, width: '100%', alignSelf: 'center',
+      }}>
+        <TornEdgeMini/>
+
+        <div style={{
+          position: 'relative',
+          background: '#FAF5EA',
+          padding: '8px 22px 32px',
+        }}>
+          <button onClick={onRevive} aria-label="Close" style={{
+            position: 'absolute', top: 14, right: 16,
+            width: 32, height: 32, borderRadius: 999,
+            border: '1px solid rgba(43,33,24,0.08)',
+            background: '#EDE4D0',
+            color: '#5C5043', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
+          }}>×</button>
+
+          <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+              <svg width={28} height={28} viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="36" r="2.4" fill="#B06B2C"/>
+                <defs><clipPath id="elim-clip"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
+                <g clipPath="url(#elim-clip)">
+                  <polygon points="8,60 30,4 31,4 24,60" fill="#B06B2C"/>
+                  <polygon points="40,60 33,4 34,4 56,60" fill="#B06B2C"/>
+                </g>
+              </svg>
+            </div>
+            <div style={{
+              fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
+              textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6,
+            }}>Life Reached Zero</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 26, letterSpacing: '-0.02em',
+              color: '#2B2118', lineHeight: 1.1,
+            }}>You have been eliminated</div>
+            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+              If the game is over, head to review to rate your experience.
+              If this was a mistake, revive to continue playing.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button onClick={onReview} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#2F5D3A', color: '#F5EFE2',
+              border: 'none', borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              boxShadow: '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F5EFE2" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+              </svg>
+              Go to Review
+            </button>
+
+            <button onClick={onRevive} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#F5EFE2', color: 'var(--ink-2)',
+              border: '1px solid var(--line-strong)',
+              borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>Revive</button>
+          </div>
+
+          <div style={{
+            textAlign: 'center', fontSize: 11, color: '#8A7E6F',
+            marginTop: 14, lineHeight: 1.4,
+          }}>
+            Closing this popup will revive you at 1 life.
+          </div>
+          <div style={{
+            textAlign: 'center', fontSize: 12, color: '#8A7E6F',
+            marginTop: 12,
+          }}>
+            Or <button onClick={onRevive} style={{
+              background: 'none', border: 'none', padding: 0,
+              fontSize: 12, color: '#8A7E6F', textDecoration: 'underline',
+              cursor: 'pointer',
+            }}>skip review</button> to exit the game.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE COMPONENT
+// ═════════════════════════════════════════════════════════════════════════════
 function PageContent() {
   useWakeLock();
+  ensureTokens();
+
+  const router = useRouter();
   const searchParams = useSearchParams();
   const podId = searchParams.get('podId') ?? '';
   const gameId = searchParams.get('gameId') ?? '';
   const { user, isLoggedIn, loading } = useAuth();
 
-  // Life counter state
+  // Game state from backend
   const [life, setLife] = useState(40);
-  const [isLifeExpanded, setIsLifeExpanded] = useState(false);
-  const [expandedOpponent, setExpandedOpponent] = useState<string | null>(null);
-
-  // Counter states
   const [poison, setPoison] = useState(0);
   const [experience, setExperience] = useState(0);
   const [energy, setEnergy] = useState(0);
+  const [dead, setDead] = useState(false);
 
-  // Modal states
-  const [diceModalOpen, setDiceModalOpen] = useState(false);
-  const [diceTab, setDiceTab] = useState('d20');
-  const [diceResult, setDiceResult] = useState<number | null>(null);
-  const [isRolling, setIsRolling] = useState(false);
+  // UI state
+  const [showDice, setShowDice] = useState(false);
+  const [showCounters, setShowCounters] = useState(false);
+  const [showCmdrDmg, setShowCmdrDmg] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showEliminated, setShowEliminated] = useState(false);
+  const [expandedOpponent, setExpandedOpponent] = useState<string | null>(null);
+  const [cmdrDmg, setCmdrDmg] = useState<Record<string, number>>({});
+  const [eliminationReason, setEliminationReason] = useState<'life' | 'cmdr' | null>(null);
 
-  const [countersModalOpen, setCountersModalOpen] = useState(false);
-
-  // Login/commander search state — NEVER show overlay when gameId exists in URL
-  // The commander was already chosen during pod creation / join
-  const [loginOverlayOpen, setLoginOverlayOpen] = useState(false);
-  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
-  const [searchText, setSearchText] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [selectedCard, setSelectedCard] = useState<any>(null);
-  const [showSearchMode, setShowSearchMode] = useState(false);
-  const [showSSO, setShowSSO] = useState(false);
-  const [ssoView, setSsoView] = useState('ssoViewSignin');
-  const [isSearching, setIsSearching] = useState(false);
-  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Real decks from backend
-  const [myDecks, setMyDecks] = useState<any[]>([]);
-
-  // Debounced sync refs (same pattern as gridview)
+  // Debounced sync refs
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
-
-  // Track pending sync functions so we can flush on unmount
   const pendingSyncRef = useRef<Record<string, () => void>>({});
-
   const debouncedSync = (key: string, fn: () => void) => {
     if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
     pendingSyncRef.current[key] = fn;
@@ -67,7 +1227,7 @@ function PageContent() {
     }, 300);
   };
 
-  // Flush any pending syncs when component unmounts (e.g. navigating away)
+  // Flush pending syncs on unmount
   useEffect(() => {
     return () => {
       Object.values(pendingSyncRef.current).forEach(fn => fn());
@@ -75,24 +1235,15 @@ function PageContent() {
     };
   }, []);
 
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
-
   // Game data state
   const [podSize, setPodSize] = useState(0);
   const [opponents, setOpponents] = useState<any[]>([]);
   const [currentUserData, setCurrentUserData] = useState<any>(null);
   const [commanderDetails, setCommanderDetails] = useState<Record<string, any>>({});
-
-  // Load user's decks from backend
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    async function loadDecks() {
-      const { data } = await getMyCommanders();
-      setMyDecks(data ?? []);
-    }
-    loadDecks();
-  }, [isLoggedIn]);
+  const [myArt, setMyArt] = useState('https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg');
+  const [myColors, setMyColors] = useState<string[]>([]);
+  const [myName, setMyName] = useState('Your Commander');
+  const [podName, setPodNameState] = useState('Game');
 
   // Load game data from backend when gameId is available AND user is loaded
   useEffect(() => {
@@ -104,8 +1255,8 @@ function PageContent() {
         if (!game) return;
 
         setPodSize(game.pod_size ?? 0);
+        setPodNameState(game.name ?? 'Game');
 
-        // Fetch deck info for all players (filter out null deck_ids from empty seats)
         const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
         let deckMap = new Map();
         if (deckIds.length > 0) {
@@ -116,7 +1267,6 @@ function PageContent() {
           deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
         }
 
-        // Build opponents array (all players except current user)
         const opponentsList: any[] = [];
         let currentPlayerData: any = null;
 
@@ -126,23 +1276,19 @@ function PageContent() {
           const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
           const isGuest = !p.user_id && (p.commander_name != null);
 
-          // Determine display name: deck commander > guest commander > "Player N"
           const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${seatNum}`;
-          const shortName = displayName.split(',')[0];
-
           const colorId = deck?.color_identity ?? '';
-          const firstColor = colorId.split('').find((c: string) => 'WUBRG'.includes(c))?.toLowerCase() ?? 'm';
-          const colorMap: Record<string, string> = { w: 'a', u: 'a', b: 'm', r: 'r', g: 'a' };
-          const avatarColor = isEmptySeat ? 'a' : (colorMap[firstColor] ?? 'a');
+          const colorIdentityArray = colorId.split('').filter((c: string) => 'WUBRG'.includes(c));
 
           const playerData = {
             key: `seat-${seatNum}`,
+            id: `seat-${seatNum}`,
             seatNumber: seatNum,
             userId: p.user_id ?? null,
             name: displayName,
-            player: shortName,
+            player: displayName.split(',')[0],
             life: p.life_total ?? 40,
-            color: avatarColor,
+            color: colorId,
             lifeColor: (p.life_total ?? 40) <= 0 ? 'red' : (p.life_total ?? 40) < 10 ? 'red' : 'teal',
             aura: deck?.aura_score ?? 0,
             colorIdentity: colorId,
@@ -162,11 +1308,15 @@ function PageContent() {
 
           if (p.user_id === user?.id) {
             currentPlayerData = playerData;
-            // Initialize local life and counters from backend
             setLife(p.life_total ?? 40);
             setPoison(p.poison_counters ?? 0);
             setExperience(p.experience_counters ?? 0);
             setEnergy(p.energy_counters ?? 0);
+            if (p.commander_damage_received && typeof p.commander_damage_received === 'object') {
+              setCmdrDmg(p.commander_damage_received as Record<string, number>);
+            }
+            setMyName(displayName);
+            setMyColors(colorIdentityArray);
           } else {
             opponentsList.push(playerData);
           }
@@ -181,7 +1331,6 @@ function PageContent() {
 
     loadGameData();
 
-    // Subscribe to realtime updates on game_players for this game
     const channel = supabase
       .channel(`game-singleview-${gameId}`)
       .on(
@@ -192,23 +1341,22 @@ function PageContent() {
           if (!row) return;
 
           if (row.user_id && row.user_id === user?.id) {
-            // Update own life/counters (from another device)
             setLife(row.life_total ?? 40);
             setPoison(row.poison_counters ?? 0);
             setExperience(row.experience_counters ?? 0);
             setEnergy(row.energy_counters ?? 0);
+            if (row.commander_damage_received && typeof row.commander_damage_received === 'object') {
+              setCmdrDmg(row.commander_damage_received);
+            }
           } else {
-            // Update opponent data — match by seat_number (works for guests/empty seats too)
             setOpponents(prev => prev.map(opp => {
               if (opp.seatNumber === row.seat_number) {
                 return {
                   ...opp,
                   life: row.life_total ?? opp.life,
-                  lifeColor: (row.life_total ?? opp.life) < 10 ? 'red' : 'teal',
                   poisonCounters: row.poison_counters ?? opp.poisonCounters,
                   experienceCounters: row.experience_counters ?? opp.experienceCounters,
                   energyCounters: row.energy_counters ?? opp.energyCounters,
-                  // Update commander name if a guest just picked one
                   name: row.commander_name ?? opp.name,
                   player: row.commander_name ? row.commander_name.split(',')[0] : opp.player,
                   isEmptySeat: !row.user_id && !row.deck_id && !row.commander_name,
@@ -243,1886 +1391,333 @@ function PageContent() {
             typeLine: card.type_line ?? '',
             oracleText: card.oracle_text ?? '',
             flavorText: card.flavor_text ?? '',
+            art_crop: card.image_uris?.art_crop ?? '',
             manaCost: card.mana_cost ?? '',
             power: card.power,
             toughness: card.toughness,
             colorIdentity: card.color_identity ?? [],
           }
         }));
-      } catch { /* Scryfall fetch failed, card detail stays empty */ }
+      } catch { /* Scryfall fetch failed */ }
     });
   }, [opponents]);
 
-  // Only show login overlay if there's NO gameId (standalone singleview, not from a game)
-  // If there IS a gameId, the commander was already chosen — never show the overlay
+  // Fetch current user's commander art from Scryfall
   useEffect(() => {
-    if (!loading && !gameId && !isLoggedIn) {
-      setLoginOverlayOpen(true);
+    if (!myName || myName === 'Your Commander') return;
+    async function fetchMyArt() {
+      try {
+        const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(myName)}`);
+        if (!res.ok) return;
+        const card = await res.json();
+        if (card.image_uris?.art_crop) {
+          setMyArt(card.image_uris.art_crop);
+        }
+      } catch { /* Scryfall fetch failed */ }
     }
-  }, [loading, gameId, isLoggedIn]);
+    fetchMyArt();
+  }, [myName]);
 
-  // Long press ref
+  // Long press logic
   const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
-
-  const stopLongPress = () => {
-    if (longPressRef.current.timeout) { clearTimeout(longPressRef.current.timeout); longPressRef.current.timeout = null; }
-    if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
-  };
-
-  // Track latest life value for debounced sync (avoids stale closure)
   const latestLifeRef = useRef(life);
 
-  // Life control functions — synced to backend
-  const adjustLife = (delta: number) => {
+  useEffect(() => {
+    latestLifeRef.current = life;
+  }, [life]);
+
+  const stopLongPress = useCallback(() => {
+    if (longPressRef.current.timeout) {
+      clearTimeout(longPressRef.current.timeout);
+      longPressRef.current.timeout = null;
+    }
+    if (longPressRef.current.interval) {
+      clearInterval(longPressRef.current.interval);
+      longPressRef.current.interval = null;
+    }
+  }, []);
+
+  const adjustLife = useCallback((delta: number) => {
     setLife(prev => {
       const newLife = Math.max(0, prev + delta);
-      if (newLife === 0) stopLongPress();
+      if (newLife === 0) {
+        stopLongPress();
+        setEliminationReason('life');
+        setShowEliminated(true);
+        setDead(true);
+      }
       latestLifeRef.current = newLife;
 
-      // Debounced sync to backend — reads from ref to get latest value
       if (gameId && user?.id) {
         debouncedSync('life', () => {
-          updateLifeTotal(gameId, user.id, latestLifeRef.current).catch((e) => {
+          updateLifeTotal(gameId, user.id, newLife).catch((e) => {
             console.error('Failed to sync life:', e);
           });
         });
       }
       return newLife;
     });
-  };
+  }, [gameId, user?.id, stopLongPress]);
 
-  const startLongPress = (delta: number) => {
+  const startLongPress = useCallback((delta: number) => {
     longPressRef.current.timeout = setTimeout(() => {
       adjustLife(delta * 4);
       longPressRef.current.interval = setInterval(() => {
         adjustLife(delta * 5);
       }, 200);
-    }, 500);
-  };
-
-  const handleRevive = () => {
-    setLife(1);
-    if (gameId && user?.id) {
-      updateLifeTotal(gameId, user.id, 1).catch(() => {});
-    }
-  };
-
-  // Opponent expansion
-  const expandOpponent = (key: string) => {
-    setExpandedOpponent(key);
-    setIsLifeExpanded(true);
-  };
-
-  const collapseOpponent = () => {
-    setExpandedOpponent(null);
-    setIsLifeExpanded(false);
-  };
-
-  // Dice roll
-  const rollDice = () => {
-    setIsRolling(true);
-    setDiceResult(null);
-
-    setTimeout(() => {
-      let result = 0;
-      if (diceTab === 'd20') result = Math.floor(Math.random() * 20) + 1;
-      else if (diceTab === 'd10') result = Math.floor(Math.random() * 10) + 1;
-      else if (diceTab === 'd6') result = Math.floor(Math.random() * 6) + 1;
-
-      setDiceResult(result);
-      setIsRolling(false);
-    }, 1000);
-  };
-
-  // Login flows
-  const handleConfirmCommander = () => {
-    if (selectedCard) {
-      setLoginOverlayOpen(false);
-      setToastMessage(`Confirmed: ${selectedCard.name}`);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2500);
-    }
-  };
-
-  const handleSSOComplete = () => {
-    setShowSSO(false);
-    setToastMessage('Welcome back!');
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2500);
-  };
-
-  const handleConfirmDeck = () => {
-    if (selectedDeck !== null) {
-      const deck = myDecks.find((d: any) => d.id === selectedDeck);
-      setLoginOverlayOpen(false);
-      setToastMessage(`Deck selected: ${deck?.commander_name ?? 'Unknown'}`);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2500);
-    }
-  };
-
-  // Search for commanders via Scryfall API (debounced)
-  const handleSearch = (text: string) => {
-    setSearchText(text);
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-
-    if (!text.trim() || text.trim().length < 2) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-    searchTimerRef.current = setTimeout(async () => {
-      try {
-        const results = await searchCommanders(text.trim());
-        setSearchResults(results.map((card: any) => ({
-          name: card.name,
-          type: card.type_line ?? '',
-          art: card.image_uris?.art_crop ?? card.image_uris?.small ?? '',
-          colorIdentity: card.color_identity?.join('') ?? '',
-          manaCost: card.mana_cost ?? '',
-          oracleText: card.oracle_text ?? '',
-          flavorText: card.flavor_text ?? '',
-          power: card.power,
-          toughness: card.toughness,
-        })));
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
     }, 400);
+  }, [adjustLife]);
+
+  // Map backend opponent data to wireframe format
+  const mappedOpponents = opponents.map((opp: any) => {
+    const detail = commanderDetails[opp.key] || {};
+    const counters: any[] = [];
+    if (opp.poisonCounters > 0) counters.push({ kind: 'poison', value: opp.poisonCounters });
+    if (opp.experienceCounters > 0) counters.push({ kind: 'experience', value: opp.experienceCounters });
+    if (opp.energyCounters > 0) counters.push({ kind: 'energy', value: opp.energyCounters });
+
+    const colorIdentityArray = opp.colorIdentity.split('').filter((c: string) => 'WUBRG'.includes(c));
+    const art = detail.art_crop || 'https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg';
+
+    return {
+      id: opp.id,
+      name: opp.name,
+      commander: opp.name,
+      typeLine: detail.typeLine || 'Legendary Creature',
+      art: art,
+      colors: colorIdentityArray,
+      life: opp.life,
+      cmdrDmg: cmdrDmg[opp.id] || 0,
+      cmdrDmgFromYou: 0,
+      counters: counters,
+      keywords: detail.keywords || null,
+      rulesText: detail.oracleText || null,
+      pt: detail.power && detail.toughness ? `${detail.power}/${detail.toughness}` : null,
+      dead: opp.life <= 0,
+    };
+  });
+
+  const counterChips: any[] = [];
+  if (poison > 0) counterChips.push({ kind: 'poison', value: poison });
+  if (energy > 0) counterChips.push({ kind: 'energy', value: energy });
+  if (experience > 0) counterChips.push({ kind: 'experience', value: experience });
+
+  const handleNav = (id: string) => {
+    if (id === 'dice') { setShowDice(prev => !prev); setShowCounters(false); setShowCmdrDmg(false); }
+    else if (id === 'count') { setShowCounters(prev => !prev); setShowDice(false); setShowCmdrDmg(false); }
+    else if (id === 'cmdr') { setShowCmdrDmg(prev => !prev); setShowDice(false); setShowCounters(false); }
+    else if (id === 'grid') {
+      if (podSize >= 2 && podSize <= 5) {
+        router.push(`/gridview-${podSize}p?podId=${podId}&gameId=${gameId}`);
+      }
+    }
   };
 
-  const handleSelectCard = (card: any) => {
-    setSelectedCard(card);
+  const adjustCounter = useCallback((kind: string, delta: number) => {
+    const setters: any = { poison: setPoison, energy: setEnergy, experience: setExperience };
+    const setter = setters[kind];
+    if (setter) {
+      setter((prev: number) => {
+        const newVal = Math.max(0, prev + delta);
+        if (gameId && user?.id) {
+          const updateFn = {
+            poison: updatePoisonCounters,
+            energy: updateEnergyCounters,
+            experience: updateExperienceCounters,
+          }[kind];
+          if (updateFn) {
+            debouncedSync(kind, () => {
+              updateFn(gameId, user.id, newVal).catch(() => {});
+            });
+          }
+        }
+        return newVal;
+      });
+    }
+  }, [gameId, user?.id]);
+
+  const handleAbandon = () => {
+    if (gameId && user?.id) {
+      abandonGame(gameId, user.id).then(() => {
+        router.push('/dashboard');
+      }).catch(() => {});
+    }
   };
+
+  const miniRoster = mappedOpponents.filter(p => !p.dead).map(p => ({
+    id: p.id,
+    name: p.name,
+    art: p.art,
+    life: p.life,
+    dead: p.dead,
+  }));
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{__html: `
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Jaldi:wght@400;700&display=swap');
-
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        html, body {
-          height: 100%;
-          overflow: hidden;
-          font-family: 'Inter', sans-serif;
-          background: #e8dcc8;
-        }
-
-        .app {
-          width: 100%;
-          height: 100%;
-          max-width: 430px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          padding: 0 24px;
-          padding-top: env(safe-area-inset-top, 16px);
-          padding-bottom: env(safe-area-inset-bottom, 0px);
-          overflow: hidden;
-        }
-
-        .life-card {
-          border-radius: 26px;
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-          border: 1.5px solid rgb(56,158,133);
-          box-shadow: 0 16px 34px rgba(26,120,105,0.35), 0 4px 10px rgba(13,64,51,0.25);
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s ease;
-          flex-shrink: 0;
-          margin-top: 16px;
-        }
-
-        .life-card.collapsed {
-          height: 268px;
-        }
-
-        .life-card.expanded {
-          height: 96px;
-          border-radius: 22px;
-        }
-
-        .life-number {
-          font-family: 'Jaldi', sans-serif;
-          font-weight: 700;
-          color: rgb(245,239,227);
-          text-align: center;
-          transition: font-size 0.3s ease;
-          line-height: 1;
-        }
-
-        .life-card.collapsed .life-number { font-size: 150px; }
-        .life-card.expanded .life-number { font-size: 72px; }
-
-        .life-card.critical { box-shadow: 0 16px 34px rgba(168,74,58,0.4), 0 4px 10px rgba(168,74,58,0.25); }
-        .life-card.critical .life-number { color: #ff6b6b; text-shadow: 0 0 20px rgba(255,107,107,0.5); }
-
-        .life-card.dead {
-          box-shadow: 0 16px 34px rgba(168,74,58,0.5), 0 4px 10px rgba(168,74,58,0.3);
-          background: linear-gradient(135deg, rgb(80,50,45) 0%, rgb(100,60,50) 50%, rgb(120,70,55) 100%);
-          border-color: rgba(168,74,58,0.6);
-        }
-
-        .life-card.dead .life-number {
-          color: #ff6b6b;
-          text-shadow: 0 0 30px rgba(255,107,107,0.6);
-        }
-
-        .revive-btn {
-          padding: 12px 32px;
-          border-radius: 22px;
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-          border: 1.5px solid rgb(56,158,133);
-          color: rgb(245,239,227);
-          font-family: 'Inter', sans-serif;
-          font-size: 14px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 12px rgba(26,120,105,0.35);
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .revive-btn:active { transform: scale(0.95); }
-
-        .review-game-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 12px 20px;
-          margin-top: 12px;
-          background: rgb(245,239,227);
-          border: 1px solid rgb(184,168,138);
-          border-radius: 14px;
-          box-shadow: 0 6px 16px rgba(26,20,13,0.08);
-          cursor: pointer;
-          transition: all 0.2s ease;
-          text-decoration: none;
-          color: inherit;
-          width: 100%;
-        }
-
-        .review-game-btn:active { transform: scale(0.98); }
-
-        .review-game-icon {
-          width: 20px;
-          height: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .review-game-text {
-          font-size: 14px;
-          font-weight: 600;
-          color: rgb(44,62,54);
-        }
-
-        .review-game-arrow {
-          font-size: 14px;
-          color: rgb(26,122,106);
-          margin-left: auto;
-        }
-
-        .life-controls {
-          display: flex;
-          justify-content: space-between;
-          width: 100%;
-          position: absolute;
-          padding: 0 22px;
-          transition: all 0.3s ease;
-        }
-
-        .life-card.collapsed .life-controls { bottom: 24px; }
-        .life-card.expanded .life-controls { top: 26px; padding: 0 16px; }
-
-        .control-button {
-          width: 54px; height: 54px; border-radius: 27px;
-          border: 1px solid rgb(245,239,227);
-          background: rgba(245,239,227,0.18);
-          color: rgb(245,239,227);
-          font-size: 28px; font-weight: bold;
-          cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s ease;
-        }
-
-        .life-card.expanded .control-button { width: 44px; height: 44px; border-radius: 22px; font-size: 24px; }
-        .control-button:active { transform: scale(0.9); background: rgba(245,239,227,0.3); }
-
-        .life-counters {
-          position: absolute;
-          top: 12px;
-          left: 0;
-          right: 0;
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-          pointer-events: none;
-          transition: all 0.3s ease;
-        }
-
-        .life-card.expanded .life-counters { top: 6px; }
-
-        .life-counter-indicator {
-          display: none;
-          align-items: center;
-          gap: 4px;
-          opacity: 0.85;
-        }
-
-        .life-counter-indicator.visible { display: flex; }
-
-        .life-counter-indicator svg {
-          width: 12px;
-          height: 12px;
-        }
-
-        .life-counter-indicator svg path {
-          stroke: rgb(245,239,227);
-          stroke-width: 2.8;
-        }
-
-        .life-counter-number {
-          font-family: 'Inter', sans-serif;
-          font-weight: 700;
-          font-size: 13px;
-          color: rgb(245,239,227);
-          line-height: 1;
-        }
-
-        .opponents-panel {
-          margin-top: 16px;
-          border-radius: 22px;
-          background: rgb(245,239,227);
-          border: 1px solid rgb(184,168,138);
-          box-shadow: 0 6px 16px rgba(26,20,13,0.08);
-          overflow-y: auto;
-          transition: all 0.3s ease;
-        }
-
-        .opponent-row {
-          padding: 14px 20px;
-          display: flex;
-          align-items: flex-start;
-          gap: 0;
-          column-gap: 12px;
-          border-bottom: 1px solid rgba(184,168,138,0.55);
-          cursor: pointer;
-          transition: all 0.5s ease;
-          position: relative;
-          flex-wrap: wrap;
-        }
-
-        .opponent-row:last-child { border-bottom: none; }
-
-        .opponent-row.dimmed { opacity: 0.55; padding: 8px 20px; align-items: center; }
-        .opponent-row.dimmed .opponent-name { font-size: 12px; margin-bottom: 0; }
-        .opponent-row.dimmed .opponent-player { max-height: 0; overflow: hidden; margin: 0; opacity: 0; }
-        .opponent-row.dimmed .expand-text { max-height: 0; overflow: hidden; margin: 0; opacity: 0; }
-        .opponent-row.dimmed .life-chip { max-height: 0; max-width: 0; overflow: hidden; opacity: 0; padding: 0; border: none; }
-        .opponent-row.dimmed .opponent-avatar { width: 28px; height: 28px; font-size: 12px; border-width: 2px; }
-
-        .opponent-row.empty-seat { opacity: 0.4; cursor: default; }
-        .opponent-row.empty-seat .opponent-avatar { border-style: dashed; }
-        .opponent-row.empty-seat .opponent-player { font-style: italic; color: rgb(160,160,160); }
-
-        .opponent-avatar {
-          width: 40px; height: 40px; border-radius: 50%;
-          background: rgb(222,212,192);
-          border: 2.5px solid;
-          display: flex; align-items: center; justify-content: center;
-          font-weight: 700; font-size: 16px;
-          flex-shrink: 0;
-          transition: all 0.3s ease;
-        }
-
-        .opponent-avatar.m { border-color: rgb(140,51,77); color: rgb(140,51,77); }
-        .opponent-avatar.r { border-color: rgb(184,102,51); color: rgb(184,102,51); }
-        .opponent-avatar.a { border-color: rgb(26,122,106); color: rgb(26,122,106); }
-
-        .opponent-row.active-expanded { z-index: 10; }
-        .opponent-row.active-expanded .opponent-avatar { width: 44px; height: 44px; border-width: 3px; font-size: 18px; }
-
-        .opponent-info { flex: 1; min-width: 0; }
-
-        .opponent-name {
-          font-weight: 700; font-size: 15px;
-          color: rgb(44,62,54);
-          margin-bottom: 2px;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-
-        .opponent-name.korvold-color { color: rgb(168,74,58); }
-
-        .opponent-player { font-weight: 500; font-size: 11px; color: rgb(90,110,98); margin-bottom: 4px; transition: all 0.5s ease; max-height: 20px; opacity: 1; }
-
-        .expand-text { font-weight: 600; font-size: 8px; color: rgb(175,174,173); text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.5s ease; max-height: 20px; opacity: 1; }
-
-        .life-chip {
-          width: 38px; padding: 6px 0;
-          border-radius: 8px; border: 1px solid;
-          display: flex; flex-direction: column; align-items: center; gap: 2px;
-          font-weight: 700; text-align: center; flex-shrink: 0;
-          transition: all 0.5s ease;
-        }
-
-        .life-chip-heart { font-size: 11px; line-height: 1; }
-        .life-chip-value { font-size: 17px; line-height: 1; }
-
-        .life-chip.teal { border-color: rgb(26,122,106); color: rgb(26,122,106); }
-        .life-chip.teal .life-chip-heart, .life-chip.teal .life-chip-value { color: rgb(26,122,106); }
-        .life-chip.red { border-color: rgb(168,74,58); color: rgb(168,74,58); }
-        .life-chip.red .life-chip-heart, .life-chip.red .life-chip-value { color: rgb(168,74,58); }
-
-        .life-chip { position: relative; }
-        .counter-badges {
-          position: absolute;
-          top: -10px;
-          right: -6px;
-          display: flex;
-          flex-direction: row;
-          gap: 2px;
-          align-items: center;
-        }
-
-        .counter-pip {
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          color: rgb(245,239,227);
-          font-size: 8px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1.5px solid rgb(245,239,227);
-        }
-
-        .counter-pip.poison { background: rgb(90,60,90); }
-        .counter-pip.experience { background: rgb(184,146,46); }
-        .counter-pip.energy { background: rgb(217,150,50); }
-
-        .expand-backdrop {
-          display: none;
-          position: fixed;
-          inset: 0;
-          z-index: 50;
-          background: rgba(26,20,13,0.45);
-        }
-
-        .expand-backdrop.active {
-          display: block;
-        }
-
-        .opponents-panel.has-expanded {
-          position: relative;
-          z-index: 51;
-          overflow-y: auto;
-          flex-shrink: 1;
-        }
-
-        .app.has-expanded {
-          overflow: visible;
-        }
-
-        .expanded-detail {
-          width: 100%;
-          max-height: 0;
-          overflow: hidden;
-          opacity: 0;
-          transition: max-height 0.55s ease, opacity 0.45s ease, padding 0.55s ease, margin 0.55s ease;
-          padding: 0;
-        }
-
-        .opponent-row.active-expanded .expanded-detail {
-          max-height: 600px;
-          opacity: 1;
-          padding: 12px 0 4px;
-        }
-
-        .commander-card {
-          width: 100%;
-          background: linear-gradient(135deg, rgb(241,231,211) 0%, rgb(229,216,194) 100%);
-          border: 1.25px solid rgb(184,146,46);
-          border-radius: 12px;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .expand-aura-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 10px;
-        }
-
-        .expand-aura-label {
-          font-size: 12px;
-          font-weight: 700;
-          color: rgb(90,110,98);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .expand-aura-score {
-          padding: 2px 10px;
-          border-radius: 8px;
-          border: 1.5px solid rgba(120,180,220,0.8);
-          background: rgba(195,225,245,0.5);
-          font-size: 13px;
-          font-weight: 700;
-          color: rgb(60,130,185);
-        }
-
-        .brewed-for-divider {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 0 6px;
-        }
-
-        .brewed-for-line {
-          flex: 1;
-          height: 1px;
-          background: rgba(184,168,138,0.6);
-        }
-
-        .brewed-for-text {
-          font-size: 10px;
-          font-weight: 700;
-          color: rgb(90,110,98);
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          white-space: nowrap;
-        }
-
-        .badges-row {
-          display: flex;
-          width: 100%;
-          padding: 6px 0 4px;
-          gap: 4px;
-          justify-content: center;
-          flex-wrap: nowrap;
-        }
-
-        .badge-circle-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          flex: 1;
-          max-width: 60px;
-        }
-
-        .badge-circle-wrap {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          border: 2px solid rgb(184,168,138);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          background: rgb(245,239,227);
-        }
-
-        .badge-circle-wrap.earned {
-          border-color: rgb(184,168,138);
-        }
-
-        .badge-circle-wrap.empty {
-          border-color: rgba(184,168,138,0.35);
-          opacity: 0.4;
-        }
-
-        .badge-circle-wrap svg {
-          width: 20px;
-          height: 20px;
-        }
-
-        .badge-count-pip {
-          position: absolute;
-          top: -4px;
-          right: -4px;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: rgb(26,122,106);
-          color: rgb(245,239,227);
-          font-size: 9px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1.5px solid rgb(245,239,227);
-        }
-
-        .badge-circle-label {
-          font-size: 8px;
-          font-weight: 600;
-          color: rgb(90,110,98);
-          text-align: center;
-          line-height: 1.2;
-        }
-
-        .badge-circle-wrap.empty + .badge-circle-label {
-          opacity: 0.4;
-        }
-
-        .commander-header {
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 100%);
-          padding: 6px 14px; height: 32px;
-          display: flex; justify-content: space-between; align-items: center;
-          border-bottom: 1px solid rgba(184,146,46,0.75);
-        }
-
-        .commander-header-text { font-family: 'Jaldi', sans-serif; font-weight: 700; font-size: 14px; color: rgb(245,239,227); }
-
-        .commander-mana { display: flex; gap: 4px; }
-
-        .mana-pip {
-          width: 18px; height: 18px; border-radius: 50%;
-          border: 1px solid rgb(245,239,227);
-          display: flex; align-items: center; justify-content: center;
-          font-weight: 700; font-size: 10px; color: rgb(245,239,227);
-        }
-        .mana-pip.u { background: rgb(92,143,209); }
-        .mana-pip.b { background: rgb(51,51,56); }
-        .mana-pip.r { background: rgb(217,102,77); }
-
-        .commander-body { padding: 10px 14px; }
-        .commander-type { font-weight: 600; font-size: 10px; color: rgb(44,62,54); margin-bottom: 6px; }
-        .commander-divider { height: 1px; background: rgba(184,168,138,0.7); margin-bottom: 6px; }
-        .commander-rules { font-size: 9px; color: rgb(44,62,54); line-height: 1.5; margin-bottom: 6px; white-space: pre-wrap; }
-        .commander-flavor { font-size: 9px; color: rgb(90,110,98); font-style: italic; line-height: 1.3; margin-bottom: 8px; }
-        .commander-pt {
-          font-family: 'Jaldi', sans-serif; font-weight: 700; font-size: 12px;
-          color: rgb(26,122,106);
-          border: 1px solid rgb(184,146,46); border-radius: 4px;
-          padding: 2px 8px; display: inline-block; float: right;
-          background: rgb(245,239,227);
-        }
-
-        .bottom-nav {
-          margin-top: auto;
-          padding-top: 16px;
-          margin-bottom: 16px;
-          height: 84px;
-          border-radius: 26px;
-          border-top: 1px solid rgba(184,168,138,0.5);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-shrink: 0;
-          position: relative;
-          z-index: 51;
-        }
-
-        .nav-item {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 6px; cursor: pointer; flex: 1;
-          transition: all 0.2s ease;
-        }
-        .nav-item:active { transform: scale(0.9); }
-
-        .nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
-
-        .dice-icon {
-          width: 24px; height: 24px;
-          border: 1.75px solid rgb(26,122,106); border-radius: 4px;
-          position: relative;
-        }
-        .dice-dot {
-          width: 3px; height: 3px; background: rgb(26,122,106);
-          position: absolute; border-radius: 50%;
-        }
-        .dice-dot:nth-child(1) { top: 3px; left: 3px; }
-        .dice-dot:nth-child(2) { top: 3px; right: 3px; }
-        .dice-dot:nth-child(3) { top: 9px; left: 9px; }
-        .dice-dot:nth-child(4) { bottom: 3px; left: 3px; }
-        .dice-dot:nth-child(5) { bottom: 3px; right: 3px; }
-
-        .star-icon {
-          width: 24px; height: 24px;
-          border: 1.75px solid rgb(26,122,106); border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .star {
-          width: 12px; height: 12px;
-          clipPath: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-          background: rgb(26,122,106);
-        }
-
-        .nav-label { font-weight: 500; font-size: 12px; color: rgb(90,110,98); }
-
-        .grid-view-button {
-          flex: 1; height: 64px;
-          background: linear-gradient(135deg, rgb(21,138,114) 0%, rgb(26,122,106) 100%);
-          border-radius: 18px; border: 1px solid rgb(56,158,133);
-          box-shadow: 0 4px 12px rgba(26,120,105,0.45);
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 4px; cursor: pointer;
-          color: rgb(245,239,227); font-weight: 700; font-size: 12px;
-          transition: all 0.2s ease;
-          font-family: 'Inter', sans-serif;
-        }
-        .grid-view-button:active { transform: scale(0.95); }
-
-        .grid-icon { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-        .grid-square { width: 8px; height: 8px; background: rgb(245,239,227); border-radius: 2px; }
-
-        .modal-overlay {
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.55);
-          display: none; align-items: center; justify-content: center;
-          z-index: 1000;
-        }
-        .modal-overlay.active { display: flex; }
-
-        .dice-modal {
-          width: calc(100% - 40px); max-width: 335px;
-          background: rgb(245,239,227);
-          border: 1.3px solid rgb(184,168,138);
-          border-radius: 20px; padding: 24px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-          position: relative;
-        }
-
-        .modal-close {
-          position: absolute; top: 16px; right: 16px;
-          background: none; border: none;
-          font-size: 20px; color: rgb(90,110,98); cursor: pointer;
-        }
-        .modal-close:active { transform: scale(0.9); }
-
-        .modal-title { font-weight: 600; font-size: 16px; color: rgb(44,62,54); margin-bottom: 16px; text-align: center; }
-
-        .tab-group { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
-
-        .tab {
-          padding: 8px 16px; border: 1.3px solid rgb(184,168,138);
-          background: rgb(222,212,192); color: rgb(44,62,54);
-          font-weight: 600; font-size: 14px; cursor: pointer;
-          border-radius: 999px; transition: all 0.2s ease;
-        }
-        .tab.active {
-          background: linear-gradient(135deg, rgb(26,122,106) 0%, rgb(21,138,114) 100%);
-          color: rgb(245,239,227); border-color: transparent;
-        }
-
-        .result-display {
-          font-family: 'Inter', sans-serif; font-weight: 700; font-size: 96px;
-          color: rgb(26,122,106); text-align: center;
-          margin-bottom: 8px; line-height: 1; min-height: 100px;
-          display: flex; align-items: center; justify-content: center;
-        }
-
-        .rolling-text { font-size: 12px; color: rgb(90,110,98); text-align: center; margin-bottom: 20px; min-height: 16px; }
-
-        .roll-button {
-          width: 100%; padding: 12px;
-          background: linear-gradient(135deg, rgb(26,122,106) 0%, rgb(21,138,114) 100%);
-          border: none; border-radius: 10px;
-          color: rgb(245,239,227); font-weight: 600; font-size: 14px; cursor: pointer;
-        }
-        .roll-button:active { transform: scale(0.98); }
-
-        .counters-overlay {
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.55);
-          display: none; align-items: center; justify-content: center;
-          z-index: 1000;
-        }
-        .counters-overlay.active { display: flex; }
-
-        .counters-modal {
-          width: calc(100% - 40px); max-width: 335px;
-          background: rgb(245,239,227);
-          border: 1.3px solid rgb(184,168,138);
-          border-radius: 20px; padding: 24px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-          position: relative;
-        }
-
-        .counters-content { padding: 0; }
-        .counters-title { font-weight: 600; font-size: 16px; color: rgb(44,62,54); margin-bottom: 16px; text-align: center; }
-
-        .counter-row {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 16px; background: rgb(222,212,192);
-          border-radius: 12px; margin-bottom: 12px;
-        }
-
-        .counter-label { display: flex; align-items: center; gap: 12px; }
-        .counter-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
-        .counter-icon svg { width: 20px; height: 20px; }
-        .counter-name { font-weight: 400; font-size: 14px; color: rgb(44,62,54); }
-
-        .counter-controls { display: flex; align-items: center; gap: 10px; }
-        .counter-btn {
-          width: 28px; height: 32px; border-radius: 8px;
-          border: 1.3px solid rgb(184,168,138);
-          background: rgb(245,239,227);
-          color: rgb(44,62,54); font-size: 18px; font-weight: 700;
-          cursor: pointer; display: flex; align-items: center; justify-content: center;
-        }
-        .counter-btn:active { transform: scale(0.9); }
-        .counter-value { font-weight: 700; font-size: 24px; color: rgb(44,62,54); min-width: 28px; text-align: center; }
-
-        .toast {
-          position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
-          background: rgb(44,62,54); color: rgb(245,239,227);
-          padding: 10px 20px; border-radius: 8px;
-          font-size: 13px; font-weight: 500;
-          opacity: 0; pointer-events: none;
-          transition: all 0.3s ease; z-index: 9999;
-        }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-        .login-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.55);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 2000;
-        }
-
-        .login-overlay.hidden {
-          display: none;
-        }
-
-        .login-modal-wrap {
-          width: 100%;
-          max-width: 430px;
-          position: relative;
-        }
-
-        .login-profile-btn {
-          position: absolute;
-          top: -40px;
-          right: 0;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background: rgb(245,239,227);
-          border: 1.5px solid rgb(184,168,138);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          z-index: 100;
-        }
-
-        .login-modal {
-          width: calc(100% - 48px);
-          max-width: 382px;
-          margin: 0 auto;
-          background: rgb(245,239,227);
-          border: 1.3px solid rgb(184,168,138);
-          border-radius: 20px;
-          padding: 24px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        }
-
-        .login-title { font-weight: 700; font-size: 18px; color: rgb(44,62,54); margin-bottom: 16px; text-align: center; }
-
-        .search-row {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 12px;
-        }
-
-        .search-input {
-          flex: 1;
-          padding: 12px 14px;
-          background: rgb(222,212,192);
-          border: 1.3px solid rgb(184,168,138);
-          border-radius: 10px;
-          font-size: 14px;
-          color: rgb(90,110,98);
-          font-family: 'Inter', sans-serif;
-        }
-
-        .search-confirm-btn {
-          padding: 12px 20px;
-          background: linear-gradient(135deg, rgb(26,122,106) 0%, rgb(21,138,114) 100%);
-          border: none;
-          border-radius: 10px;
-          color: rgb(245,239,227);
-          font-weight: 600;
-          font-size: 14px;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: all 0.2s ease;
-        }
-
-        .search-confirm-btn:active { transform: scale(0.98); }
-
-        .search-results {
-          max-height: 300px;
-          overflow-y: auto;
-          margin-bottom: 12px;
-        }
-
-        .search-loading,
-        .search-empty {
-          padding: 20px;
-          text-align: center;
-          color: rgb(90,110,98);
-          font-size: 13px;
-        }
-
-        .search-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 10px;
-          border-radius: 10px;
-          border: 1px solid transparent;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          margin-bottom: 8px;
-        }
-
-        .search-item:active { transform: scale(0.98); }
-        .search-item.selected { background: rgba(26,122,106,0.1); border-color: rgb(26,122,106); }
-
-        .search-item-art {
-          width: 50px;
-          height: 50px;
-          border-radius: 8px;
-          background: rgb(222,212,192);
-          flex-shrink: 0;
-          overflow: hidden;
-        }
-
-        .search-item-art img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .search-item-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .search-item-name {
-          font-size: 14px;
-          font-weight: 600;
-          color: rgb(44,62,54);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .search-item-type {
-          font-size: 10px;
-          color: rgb(90,110,98);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .search-item-check {
-          flex-shrink: 0;
-          opacity: 0;
-          transition: opacity 0.2s ease;
-        }
-
-        .search-item.selected .search-item-check {
-          opacity: 1;
-        }
-
-        .decks-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 8px;
-          margin-bottom: 12px;
-        }
-
-        .deck-option {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 6px;
-          padding: 10px 6px;
-          border-radius: 12px;
-          border: 1.5px solid rgb(184,168,138);
-          background: rgb(245,239,227);
-          cursor: pointer;
-          transition: all 0.2s ease;
-          overflow: hidden;
-        }
-
-        .deck-option:active { transform: scale(0.95); }
-
-        .deck-option.selected {
-          border-color: rgb(26,122,106);
-          background: rgba(26,122,106,0.08);
-        }
-
-        .deck-option-art {
-          width: 50px;
-          height: 50px;
-          border-radius: 50%;
-          overflow: hidden;
-          background: rgb(222,212,192);
-          border: 2px solid rgb(184,168,138);
-          position: relative;
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .deck-option.selected .deck-option-art {
-          border-color: rgb(26,122,106);
-          box-shadow: 0 0 0 2px rgb(26,122,106);
-        }
-
-        .deck-option-art img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .deck-option-check {
-          position: absolute;
-          inset: 0;
-          border-radius: 50%;
-          background: rgba(26,122,106,0.65);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          transition: opacity 0.2s ease;
-          color: rgb(245,239,227);
-          font-weight: 700;
-        }
-
-        .deck-option.selected .deck-option-check {
-          opacity: 1;
-        }
-
-        .deck-option-name {
-          font-size: 10px;
-          font-weight: 600;
-          color: rgb(44,62,54);
-          text-align: center;
-          line-height: 1.3;
-          width: 100%;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
-
-        .search-new-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 10px;
-          border-radius: 10px;
-          border: 1.5px dashed rgb(184,168,138);
-          background: none;
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 600;
-          color: rgb(90,110,98);
-          transition: all 0.2s ease;
-          margin-bottom: 12px;
-          width: 100%;
-        }
-
-        .search-new-btn:active {
-          background: rgba(26,122,106,0.05);
-          border-color: rgb(26,122,106);
-          color: rgb(26,122,106);
-        }
-
-        .login-divider {
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgb(184,168,138), transparent);
-          margin: 12px 0;
-        }
-
-        .login-alt {
-          display: inline;
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 600;
-          color: rgb(26,122,106);
-          text-decoration: underline;
-          text-underline-offset: 3px;
-          background: none;
-          border: none;
-          padding: 0;
-          text-align: center;
-          width: 100%;
-        }
-
-        .login-alt:active {
-          opacity: 0.7;
-        }
-
-        .sso-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.55);
-          display: none;
-          align-items: flex-end;
-          justify-content: center;
-          z-index: 3000;
-        }
-
-        .sso-overlay.active { display: flex; }
-
-        .sso-card {
-          width: 100%;
-          max-width: 430px;
-          background: rgb(245,239,227);
-          border: 1.3px solid rgb(184,168,138);
-          border-radius: 20px 20px 0 0;
-          border-bottom: none;
-          padding: 20px 24px 28px;
-          box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
-          animation: ssoSlideUp 0.3s ease;
-          max-height: 85%;
-          overflow-y: auto;
-        }
-
-        @keyframes ssoSlideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-
-        .sso-close-row {
-          display: flex;
-          justify-content: flex-end;
-          margin-bottom: 8px;
-        }
-
-        .sso-close {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          background: rgb(222,212,192);
-          border: 1px solid rgb(184,168,138);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgb(90,110,98);
-          font-size: 16px;
-          cursor: pointer;
-          line-height: 1;
-        }
-
-        .sso-close:active { transform: scale(0.9); }
-
-        .sso-header {
-          text-align: center;
-          margin-bottom: 16px;
-        }
-
-        .sso-logo-mini {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 10px;
-          border: 1.5px solid rgb(56,158,133);
-          box-shadow: 0 4px 12px rgba(26,120,105,0.35);
-        }
-
-        .sso-logo-mini span {
-          font-family: 'Jaldi', sans-serif;
-          font-size: 24px;
-          font-weight: 700;
-          color: rgb(245,239,227);
-          line-height: 1;
-        }
-
-        .sso-title {
-          font-size: 20px;
-          font-weight: 700;
-          color: rgb(44,62,54);
-        }
-
-        .sso-subtitle {
-          color: rgb(90,110,98);
-          font-size: 13px;
-          margin-top: 4px;
-        }
-
-        .sso-content {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .sso-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 14px;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .sso-btn:active { transform: scale(0.97); }
-
-        .sso-google {
-          background: rgb(245,239,227);
-          color: rgb(44,62,54);
-          border: 1px solid rgb(184,168,138);
-          box-shadow: 0 6px 16px rgba(26,20,13,0.08);
-        }
-
-        .sso-apple {
-          background: rgb(44,62,54);
-          color: rgb(245,239,227);
-          border: 1px solid rgb(44,62,54);
-        }
-
-        .sso-icon {
-          font-size: 16px;
-          font-weight: 700;
-          width: 20px;
-          text-align: center;
-        }
-
-        .sso-divider {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin: 4px 0;
-        }
-
-        .sso-divider-line {
-          flex: 1;
-          height: 1px;
-          background: rgba(184,168,138,0.55);
-        }
-
-        .sso-divider-text {
-          color: rgb(138,154,142);
-          font-size: 12px;
-        }
-
-        .sso-btn-primary {
-          padding: 14px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-          border: 1.5px solid rgb(56,158,133);
-          color: rgb(245,239,227);
-          font-family: 'Inter', sans-serif;
-          font-size: 14px;
-          font-weight: 600;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .sso-btn-primary:active { transform: scale(0.97); }
-
-        .sso-footer {
-          text-align: center;
-          margin-top: 4px;
-        }
-
-        .sso-footer-text {
-          color: rgb(90,110,98);
-          font-size: 13px;
-        }
-
-        .sso-footer-link {
-          color: rgb(26,122,106);
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          text-decoration: underline;
-        }
-
-        .sso-view { display: none; }
-        .sso-view.active { display: flex; flex-direction: column; gap: 12px; }
-      `}} />
-
-      <div className={`app ${expandedOpponent ? 'has-expanded' : ''}`}>
-
-        {/* Login Overlay */}
-        {loginOverlayOpen && (
-          <div className="login-overlay">
-            <div className="login-modal-wrap">
-              <a href="/profile" style={{ textDecoration: 'none' }}>
-                <div className="login-profile-btn">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgb(90,110,98)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </div>
-              </a>
-
-              <div className="login-modal">
-                <div className="login-title">Choose your Commander</div>
-
-                {!isLoggedIn ? (
-                  <div>
-                    <div className="search-row" style={{ marginTop: '16px' }}>
-                      <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Commander name..."
-                        value={searchText}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        autoComplete="off"
-                      />
-                      <button className="search-confirm-btn" onClick={handleConfirmCommander}>Confirm</button>
-                    </div>
-                    <div className="search-results">
-                      {isSearching ? (
-                        <div className="search-loading">Searching...</div>
-                      ) : searchResults.length > 0 ? (
-                        searchResults.map((card: any, idx: any) => (
-                          <div
-                            key={idx}
-                            className={`search-item ${selectedCard?.name === card.name ? 'selected' : ''}`}
-                            onClick={() => handleSelectCard(card)}
-                          >
-                            <div className="search-item-art">
-                              {card.art && <img src={card.art} alt={card.name} />}
-                            </div>
-                            <div className="search-item-info">
-                              <div className="search-item-name">{card.name}</div>
-                              <div className="search-item-type">{card.type}</div>
-                            </div>
-                            <div className="search-item-check">✓</div>
-                          </div>
-                        ))
-                      ) : searchText && searchText.length >= 2 && (
-                        <div className="search-empty">No commanders found</div>
-                      )}
-                    </div>
-                    <div className="login-divider" />
-                    <div style={{ textAlign: 'center', padding: '4px 0' }}>
-                      <span
-                        className="login-alt"
-                        onClick={() => setShowSSO(true)}
-                      >
-                        Log in
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="decks-grid" style={{ marginTop: '16px' }}>
-                      {myDecks.map((deck: any) => (
-                        <div
-                          key={deck.id}
-                          className={`deck-option ${selectedDeck === deck.id ? 'selected' : ''}`}
-                          onClick={() => setSelectedDeck(deck.id)}
-                        >
-                          <div className="deck-option-art">
-                            {deck.commander_art_url && <img src={deck.commander_art_url} alt={deck.commander_name} />}
-                            <div className="deck-option-check">✓</div>
-                          </div>
-                          <div className="deck-option-name">{deck.commander_name}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      className="search-new-btn"
-                      onClick={() => setShowSearchMode(!showSearchMode)}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                      </svg>
-                      Search new commander
-                    </button>
-                    {showSearchMode && (
-                      <div>
-                        <div className="search-row">
-                          <input
-                            type="text"
-                            className="search-input"
-                            placeholder="Commander name..."
-                            onChange={(e) => handleSearch(e.target.value)}
-                            autoComplete="off"
-                          />
-                          <button className="search-confirm-btn">Confirm</button>
-                        </div>
-                        <div className="search-results">
-                          {searchResults.length > 0 ? (
-                            searchResults.map((card: any, idx: any) => (
-                              <div
-                                key={idx}
-                                className={`search-item ${selectedCard?.name === card.name ? 'selected' : ''}`}
-                                onClick={() => handleSelectCard(card)}
-                              >
-                                <div className="search-item-art" />
-                                <div className="search-item-info">
-                                  <div className="search-item-name">{card.name}</div>
-                                  <div className="search-item-type">{card.type}</div>
-                                </div>
-                              </div>
-                            ))
-                          ) : null}
-                        </div>
-                      </div>
-                    )}
-                    <button
-                      className={`search-confirm-btn enabled`}
-                      style={{
-                        width: '100%',
-                        marginTop: '8px',
-                        opacity: selectedDeck !== null ? 1 : 0.35,
-                        pointerEvents: selectedDeck !== null ? 'auto' : 'none'
-                      }}
-                      onClick={handleConfirmDeck}
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* SSO Modal */}
-        {showSSO && (
-          <div className={`sso-overlay ${showSSO ? 'active' : ''}`} onClick={() => setShowSSO(false)}>
-            <div className="sso-card" onClick={(e) => e.stopPropagation()}>
-              <div className="sso-close-row">
-                <button className="sso-close" onClick={() => setShowSSO(false)}>×</button>
-              </div>
-
-              <div className={`sso-view ${ssoView === 'ssoViewSignin' ? 'active' : ''}`}>
-                <div className="sso-header">
-                  <div className="sso-logo-mini"><span>P</span></div>
-                  <div className="sso-title">Welcome back</div>
-                  <div className="sso-subtitle">Sign in to your account</div>
-                </div>
-                <div className="sso-content">
-                  <button className="sso-btn sso-google" onClick={handleSSOComplete}>
-                    <span className="sso-icon">G</span>
-                    Continue with Google
-                  </button>
-                  <button className="sso-btn sso-apple" onClick={handleSSOComplete}>
-                    <span className="sso-icon">🍎</span>
-                    Continue with Apple
-                  </button>
-                  <div className="sso-divider">
-                    <div className="sso-divider-line" />
-                    <div className="sso-divider-text">or</div>
-                    <div className="sso-divider-line" />
-                  </div>
-                  <button className="sso-btn-primary" onClick={() => setSsoView('ssoViewSignin')}>
-                    Sign in with Email
-                  </button>
-                  <div className="sso-footer">
-                    <span className="sso-footer-text">
-                      No account?{' '}
-                      <span
-                        className="sso-footer-link"
-                        onClick={() => setSsoView('ssoViewSignup')}
-                      >
-                        Sign Up
-                      </span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`sso-view ${ssoView === 'ssoViewSignup' ? 'active' : ''}`}>
-                <div className="sso-header">
-                  <div className="sso-logo-mini"><span>P</span></div>
-                  <div className="sso-title">Create Account</div>
-                  <div className="sso-subtitle">Join PodHub today</div>
-                </div>
-                <div className="sso-content">
-                  <button className="sso-btn sso-google" onClick={handleSSOComplete}>
-                    <span className="sso-icon">G</span>
-                    Continue with Google
-                  </button>
-                  <button className="sso-btn sso-apple" onClick={handleSSOComplete}>
-                    <span className="sso-icon">🍎</span>
-                    Continue with Apple
-                  </button>
-                  <div className="sso-divider">
-                    <div className="sso-divider-line" />
-                    <div className="sso-divider-text">or</div>
-                    <div className="sso-divider-line" />
-                  </div>
-                  <button className="sso-btn-primary" onClick={handleSSOComplete}>
-                    Create Account
-                  </button>
-                  <div className="sso-footer">
-                    <span className="sso-footer-text">
-                      Already have an account?{' '}
-                      <span
-                        className="sso-footer-link"
-                        onClick={() => setSsoView('ssoViewSignin')}
-                      >
-                        Log In
-                      </span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Life Card */}
-        <div className={`life-card ${isLifeExpanded ? 'expanded' : 'collapsed'} ${life === 0 ? 'dead' : life < 10 ? 'critical' : ''}`}>
-          <div className="life-counters">
-            {poison > 0 && (
-              <div className="life-counter-indicator visible">
-                <svg viewBox="0 0 23 23" fill="none">
-                  <path d="M11.3 15.8455C16.8228 15.8455 21.3 12.5894 21.3 8.57278C21.3 4.55616 16.8228 1.30005 11.3 1.30005C5.77714 1.30005 1.29999 4.55616 1.29999 8.57278C1.29999 12.5894 5.77714 15.8455 11.3 15.8455Z" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M7.55 6.755L3.8 3.118M15.05 6.755L18.8 3.118M11.3 15.845V21.3M6.3 19.482H16.3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="life-counter-number">{poison}</span>
-              </div>
-            )}
-            {experience > 0 && (
-              <div className="life-counter-indicator visible">
-                <svg viewBox="0 0 23 23" fill="none">
-                  <path d="M1.3 21.3L2.967 5.744L7.133 12.411L11.3 1.3L15.467 12.411L19.633 5.744L21.3 21.3H1.3Z" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M1.3 21.3H21.3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="life-counter-number">{experience}</span>
-              </div>
-            )}
-            {energy > 0 && (
-              <div className="life-counter-indicator visible">
-                <svg viewBox="0 0 23 23" fill="none">
-                  <path d="M13.8 1.3L1.3 12.729H11.3L8.8 21.3L21.3 9.871H11.3L13.8 1.3Z" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="life-counter-number">{energy}</span>
-              </div>
-            )}
-          </div>
-          <div className="life-number">{life}</div>
-          {life > 0 ? (
-            <div className="life-controls">
-              <button className="control-button" onClick={() => adjustLife(-1)} onMouseDown={() => startLongPress(-1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(-1)} onTouchEnd={stopLongPress}>−</button>
-              <button className="control-button" onClick={() => adjustLife(1)} onMouseDown={() => startLongPress(1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(1)} onTouchEnd={stopLongPress}>+</button>
-            </div>
-          ) : (
-            <div className="life-controls" style={{ justifyContent: 'center' }}>
-              <button className="revive-btn" onClick={handleRevive}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20Z" />
-                  <path d="M12 8V16M8 12H16" />
-                </svg>
-                Revive
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Review Game Button — only visible when dead */}
-        {life === 0 && (
-          <a href="/game-review" className="review-game-btn">
-            <div className="review-game-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgb(26,122,106)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <path d="M14 2v6h6" />
-                <path d="M16 13H8M16 17H8M10 9H8" />
-              </svg>
-            </div>
-            <span className="review-game-text">Review Game</span>
-            <span className="review-game-arrow">&#8250;</span>
-          </a>
-        )}
-
-        {/* Opponents Panel */}
-        <div className={`opponents-panel ${expandedOpponent ? 'has-expanded' : ''}`}>
-          {opponents.map((opp: any) => (
-            <div
-              key={opp.key}
-              className={`opponent-row ${expandedOpponent === opp.key ? 'active-expanded' : ''} ${expandedOpponent && expandedOpponent !== opp.key ? 'dimmed' : ''} ${opp.isEmptySeat ? 'empty-seat' : ''}`}
-              onClick={() => opp.isEmptySeat ? null : (expandedOpponent === opp.key ? collapseOpponent() : expandOpponent(opp.key))}
-            >
-              <div className={`opponent-avatar ${opp.color}`}>{opp.isEmptySeat ? '?' : opp.color.toUpperCase()}</div>
-              <div className="opponent-info">
-                <div className={`opponent-name ${opp.name.includes('Korvold') ? 'korvold-color' : ''}`}>
-                  {opp.name}
-                </div>
-                <div className="opponent-player">{opp.isEmptySeat ? 'Waiting to join...' : (opp.isGuest ? 'Guest' : opp.player)}</div>
-                {!opp.isEmptySeat && <div className="expand-text">▼  TAP TO EXPAND</div>}
-              </div>
-              <div className={`life-chip ${opp.lifeColor}`}>
-                <div className="life-chip-heart">♥</div>
-                <div className="life-chip-value">{opp.life}</div>
-                {(opp.poisonCounters > 0 || opp.experienceCounters > 0 || opp.energyCounters > 0) && (
-                  <div className="counter-badges">
-                    {opp.poisonCounters > 0 && <div className="counter-pip poison">{opp.poisonCounters}</div>}
-                    {opp.experienceCounters > 0 && <div className="counter-pip experience">{opp.experienceCounters}</div>}
-                    {opp.energyCounters > 0 && <div className="counter-pip energy">{opp.energyCounters}</div>}
-                  </div>
-                )}
-              </div>
-
-              <div className="expanded-detail">
-                {/* AURA Score */}
-                <div className="expand-aura-row">
-                  <span className="expand-aura-label">AURA</span>
-                  <span className="expand-aura-score">{opp.aura}</span>
-                </div>
-
-                {/* Commander Card — dynamically loaded from Scryfall */}
-                {(() => {
-                  const detail = commanderDetails[opp.key];
-                  const colorBgMap: Record<string, string> = { W: 'rgb(255,251,213)', U: 'rgb(92,143,209)', B: 'rgb(51,51,56)', R: 'rgb(217,102,77)', G: 'rgb(155,211,174)' };
-                  const colors = detail?.colorIdentity ?? (opp.colorIdentity ?? '').split('').filter((c: string) => 'WUBRG'.includes(c));
-                  return (
-                    <div className="commander-card">
-                      <div className="commander-header">
-                        <div className="commander-header-text">{(detail?.name ?? opp.name).toUpperCase()}</div>
-                        <div className="commander-mana">
-                          {colors.map((c: string, i: number) => (
-                            <div key={i} className="mana-pip" style={{ background: colorBgMap[c] ?? 'rgb(140,140,140)' }}>{c}</div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="commander-body">
-                        <div className="commander-type">{detail?.typeLine ?? 'Legendary Creature'}</div>
-                        <div className="commander-divider" />
-                        {detail?.oracleText && <div className="commander-rules">{detail.oracleText}</div>}
-                        {detail?.flavorText && <div className="commander-flavor">{detail.flavorText}</div>}
-                        {detail?.power != null && detail?.toughness != null && (
-                          <div className="commander-pt">{detail.power} / {detail.toughness}</div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Brewed For Divider */}
-                <div className="brewed-for-divider">
-                  <div className="brewed-for-line" />
-                  <span className="brewed-for-text">Brewed For</span>
-                  <div className="brewed-for-line" />
-                </div>
-
-                {/* Badges Row */}
-                <div className="badges-row">
-                  {/* Brilliance */}
-                  <div className="badge-circle-item">
-                    <div className={`badge-circle-wrap ${opp.badges.brilliance > 0 ? 'earned' : 'empty'}`}>
-                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(184,146,46)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M16 3 L18.5 11 L27 12 L21 18 L23 27 L16 22.5 L9 27 L11 18 L5 12 L13.5 11 Z" />
-                      </svg>
-                      {opp.badges.brilliance > 0 && <div className="badge-count-pip">{opp.badges.brilliance}</div>}
-                    </div>
-                    <div className="badge-circle-label">Brilliance</div>
-                  </div>
-                  {/* Flavor */}
-                  <div className="badge-circle-item">
-                    <div className={`badge-circle-wrap ${opp.badges.flavor > 0 ? 'earned' : 'empty'}`}>
-                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(168,74,58)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M16 28 C10 28 6 23 6 17 C6 11 10 5 16 3 C16 9 19 13 23 14 C23 14 27 10 27 17 C27 23 22 28 16 28 Z" />
-                      </svg>
-                      {opp.badges.flavor > 0 && <div className="badge-count-pip">{opp.badges.flavor}</div>}
-                    </div>
-                    <div className="badge-circle-label">Flavor</div>
-                  </div>
-                  {/* Rivalry */}
-                  <div className="badge-circle-item">
-                    <div className={`badge-circle-wrap ${opp.badges.rivalry > 0 ? 'earned' : 'empty'}`}>
-                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 26 L22 10 M22 10 L22 16 M22 10 L28 10" />
-                        <path d="M26 26 L10 10 M10 10 L10 16 M10 10 L4 10" />
-                        <circle cx="16" cy="18" r="3" strokeWidth="1.4" />
-                      </svg>
-                      {opp.badges.rivalry > 0 && <div className="badge-count-pip">{opp.badges.rivalry}</div>}
-                    </div>
-                    <div className="badge-circle-label">Rivalry</div>
-                  </div>
-                  {/* Allegiance */}
-                  <div className="badge-circle-item">
-                    <div className={`badge-circle-wrap ${opp.badges.allegiance > 0 ? 'earned' : 'empty'}`}>
-                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(26,122,106)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M16 3 L28 8 V17 C28 23 22 28 16 30 C10 28 4 23 4 17 V8 Z" />
-                        <path d="M12 16 L15 19 L21 13" strokeWidth="2" />
-                      </svg>
-                      {opp.badges.allegiance > 0 && <div className="badge-count-pip">{opp.badges.allegiance}</div>}
-                    </div>
-                    <div className="badge-circle-label">Allegiance</div>
-                  </div>
-                  {/* Fun */}
-                  <div className="badge-circle-item">
-                    <div className={`badge-circle-wrap ${opp.badges.fun > 0 ? 'earned' : 'empty'}`}>
-                      <svg viewBox="0 0 32 32" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.8" strokeLinecap="round">
-                        <circle cx="16" cy="16" r="12" />
-                        <circle cx="12" cy="13" r="1.5" fill="rgb(44,62,54)" />
-                        <circle cx="20" cy="13" r="1.5" fill="rgb(44,62,54)" />
-                        <path d="M11 20 C12.5 23 19.5 23 21 20" strokeWidth="1.5" />
-                      </svg>
-                      {opp.badges.fun > 0 && <div className="badge-count-pip">{opp.badges.fun}</div>}
-                    </div>
-                    <div className="badge-circle-label">Fun</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Dark Backdrop */}
-        <div className={`expand-backdrop ${expandedOpponent ? 'active' : ''}`} onClick={collapseOpponent} />
-
-        {/* Bottom Nav */}
-        <div className="bottom-nav">
-          <div className="nav-item" onClick={() => setDiceModalOpen(true)}>
-            <div className="nav-icon">
-              <div className="dice-icon">
-                <div className="dice-dot" />
-                <div className="dice-dot" />
-                <div className="dice-dot" />
-                <div className="dice-dot" />
-                <div className="dice-dot" />
-              </div>
-            </div>
-            <div className="nav-label">Dice</div>
-          </div>
-          <div className="nav-item" onClick={() => setCountersModalOpen(true)}>
-            <div className="nav-icon">
-              <div className="star-icon"><div className="star" /></div>
-            </div>
-            <div className="nav-label">Counters</div>
-          </div>
-          <Link href={podSize >= 2 && podSize <= 5 ? `/gridview-${podSize}p?podId=${podId}&gameId=${gameId}` : '#'} className="grid-view-button" style={{ textDecoration: 'none', opacity: podSize >= 2 ? 1 : 0.4, pointerEvents: podSize >= 2 ? 'auto' : 'none' }}>
-            <div className="grid-icon">
-              <div className="grid-square" />
-              <div className="grid-square" />
-              <div className="grid-square" />
-              <div className="grid-square" />
-            </div>
-            <span style={{ fontSize: '11px' }}>Grid</span>
-          </Link>
-        </div>
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'var(--parchment)',
+      overflow: 'hidden',
+      fontFamily: 'var(--font-ui)',
+    }}>
+      <SVBackdrop src={myArt}/>
+      <SVHeader turn={1} podName={podName} isYourTurn={true}
+        onBack={() => router.back()}
+        onSettings={() => setShowSettings(true)}/>
+      <SVIdentity name={myName} colors={myColors} art={myArt}/>
+
+      {/* Life dial */}
+      <div style={{
+        position: 'relative', zIndex: 4, marginTop: 18,
+        display: 'flex', justifyContent: 'center',
+      }}>
+        <LifeDial life={life} dead={dead}
+          cmdrDmgSegments={mappedOpponents.map((o: any, i: number) => ({ id: o.id, dmg: cmdrDmg[o.id] || 0, colorIdx: i }))}/>
       </div>
 
-      {/* Dice Modal */}
-      <div className={`modal-overlay ${diceModalOpen ? 'active' : ''}`} onClick={() => setDiceModalOpen(false)}>
-        <div className="dice-modal" onClick={(e) => e.stopPropagation()}>
-          <button className="modal-close" onClick={() => setDiceModalOpen(false)}>×</button>
-          <div className="modal-title">Roll Dice</div>
-          <div className="tab-group">
-            {['d20', 'd10', 'd6'].map((tab) => (
-              <button
-                key={tab}
-                className={`tab ${diceTab === tab ? 'active' : ''}`}
-                onClick={() => setDiceTab(tab)}
-              >
-                {tab.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <div className="result-display">
-            {isRolling ? '...' : diceResult !== null ? diceResult : ''}
-          </div>
-          <div className="rolling-text">
-            {isRolling ? 'Rolling...' : ''}
-          </div>
-          <button className="roll-button" onClick={rollDice} disabled={isRolling}>
-            Roll
-          </button>
+      {/* +/- buttons */}
+      {!dead && (
+        <div style={{
+          position: 'absolute', top: 286, left: 0, right: 0,
+          display: 'flex', justifyContent: 'space-between',
+          padding: '0 28px', zIndex: 5,
+        }}>
+          <RoundBtn glyph={'−'}
+            onTap={() => adjustLife(-1)}
+            onLongStart={() => startLongPress(-1)}
+            onLongEnd={stopLongPress}/>
+          <div style={{ width: 48 }}/>
+          <RoundBtn glyph="+"
+            onTap={() => adjustLife(1)}
+            onLongStart={() => startLongPress(1)}
+            onLongEnd={stopLongPress}/>
         </div>
+      )}
+
+      {/* Counter chips */}
+      <div style={{ position: 'relative', zIndex: 4 }}>
+        <CounterOrbit items={counterChips}/>
       </div>
 
-      {/* Counters Modal */}
-      <div className={`counters-overlay ${countersModalOpen ? 'active' : ''}`} onClick={() => setCountersModalOpen(false)}>
-        <div className="counters-modal" onClick={(e) => e.stopPropagation()}>
-          <button className="modal-close" onClick={() => setCountersModalOpen(false)}>×</button>
-          <div className="counters-title">Counters</div>
-          <div className="counters-content">
-            <div className="counter-row">
-              <div className="counter-label">
-                <div className="counter-icon">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path d="M11.3 15.8455C16.8228 15.8455 21.3 12.5894 21.3 8.57278C21.3 4.55616 16.8228 1.30005 11.3 1.30005C5.77714 1.30005 1.29999 4.55616 1.29999 8.57278C1.29999 12.5894 5.77714 15.8455 11.3 15.8455Z" stroke="rgb(44,62,54)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M7.54999 6.75453L3.79999 3.11816M15.05 6.75453L18.8 3.11816M11.3 15.8454V21.3M6.29999 19.4818H16.3" stroke="rgb(44,62,54)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="counter-name">Poison</div>
-              </div>
-              <div className="counter-controls">
-                <button className="counter-btn" onClick={() => { const v = Math.max(0, poison - 1); setPoison(v); if (gameId && user?.id) debouncedSync('poison', () => updatePoisonCounters(gameId, user.id, v).catch(() => {})); }}>−</button>
-                <div className="counter-value">{poison}</div>
-                <button className="counter-btn" onClick={() => { const v = poison + 1; setPoison(v); if (gameId && user?.id) debouncedSync('poison', () => updatePoisonCounters(gameId, user.id, v).catch(() => {})); }}>+</button>
-              </div>
-            </div>
-
-            <div className="counter-row">
-              <div className="counter-label">
-                <div className="counter-icon">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path d="M1.3 21.3L2.967 5.744L7.133 12.411L11.3 1.3L15.467 12.411L19.633 5.744L21.3 21.3H1.3Z" stroke="rgb(44,62,54)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M1.3 21.3H21.3" stroke="rgb(44,62,54)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="counter-name">Experience</div>
-              </div>
-              <div className="counter-controls">
-                <button className="counter-btn" onClick={() => { const v = Math.max(0, experience - 1); setExperience(v); if (gameId && user?.id) debouncedSync('experience', () => updateExperienceCounters(gameId, user.id, v).catch(() => {})); }}>−</button>
-                <div className="counter-value">{experience}</div>
-                <button className="counter-btn" onClick={() => { const v = experience + 1; setExperience(v); if (gameId && user?.id) debouncedSync('experience', () => updateExperienceCounters(gameId, user.id, v).catch(() => {})); }}>+</button>
-              </div>
-            </div>
-
-            <div className="counter-row">
-              <div className="counter-label">
-                <div className="counter-icon">
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path d="M13.8 1.3L1.3 12.729H11.3L8.8 21.3L21.3 9.871H11.3L13.8 1.3Z" stroke="rgb(44,62,54)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="counter-name">Energy</div>
-              </div>
-              <div className="counter-controls">
-                <button className="counter-btn" onClick={() => { const v = Math.max(0, energy - 1); setEnergy(v); if (gameId && user?.id) debouncedSync('energy', () => updateEnergyCounters(gameId, user.id, v).catch(() => {})); }}>−</button>
-                <div className="counter-value">{energy}</div>
-                <button className="counter-btn" onClick={() => { const v = energy + 1; setEnergy(v); if (gameId && user?.id) debouncedSync('energy', () => updateEnergyCounters(gameId, user.id, v).catch(() => {})); }}>+</button>
-              </div>
-            </div>
-          </div>
+      {/* Opponent rail */}
+      <div style={{
+        position: 'absolute', left: 14, right: 14, bottom: 96, zIndex: 4,
+        display: 'flex', flexDirection: 'column', gap: 6,
+      }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          padding: '0 4px 4px',
+        }}>
+          <div style={kicker(9)}>The Pod</div>
+          <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>Tap to expand</div>
         </div>
+        {mappedOpponents.map(p => (
+          <OpponentRow key={p.id} p={p} onTap={setExpandedOpponent}/>
+        ))}
       </div>
 
-      {/* Toast */}
-      <div className={`toast ${showToast ? 'show' : ''}`}>
-        {toastMessage}
-      </div>
-    </>
+      {/* Bottom nav */}
+      <GameNav active="single" onNav={handleNav}/>
+
+      {/* Dice sheet */}
+      {showDice && (
+        <DiceSheet onClose={() => setShowDice(false)} opponents={mappedOpponents}/>
+      )}
+
+      {/* Counter sheet */}
+      {showCounters && (
+        <CounterSheet
+          onClose={() => setShowCounters(false)}
+          counters={{ poison, energy, experience, commander: 0 }}
+          onAdjust={adjustCounter}/>
+      )}
+
+      {/* Commander damage sheet */}
+      {showCmdrDmg && (
+        <CmdrDmgSheet
+          onClose={() => setShowCmdrDmg(false)}
+          opponents={mappedOpponents}
+          cmdrDmg={cmdrDmg}
+          onAdjust={(oppId: string, delta: number) => {
+            setCmdrDmg(prev => {
+              const newVal = Math.max(0, Math.min(21, (prev[oppId] || 0) + delta));
+              const newMap = { ...prev, [oppId]: newVal };
+
+              // Persist to backend
+              if (gameId && user?.id) {
+                debouncedSync('cmdrDmg', () => {
+                  updateCommanderDamage(gameId, user.id, newMap).catch(() => {});
+                });
+              }
+
+              // Check if 21 from any single opponent → elimination
+              if (newVal >= 21) {
+                setEliminationReason('cmdr');
+                setShowEliminated(true);
+                setDead(true);
+              }
+
+              return newMap;
+            });
+          }}/>
+      )}
+
+      {/* Opponent overlay */}
+      {expandedOpponent && (
+        <OpponentOverlay
+          p={mappedOpponents.find((o: any) => o.id === expandedOpponent)}
+          myLife={life}
+          miniRoster={miniRoster}
+          onClose={() => setExpandedOpponent(null)}
+          onLifeAdj={adjustLife}
+          onSelectPlayer={(m: any) => {
+            setExpandedOpponent(m.id);
+          }}/>
+      )}
+
+      {/* Settings overlay */}
+      {showSettings && (
+        <SettingsOverlay
+          onClose={() => setShowSettings(false)}
+          onAbandon={() => { setShowSettings(false); handleAbandon(); }}/>
+      )}
+
+      {/* Eliminated popup */}
+      {showEliminated && (
+        <EliminatedPopup
+          onRevive={() => {
+            if (eliminationReason === 'cmdr') {
+              // Commander damage elimination: keep life, drop the 21+ source to 20
+              setCmdrDmg(prev => {
+                const fixed: Record<string, number> = {};
+                for (const [k, v] of Object.entries(prev)) {
+                  fixed[k] = v >= 21 ? 20 : v;
+                }
+                if (gameId && user?.id) {
+                  updateCommanderDamage(gameId, user.id, fixed).catch(() => {});
+                }
+                return fixed;
+              });
+              setDead(false);
+              setShowEliminated(false);
+              setEliminationReason(null);
+              // Life stays the same — just un-eliminate on backend
+              if (gameId && user?.id) {
+                updateLifeTotal(gameId, user.id, life).catch(() => {});
+              }
+            } else {
+              // Life-based elimination: revive at 1 life
+              setLife(1);
+              setDead(false);
+              setShowEliminated(false);
+              setEliminationReason(null);
+              if (gameId && user?.id) {
+                updateLifeTotal(gameId, user.id, 1).catch(() => {});
+              }
+            }
+          }}
+          onReview={() => { setShowEliminated(false); setEliminationReason(null); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}/>
+      )}
+    </div>
   );
 }
 
