@@ -527,7 +527,7 @@ function MiniRoundBtn({ glyph, onClick }: any) {
 // ─── Dice bottom sheet ──────────────────────────────────────────────────────
 function DiceSheet({ onClose, opponents = [] }: any) {
   const [results, setResults] = useState({ d6: null, d20: null, coin: null, player: null });
-  const [lastRolled, setLastRolled] = useState(null);
+  const [lastRolled, setLastRolled] = useState<string | null>(null);
 
   const roll = (type: string) => {
     let result: any;
