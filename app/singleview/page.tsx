@@ -176,7 +176,7 @@ function SVBackdrop({ src }: any) {
 }
 
 // ─── Header ribbon ──────────────────────────────────────────────────────────
-function SVHeader({ turn, podName, isYourTurn, onBack, onSettings }: any) {
+function SVHeader({ podName, onBack, onSettings }: any) {
   return (
     <div style={{
       position: 'relative', zIndex: 5,
@@ -187,15 +187,10 @@ function SVHeader({ turn, podName, isYourTurn, onBack, onSettings }: any) {
         <Icon name="chevron-left" size={18} stroke="var(--ink)"/>
       </button>
       <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-        <div style={kicker(9)}>{podName}</div>
         <div style={{
           fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1.1,
-          color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
-        }}>
-          Turn {turn} · {isYourTurn
-            ? <span style={{ color: 'var(--forest)' }}>Your turn</span>
-            : "Opponent's turn"}
-        </div>
+          color: 'var(--ink)', letterSpacing: '-0.01em',
+        }}>Move</div>
       </div>
       <button style={iconBtn()} onClick={onSettings}>
         <Icon name="settings" size={18} stroke="var(--ink)"/>
@@ -204,29 +199,11 @@ function SVHeader({ turn, podName, isYourTurn, onBack, onSettings }: any) {
   );
 }
 
-// ─── Identity strip — YOU badge + commander name + mana dots ────────────────
-function SVIdentity({ name, colors, art }: any) {
+// ─── Identity strip — commander image at top ────────────────────────────────
+function SVIdentity({ art }: any) {
   return (
-    <div style={{ position: 'relative', zIndex: 5, padding: '14px 24px 0', textAlign: 'center' }}>
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 10,
-        padding: '4px 12px 4px 4px', borderRadius: 999,
-        background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
-      }}>
-        <CommAvatar src={art} size={26} ring="var(--copper)"/>
-        <span style={{
-          fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
-          textTransform: 'uppercase', color: 'var(--copper)',
-        }}>You</span>
-      </div>
-      <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 22, lineHeight: 1.15,
-        letterSpacing: '-0.01em', color: 'var(--ink)', marginTop: 10,
-        textWrap: 'balance',
-      }}>{name}</div>
-      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
-        <ManaDots colors={colors} size={8}/>
-      </div>
+    <div style={{ position: 'relative', zIndex: 5, padding: '6px 0 0', display: 'flex', justifyContent: 'center' }}>
+      <CommAvatar src={art} size={52} ring="var(--copper)"/>
     </div>
   );
 }
@@ -235,7 +212,9 @@ function SVIdentity({ name, colors, art }: any) {
 const CMDR_DMG_COLORS = ['#E8A54B', '#D4783C', '#B8432E', '#8C2318', '#5E1610'];
 
 function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
-  const radius = 110;
+  const sz = 180;
+  const cx = sz / 2;
+  const radius = 82;
   const c = 2 * Math.PI * radius;
 
   const totalDmg = cmdrDmgSegments.reduce((sum: number, s: any) => sum + s.dmg, 0);
@@ -259,37 +238,37 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
   });
 
   return (
-    <div style={{ position: 'relative', width: 240, height: 240 }}>
-      <svg width="240" height="240" viewBox="0 0 240 240">
+    <div style={{ position: 'relative', width: sz, height: sz }}>
+      <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`}>
         {/* Tick marks */}
         <g stroke="var(--ink-3)" strokeWidth="1">
           {Array.from({ length: 60 }).map((_, i) => {
             const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
-            const r1 = 116, r2 = i % 5 === 0 ? 105 : 110;
+            const r1 = 87, r2 = i % 5 === 0 ? 78 : 82;
             return <line key={i}
-              x1={120 + Math.cos(a) * r1} y1={120 + Math.sin(a) * r1}
-              x2={120 + Math.cos(a) * r2} y2={120 + Math.sin(a) * r2}
+              x1={cx + Math.cos(a) * r1} y1={cx + Math.sin(a) * r1}
+              x2={cx + Math.cos(a) * r2} y2={cx + Math.sin(a) * r2}
               opacity={i % 5 === 0 ? 0.45 : 0.18}/>;
           })}
         </g>
 
         {/* Base ring */}
-        <circle cx="120" cy="120" r={radius}
+        <circle cx={cx} cy={cx} r={radius}
           fill="none" stroke="var(--line-strong)" strokeWidth="2"/>
 
         {/* Commander damage segments */}
         {segments.map((seg: any, i: number) => (
-          <circle key={i} cx="120" cy="120" r={radius}
+          <circle key={i} cx={cx} cy={cx} r={radius}
             fill="none" stroke={seg.color}
-            strokeWidth={6}
+            strokeWidth={5}
             strokeDasharray={`${c * seg.frac} ${c}`}
             strokeLinecap="butt"
-            transform="rotate(-90 120 120)"
+            transform={`rotate(-90 ${cx} ${cx})`}
             opacity={0.92}/>
         ))}
 
         {/* Inner well */}
-        <circle cx="120" cy="120" r="92"
+        <circle cx={cx} cy={cx} r="68"
           fill="var(--parchment-card)" stroke="var(--line)" strokeWidth="1"/>
       </svg>
 
@@ -301,15 +280,15 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
       }}>
         {!dead ? (
           <>
-            <div style={kicker(9)}>Life</div>
+            <div style={kicker(8)}>Life</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 100, lineHeight: 1, letterSpacing: '-0.04em',
+              fontSize: 72, lineHeight: 1, letterSpacing: '-0.04em',
               color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
             }}>{life}</div>
             {hasDmg ? (
               <div style={{
-                marginTop: 4, fontSize: 11,
+                marginTop: 2, fontSize: 10,
                 color: totalDmg >= 21 ? '#8C2318' : 'var(--copper)',
                 fontWeight: 600,
               }}>
@@ -321,10 +300,10 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
           <>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 64, lineHeight: 1, color: 'var(--copper)',
+              fontSize: 48, lineHeight: 1, color: 'var(--copper)',
             }}>×</div>
             <div style={{
-              marginTop: 10, fontSize: 11, fontWeight: 700,
+              marginTop: 8, fontSize: 10, fontWeight: 700,
               letterSpacing: '0.24em', textTransform: 'uppercase',
               color: 'var(--copper-deep)',
             }}>Eliminated</div>
@@ -344,10 +323,10 @@ function RoundBtn({ glyph, onTap, onLongStart, onLongEnd }: any) {
       onPointerUp={onLongEnd}
       onPointerLeave={onLongEnd}
       style={{
-        width: 56, height: 56, borderRadius: 999,
+        width: 44, height: 44, borderRadius: 999,
         background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
         color: 'var(--ink)',
-        fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1,
+        fontFamily: 'var(--font-display)', fontSize: 26, lineHeight: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', padding: 0,
         boxShadow: 'var(--shadow-rest)',
@@ -1557,41 +1536,40 @@ function PageContent() {
       position: 'fixed', inset: 0,
       background: 'var(--parchment)',
       overflow: 'hidden',
+      overscrollBehavior: 'none',
+      touchAction: 'none',
       fontFamily: 'var(--font-ui)',
     }}>
       <SVBackdrop src={myArt}/>
-      <SVHeader turn={1} podName={podName} isYourTurn={true}
+      <SVHeader podName={podName}
         onBack={() => router.back()}
         onSettings={() => setShowSettings(true)}/>
-      <SVIdentity name={myName} colors={myColors} art={myArt}/>
+      <SVIdentity art={myArt}/>
 
-      {/* Life dial */}
+      {/* Life dial + buttons */}
       <div style={{
-        position: 'relative', zIndex: 4, marginTop: 18,
-        display: 'flex', justifyContent: 'center',
+        position: 'relative', zIndex: 4, marginTop: 8,
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
       }}>
+        {!dead && (
+          <div style={{ position: 'absolute', left: 24, zIndex: 5 }}>
+            <RoundBtn glyph={'−'}
+              onTap={() => adjustLife(-1)}
+              onLongStart={() => startLongPress(-1)}
+              onLongEnd={stopLongPress}/>
+          </div>
+        )}
         <LifeDial life={life} dead={dead}
           cmdrDmgSegments={mappedOpponents.map((o: any, i: number) => ({ id: o.id, dmg: cmdrDmg[o.id] || 0, colorIdx: i }))}/>
+        {!dead && (
+          <div style={{ position: 'absolute', right: 24, zIndex: 5 }}>
+            <RoundBtn glyph="+"
+              onTap={() => adjustLife(1)}
+              onLongStart={() => startLongPress(1)}
+              onLongEnd={stopLongPress}/>
+          </div>
+        )}
       </div>
-
-      {/* +/- buttons */}
-      {!dead && (
-        <div style={{
-          position: 'absolute', top: 286, left: 0, right: 0,
-          display: 'flex', justifyContent: 'space-between',
-          padding: '0 28px', zIndex: 5,
-        }}>
-          <RoundBtn glyph={'−'}
-            onTap={() => adjustLife(-1)}
-            onLongStart={() => startLongPress(-1)}
-            onLongEnd={stopLongPress}/>
-          <div style={{ width: 48 }}/>
-          <RoundBtn glyph="+"
-            onTap={() => adjustLife(1)}
-            onLongStart={() => startLongPress(1)}
-            onLongEnd={stopLongPress}/>
-        </div>
-      )}
 
       {/* Counter chips */}
       <div style={{ position: 'relative', zIndex: 4 }}>
@@ -1611,7 +1589,7 @@ function PageContent() {
           <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>Tap to expand</div>
         </div>
         {mappedOpponents.map(p => (
-          <OpponentRow key={p.id} p={p} onTap={setExpandedOpponent}/>
+          <OpponentRow key={p.id} p={p} onTap={(player: any) => setExpandedOpponent(player.id)}/>
         ))}
       </div>
 
