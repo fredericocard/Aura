@@ -458,16 +458,54 @@ function GameNav({ active = 'single', onNav }: any) {
 }
 
 // ─── Mini life dial (compact, for opponent overlay) ─────────────────────────
-function MiniLifeDial({ life }: any) {
-  const r = 38, c = 2 * Math.PI * r;
+function MiniLifeDial({ life, cmdrDmgSegments = [] }: any) {
+  const sz = 96, cx = 48, radius = 38;
+  const c = 2 * Math.PI * radius;
+
+  const sorted = [...cmdrDmgSegments]
+    .map((s: any, i: number) => ({ ...s, colorIdx: i }))
+    .sort((a: any, b: any) => b.dmg - a.dmg);
+
+  const segments: any[] = [];
+  const seen = new Set();
+  sorted.forEach((s: any) => {
+    if (s.dmg === 0) return;
+    let frac = Math.min(s.dmg, 21) / 21;
+    const key = s.dmg;
+    if (seen.has(key)) frac = Math.max(0, frac - 0.015);
+    seen.add(key);
+    segments.push({ frac, color: CMDR_DMG_COLORS[s.colorIdx % CMDR_DMG_COLORS.length] });
+  });
+
   return (
-    <div style={{ position: 'relative', width: 96, height: 96 }}>
-      <svg width="96" height="96" viewBox="0 0 96 96">
-        <circle cx="48" cy="48" r={r} fill="none" stroke="var(--line-strong)" strokeWidth="1.5"/>
-        <circle cx="48" cy="48" r={r} fill="none" stroke="var(--forest)" strokeWidth="2"
-          strokeDasharray={`${c * 0.27} ${c}`} strokeDashoffset={-c * 0.05}
-          strokeLinecap="round" transform="rotate(-90 48 48)"/>
-        <circle cx="48" cy="48" r="32" fill="var(--parchment-card)" stroke="var(--line)" strokeWidth="1"/>
+    <div style={{ position: 'relative', width: sz, height: sz }}>
+      <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`}>
+        {/* Tick marks */}
+        <g stroke="var(--ink-3)" strokeWidth="0.75">
+          {Array.from({ length: 60 }).map((_, i) => {
+            const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+            const r1 = 45, r2 = i % 5 === 0 ? 40 : 42;
+            return <line key={i}
+              x1={cx + Math.cos(a) * r1} y1={cx + Math.sin(a) * r1}
+              x2={cx + Math.cos(a) * r2} y2={cx + Math.sin(a) * r2}
+              opacity={i % 5 === 0 ? 0.45 : 0.18}/>;
+          })}
+        </g>
+
+        <circle cx={cx} cy={cx} r={radius} fill="none" stroke="var(--line-strong)" strokeWidth="1.5"/>
+
+        {/* Commander damage segments */}
+        {segments.map((seg: any, i: number) => (
+          <circle key={i} cx={cx} cy={cx} r={radius}
+            fill="none" stroke={seg.color}
+            strokeWidth={4}
+            strokeDasharray={`${c * seg.frac} ${c}`}
+            strokeLinecap="butt"
+            transform={`rotate(-90 ${cx} ${cx})`}
+            opacity={0.92}/>
+        ))}
+
+        <circle cx={cx} cy={cx} r="30" fill="var(--parchment-card)" stroke="var(--line)" strokeWidth="1"/>
       </svg>
       <div style={{
         position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -777,7 +815,7 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
 }
 
 // ─── Opponent overlay — commander broadside ─────────────────────────────────
-function OpponentOverlay({ p, myLife, miniRoster, onClose, onLifeAdj, onSelectPlayer }: any) {
+function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLifeAdj, onSelectPlayer }: any) {
   if (!p) return null;
   const isEmpty = p.isEmptySeat;
   const showSelector = miniRoster.length > 1;
@@ -795,7 +833,7 @@ function OpponentOverlay({ p, myLife, miniRoster, onClose, onLifeAdj, onSelectPl
         animation: 'dialShrinkUp 0.4s cubic-bezier(0.22,1,0.36,1)',
       }}>
         <MiniRoundBtn glyph={'−'} onClick={() => onLifeAdj(-1)}/>
-        <MiniLifeDial life={myLife}/>
+        <MiniLifeDial life={myLife} cmdrDmgSegments={cmdrDmgSegments || []}/>
         <MiniRoundBtn glyph="+" onClick={() => onLifeAdj(1)}/>
       </div>
 
@@ -1669,6 +1707,7 @@ function PageContent() {
         <OpponentOverlay
           p={mappedOpponents.find((o: any) => o.id === expandedOpponent)}
           myLife={life}
+          cmdrDmgSegments={mappedOpponents.map((o: any, i: number) => ({ id: o.id, dmg: cmdrDmg[o.id] || 0, colorIdx: i }))}
           miniRoster={miniRoster}
           onClose={() => setExpandedOpponent(null)}
           onLifeAdj={adjustLife}
