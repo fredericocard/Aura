@@ -169,7 +169,7 @@ function SVBackdrop({ src }: any) {
       }}/>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(245,239,226,0.30) 0%, rgba(245,239,226,0.30) 60%, rgba(245,239,226,0.85) 80%, var(--parchment) 90%)',
+        background: 'linear-gradient(180deg, rgba(245,239,226,0.30) 0%, rgba(245,239,226,0.85) 60%, var(--parchment) 90%)',
       }}/>
       <div style={{
         position: 'absolute', inset: 0,
