@@ -273,21 +273,13 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
       }}>
         {!dead ? (
           <>
-            <div style={kicker(9)}>Life</div>
+
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 75, lineHeight: 1, letterSpacing: '-0.04em',
               color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
             }}>{life}</div>
-            {hasDmg ? (
-              <div style={{
-                marginTop: 4, fontSize: 11,
-                color: totalDmg >= 21 ? '#8C2318' : 'var(--copper)',
-                fontWeight: 600,
-              }}>
-                Cmdr dmg {totalDmg}/21
-              </div>
-            ) : null}
+            {null}
           </>
         ) : (
           <>
