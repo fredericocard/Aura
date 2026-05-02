@@ -603,19 +603,19 @@ function DiceSheet({ onClose, opponents = [] }: any) {
             const val = (results as any)[d.key];
             return (
               <button key={d.key} onClick={() => roll(d.key)} style={{
-                background: 'var(--parchment-card)',
-                border: isLast ? `1.5px solid ${d.tone}` : '1px solid var(--line-strong)',
-                borderRadius: 16, padding: '14px 12px',
+                background: '#F3ECDB',
+                border: isLast ? `1.5px solid ${d.tone}` : '1px solid var(--line)',
+                borderRadius: 16, padding: '14px 14px',
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
                 gap: 4, cursor: 'pointer',
                 boxShadow: isLast ? `0 0 0 3px ${d.tone}1a` : 'none',
               }}>
-                <span style={kicker(10)}>{d.label}</span>
+                <span style={kicker(11)}>{d.label}</span>
                 <span style={{
-                  fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 600,
+                  fontFamily: 'var(--font-display)', fontSize: 36,
                   lineHeight: 1, letterSpacing: '-0.02em', color: d.tone,
                 }}>{val ?? '—'}</span>
-                <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>
+                <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
                   {val ? (isLast ? 'Just rolled' : 'Previous roll') : 'Tap to roll'}
                 </span>
               </button>
@@ -676,17 +676,17 @@ function CounterSheet({ onClose, counters, onAdjust }: any) {
             const active = ct.value > 0;
             return (
               <div key={ct.key} style={{
-                background: active ? ct.soft : 'var(--parchment-card)',
-                border: active ? `1.5px solid ${ct.tone}` : '1px solid var(--line-strong)',
+                background: active ? ct.soft : '#F3ECDB',
+                border: active ? `1.5px solid ${ct.tone}` : '1px solid var(--line)',
                 borderRadius: 16, padding: '12px',
                 display: 'flex', flexDirection: 'column', gap: 8,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name={ct.glyph} size={16} stroke={ct.tone}/>
-                  <span style={kicker(10)}>{ct.label}</span>
+                  <span style={kicker(11)}>{ct.label}</span>
                 </div>
                 <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 600,
+                  fontFamily: 'var(--font-display)', fontSize: 36,
                   lineHeight: 1, letterSpacing: '-0.02em', color: active ? ct.tone : 'var(--ink-3)',
                 }}>{ct.value}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -758,14 +758,14 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
             const frac = Math.min(dmg / 21, 1);
             return (
               <div key={opp.id} style={{
-                background: 'var(--parchment-card)',
-                border: dmg > 0 ? '1.5px solid var(--copper)' : '1px solid var(--line-strong)',
+                background: '#F3ECDB',
+                border: dmg > 0 ? '1.5px solid var(--copper)' : '1px solid var(--line)',
                 borderRadius: 16, padding: '12px 14px',
                 display: 'flex', alignItems: 'center', gap: 12,
               }}>
                 <CommAvatar src={opp.art} size={36} ring="var(--copper)"/>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={kicker(9)}>{opp.name}</div>
+                  <div style={kicker(10)}>{opp.name}</div>
                   <div style={{
                     fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
                     color: 'var(--ink)', letterSpacing: '-0.01em',
@@ -784,7 +784,7 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
                   </div>
                 </div>
                 <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 600, lineHeight: 1,
+                  fontFamily: 'var(--font-display)', fontSize: 36, lineHeight: 1,
                   letterSpacing: '-0.02em', color: dmg > 0 ? 'var(--copper-deep)' : 'var(--ink-3)',
                   fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'center',
                 }}>{dmg}<span style={{ fontSize: 14, color: 'var(--ink-4)' }}>/21</span></div>
