@@ -15,28 +15,28 @@ import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, update
 // Design tokens (injected once into <head>)
 // ─────────────────────────────────────────────────────────────────────────────
 const TOKENS_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Young+Serif&display=swap');
 
 :root {
   --parchment:        #F5EFE2;
-  --parchment-card:   #EFE6D2;
-  --parchment-deep:   #E8DDC4;
+  --parchment-card:   #FAF5EA;
+  --parchment-deep:   #EDE4D0;
   --ink:              #2B2118;
-  --ink-2:            #4D3F30;
-  --ink-3:            #7A6B57;
-  --ink-4:            #A89F8E;
-  --line:             rgba(43,33,24,0.10);
-  --line-strong:      rgba(43,33,24,0.18);
+  --ink-2:            #5C5043;
+  --ink-3:            #8A7E6F;
+  --ink-4:            #B8AE9E;
+  --line:             rgba(43,33,24,0.08);
+  --line-strong:      rgba(43,33,24,0.14);
   --copper:           #B06B2C;
-  --copper-deep:      #8C521E;
-  --forest:           #1F4C2C;
-  --forest-deep:      #143620;
-  --forest-soft:      #DCE6DD;
-  --forest-line:      rgba(31,76,44,0.25);
-  --shadow-rest:      0 1px 0 rgba(43,33,24,0.05), 0 6px 14px -8px rgba(43,33,24,0.18);
-  --font-display:     'Cinzel', 'Trajan Pro', Georgia, serif;
-  --font-ui:          'Inter', system-ui, sans-serif;
-  --r-card:           14px;
+  --copper-deep:      #8A5320;
+  --forest:           #2F5D3A;
+  --forest-deep:      #22472B;
+  --forest-soft:      #E5ECE3;
+  --forest-line:      rgba(47,93,58,0.35);
+  --shadow-rest:      0 1px 0 rgba(43,33,24,0.04), 0 6px 18px -8px rgba(43,33,24,0.12);
+  --font-display:     'Young Serif', ui-serif, Georgia, serif;
+  --font-ui:          'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --r-card:           20px;
 }
 
 @keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
@@ -276,7 +276,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
             <div style={kicker(9)}>Life</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 72, lineHeight: 1, letterSpacing: '-0.04em',
+              fontSize: 75, lineHeight: 1, letterSpacing: '-0.04em',
               color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
             }}>{life}</div>
             {hasDmg ? (
