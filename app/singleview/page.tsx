@@ -273,7 +273,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
       }}>
         {!dead ? (
           <>
-            <div style={kicker(8)}>Life</div>
+            <div style={kicker(9)}>Life</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 72, lineHeight: 1, letterSpacing: '-0.04em',
@@ -281,7 +281,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
             }}>{life}</div>
             {hasDmg ? (
               <div style={{
-                marginTop: 2, fontSize: 10,
+                marginTop: 4, fontSize: 11,
                 color: totalDmg >= 21 ? '#8C2318' : 'var(--copper)',
                 fontWeight: 600,
               }}>
@@ -296,7 +296,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
               fontSize: 48, lineHeight: 1, color: 'var(--copper)',
             }}>×</div>
             <div style={{
-              marginTop: 8, fontSize: 10, fontWeight: 700,
+              marginTop: 10, fontSize: 11, fontWeight: 700,
               letterSpacing: '0.24em', textTransform: 'uppercase',
               color: 'var(--copper-deep)',
             }}>Eliminated</div>
@@ -579,12 +579,12 @@ function DiceSheet({ onClose, opponents = [] }: any) {
         }}/>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <div>
-            <div style={kicker(10)}>Roll</div>
+            <div style={kicker(10)}>Your</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontSize: 22,
               color: 'var(--ink)', letterSpacing: '-0.01em',
               lineHeight: 1.15, marginTop: 2,
-            }}>Choose a die</div>
+            }}>Dice</div>
           </div>
           <button onClick={onClose} style={{
             padding: '6px 12px', borderRadius: 999,
@@ -603,19 +603,19 @@ function DiceSheet({ onClose, opponents = [] }: any) {
             const val = (results as any)[d.key];
             return (
               <button key={d.key} onClick={() => roll(d.key)} style={{
-                background: '#F3ECDB',
-                border: isLast ? `1.5px solid ${d.tone}` : '1px solid var(--line)',
-                borderRadius: 16, padding: '14px 14px',
+                background: 'var(--parchment-card)',
+                border: isLast ? `1.5px solid ${d.tone}` : '1px solid var(--line-strong)',
+                borderRadius: 16, padding: '14px 12px',
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
                 gap: 4, cursor: 'pointer',
                 boxShadow: isLast ? `0 0 0 3px ${d.tone}1a` : 'none',
               }}>
-                <span style={kicker(11)}>{d.label}</span>
+                <span style={kicker(10)}>{d.label}</span>
                 <span style={{
-                  fontFamily: 'var(--font-display)', fontSize: 36,
+                  fontFamily: 'var(--font-display)', fontSize: 28,
                   lineHeight: 1, letterSpacing: '-0.02em', color: d.tone,
                 }}>{val ?? '—'}</span>
-                <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+                <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>
                   {val ? (isLast ? 'Just rolled' : 'Previous roll') : 'Tap to roll'}
                 </span>
               </button>
@@ -676,17 +676,17 @@ function CounterSheet({ onClose, counters, onAdjust }: any) {
             const active = ct.value > 0;
             return (
               <div key={ct.key} style={{
-                background: active ? ct.soft : '#F3ECDB',
-                border: active ? `1.5px solid ${ct.tone}` : '1px solid var(--line)',
+                background: active ? ct.soft : 'var(--parchment-card)',
+                border: active ? `1.5px solid ${ct.tone}` : '1px solid var(--line-strong)',
                 borderRadius: 16, padding: '12px',
                 display: 'flex', flexDirection: 'column', gap: 8,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name={ct.glyph} size={16} stroke={ct.tone}/>
-                  <span style={kicker(11)}>{ct.label}</span>
+                  <span style={kicker(10)}>{ct.label}</span>
                 </div>
                 <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 36,
+                  fontFamily: 'var(--font-display)', fontSize: 28,
                   lineHeight: 1, letterSpacing: '-0.02em', color: active ? ct.tone : 'var(--ink-3)',
                 }}>{ct.value}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -758,14 +758,14 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
             const frac = Math.min(dmg / 21, 1);
             return (
               <div key={opp.id} style={{
-                background: '#F3ECDB',
-                border: dmg > 0 ? '1.5px solid var(--copper)' : '1px solid var(--line)',
+                background: 'var(--parchment-card)',
+                border: dmg > 0 ? '1.5px solid var(--copper)' : '1px solid var(--line-strong)',
                 borderRadius: 16, padding: '12px 14px',
                 display: 'flex', alignItems: 'center', gap: 12,
               }}>
                 <CommAvatar src={opp.art} size={36} ring="var(--copper)"/>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={kicker(10)}>{opp.name}</div>
+                  <div style={kicker(9)}>{opp.name}</div>
                   <div style={{
                     fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
                     color: 'var(--ink)', letterSpacing: '-0.01em',
@@ -784,10 +784,10 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
                   </div>
                 </div>
                 <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 36, lineHeight: 1,
+                  fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1,
                   letterSpacing: '-0.02em', color: dmg > 0 ? 'var(--copper-deep)' : 'var(--ink-3)',
                   fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'center',
-                }}>{dmg}<span style={{ fontSize: 14, color: 'var(--ink-4)' }}>/21</span></div>
+                }}>{dmg}<span style={{ fontSize: 12, color: 'var(--ink-4)' }}>/21</span></div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <button onClick={() => onAdjust(opp.id, 1)} style={{
                     width: 32, height: 32, borderRadius: 10,
@@ -974,8 +974,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
         }}>
           <div style={{
-            background: '#FDF0E6',
-            border: '1px solid rgba(176,107,44,0.30)',
+            background: 'var(--parchment)', border: '1px solid var(--line)',
             borderRadius: 12, padding: '8px 12px',
           }}>
             <div style={{
@@ -983,10 +982,10 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
               textTransform: 'uppercase', color: 'var(--copper-deep)',
             }}>Dmg to you</div>
             <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 34, lineHeight: 1,
-              letterSpacing: '-0.03em', color: 'var(--copper-deep)', marginTop: 4,
+              fontFamily: 'var(--font-display)', fontSize: 38, lineHeight: 1,
+              letterSpacing: '-0.03em', color: 'var(--copper-deep)', marginTop: 2,
               fontVariantNumeric: 'tabular-nums',
-            }}>{p.cmdrDmg ?? 0}<span style={{ fontSize: 14, color: 'var(--ink-4)' }}> /21</span></div>
+            }}>{p.cmdrDmg ?? 0}<span style={{ fontSize: 16, color: 'var(--ink-3)' }}> /21</span></div>
           </div>
           <div style={{
             background: 'var(--forest-soft)',
@@ -998,10 +997,10 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
               textTransform: 'uppercase', color: 'var(--forest)',
             }}>Dmg from you</div>
             <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 34, lineHeight: 1,
-              letterSpacing: '-0.03em', color: 'var(--forest-deep)', marginTop: 4,
+              fontFamily: 'var(--font-display)', fontSize: 38, lineHeight: 1,
+              letterSpacing: '-0.03em', color: 'var(--forest-deep)', marginTop: 2,
               fontVariantNumeric: 'tabular-nums',
-            }}>{p.cmdrDmgFromYou ?? 0}<span style={{ fontSize: 14, color: 'var(--ink-4)' }}> /21</span></div>
+            }}>{p.cmdrDmgFromYou ?? 0}<span style={{ fontSize: 16, color: 'var(--ink-3)' }}> /21</span></div>
           </div>
         </div>
       </div>
