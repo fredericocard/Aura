@@ -579,12 +579,12 @@ function DiceSheet({ onClose, opponents = [] }: any) {
         }}/>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <div>
-            <div style={kicker(10)}>Your</div>
+            <div style={kicker(10)}>Roll</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontSize: 22,
               color: 'var(--ink)', letterSpacing: '-0.01em',
               lineHeight: 1.15, marginTop: 2,
-            }}>Dice</div>
+            }}>Choose a die</div>
           </div>
           <button onClick={onClose} style={{
             padding: '6px 12px', borderRadius: 999,
@@ -612,7 +612,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
               }}>
                 <span style={kicker(10)}>{d.label}</span>
                 <span style={{
-                  fontFamily: 'var(--font-display)', fontSize: 28,
+                  fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 600,
                   lineHeight: 1, letterSpacing: '-0.02em', color: d.tone,
                 }}>{val ?? '—'}</span>
                 <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>
@@ -686,7 +686,7 @@ function CounterSheet({ onClose, counters, onAdjust }: any) {
                   <span style={kicker(10)}>{ct.label}</span>
                 </div>
                 <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 28,
+                  fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 600,
                   lineHeight: 1, letterSpacing: '-0.02em', color: active ? ct.tone : 'var(--ink-3)',
                 }}>{ct.value}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -784,10 +784,10 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
                   </div>
                 </div>
                 <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1,
+                  fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 600, lineHeight: 1,
                   letterSpacing: '-0.02em', color: dmg > 0 ? 'var(--copper-deep)' : 'var(--ink-3)',
                   fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'center',
-                }}>{dmg}<span style={{ fontSize: 12, color: 'var(--ink-4)' }}>/21</span></div>
+                }}>{dmg}<span style={{ fontSize: 14, color: 'var(--ink-4)' }}>/21</span></div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <button onClick={() => onAdjust(opp.id, 1)} style={{
                     width: 32, height: 32, borderRadius: 10,
