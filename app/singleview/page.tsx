@@ -18,22 +18,22 @@ const TOKENS_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Young+Serif&display=swap');
 
 :root {
-  --parchment:        #F5EFE2;
-  --parchment-card:   #FAF5EA;
-  --parchment-deep:   #EDE4D0;
-  --ink:              #2B2118;
-  --ink-2:            #5C5043;
+  --parchment:        #0A0604;
+  --parchment-card:   #1A1410;
+  --parchment-deep:   #100C08;
+  --ink:              #F0E8D8;
+  --ink-2:            #C8BCA8;
   --ink-3:            #8A7E6F;
-  --ink-4:            #B8AE9E;
-  --line:             rgba(43,33,24,0.08);
-  --line-strong:      rgba(43,33,24,0.14);
+  --ink-4:            #5C5043;
+  --line:             rgba(240,232,216,0.08);
+  --line-strong:      rgba(240,232,216,0.14);
   --copper:           #B06B2C;
-  --copper-deep:      #8A5320;
-  --forest:           #2F5D3A;
-  --forest-deep:      #22472B;
-  --forest-soft:      #E5ECE3;
-  --forest-line:      rgba(47,93,58,0.35);
-  --shadow-rest:      0 1px 0 rgba(43,33,24,0.04), 0 6px 18px -8px rgba(43,33,24,0.12);
+  --copper-deep:      #D4883E;
+  --forest:           #3F9F4D;
+  --forest-deep:      #2F7A3A;
+  --forest-soft:      rgba(63,159,77,0.15);
+  --forest-line:      rgba(63,159,77,0.30);
+  --shadow-rest:      0 1px 0 rgba(0,0,0,0.30), 0 6px 18px -8px rgba(0,0,0,0.50);
   --font-display:     'Young Serif', ui-serif, Georgia, serif;
   --font-ui:          'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   --r-card:           20px;
@@ -81,7 +81,7 @@ function ManaDots({ colors = [], size = 8 }: any) {
         <span key={i} style={{
           width: size, height: size, borderRadius: 999,
           background: (MANA as any)[c] || '#A89F8E',
-          boxShadow: 'inset 0 0 0 1px rgba(43,33,24,0.18)',
+          boxShadow: 'inset 0 0 0 1px rgba(240,232,216,0.18)',
         }}/>
       ))}
     </span>
@@ -169,7 +169,7 @@ function SVBackdrop({ src }: any) {
       }}/>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(245,239,226,0.05) 0%, rgba(245,239,226,0.50) 15%, var(--parchment) 100%)',
+        background: 'linear-gradient(180deg, rgba(10,6,4,0.25) 0%, rgba(10,6,4,0.55) 40%, var(--parchment) 100%)',
       }}/>
       <div style={{
         position: 'absolute', inset: 0,
@@ -418,7 +418,7 @@ function GameNav({ active = 'single', onNav }: any) {
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0,
       padding: '10px 16px 32px', zIndex: 8,
-      background: 'linear-gradient(180deg, rgba(245,239,226,0) 0%, rgba(245,239,226,0.92) 30%, var(--parchment) 100%)',
+      background: 'linear-gradient(180deg, rgba(10,6,4,0) 0%, rgba(10,6,4,0.85) 30%, var(--parchment) 100%)',
     }}>
       <div style={{
         background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
@@ -555,7 +555,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
     <>
       <div onClick={onClose} style={{
         position: 'absolute', inset: 0, zIndex: 28,
-        background: 'rgba(43,33,24,0.15)',
+        background: 'rgba(0,0,0,0.40)',
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
@@ -563,7 +563,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
         borderTop: '1px solid var(--line-strong)',
         borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: '14px 18px 32px',
-        boxShadow: '0 -20px 40px -10px rgba(43,33,24,0.18)',
+        boxShadow: '0 -20px 40px -10px rgba(0,0,0,0.50)',
       }}>
         <div style={{
           width: 40, height: 4, borderRadius: 999,
@@ -629,7 +629,7 @@ function CounterSheet({ onClose, counters, onAdjust }: any) {
     <>
       <div onClick={onClose} style={{
         position: 'absolute', inset: 0, zIndex: 28,
-        background: 'rgba(43,33,24,0.15)',
+        background: 'rgba(0,0,0,0.40)',
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
@@ -637,7 +637,7 @@ function CounterSheet({ onClose, counters, onAdjust }: any) {
         borderTop: '1px solid var(--line-strong)',
         borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: '14px 18px 32px',
-        boxShadow: '0 -20px 40px -10px rgba(43,33,24,0.18)',
+        boxShadow: '0 -20px 40px -10px rgba(0,0,0,0.50)',
       }}>
         <div style={{
           width: 40, height: 4, borderRadius: 999,
@@ -713,7 +713,7 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
     <>
       <div onClick={onClose} style={{
         position: 'absolute', inset: 0, zIndex: 28,
-        background: 'rgba(43,33,24,0.15)',
+        background: 'rgba(0,0,0,0.40)',
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
@@ -721,7 +721,7 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
         borderTop: '1px solid var(--line-strong)',
         borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: '14px 18px 32px',
-        boxShadow: '0 -20px 40px -10px rgba(43,33,24,0.18)',
+        boxShadow: '0 -20px 40px -10px rgba(0,0,0,0.50)',
       }}>
         <div style={{
           width: 40, height: 4, borderRadius: 999,
@@ -815,7 +815,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 40,
-      background: 'rgba(43,33,24,0.22)',
+      background: 'rgba(0,0,0,0.45)',
       backdropFilter: 'blur(2px)',
       display: 'flex', flexDirection: 'column',
       animation: 'overlayFadeIn 0.25s ease-out',
@@ -865,7 +865,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
         background: 'var(--parchment-card)',
         border: '1px solid var(--line-strong)',
         borderRadius: 24,
-        boxShadow: '0 30px 60px -20px rgba(43,33,24,0.35)',
+        boxShadow: '0 30px 60px -20px rgba(0,0,0,0.60)',
         padding: 14, flex: 1, position: 'relative', overflow: 'hidden',
         display: 'flex', flexDirection: 'column', gap: 10,
         animation: 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)',
@@ -1007,7 +1007,7 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 50,
-      background: 'rgba(43,33,24,0.22)',
+      background: 'rgba(0,0,0,0.45)',
       backdropFilter: 'blur(2px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       animation: 'overlayFadeIn 0.25s ease-out',
@@ -1017,7 +1017,7 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
         background: 'var(--parchment)',
         border: '1px solid var(--line-strong)',
         borderRadius: 24,
-        boxShadow: '0 30px 60px -20px rgba(43,33,24,0.35)',
+        boxShadow: '0 30px 60px -20px rgba(0,0,0,0.60)',
         padding: 20,
         animation: 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)',
       }}>
@@ -1042,7 +1042,7 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
         {!confirmingAbandon ? (
           <button onClick={() => setConfirmingAbandon(true)} style={{
             width: '100%', cursor: 'pointer',
-            background: '#F5EFE2',
+            background: '#1A1410',
             color: '#9E2B2B',
             border: '1px solid rgba(158,43,43,0.2)',
             borderRadius: 20,
@@ -1060,7 +1060,7 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
             </div>
             <button onClick={onAbandon} style={{
               width: '100%', cursor: 'pointer',
-              background: '#F5EFE2',
+              background: '#1A1410',
               color: '#9E2B2B',
               border: '1px solid rgba(158,43,43,0.2)',
               borderRadius: 20,
@@ -1070,7 +1070,7 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
             }}>Confirm Abandon</button>
             <button onClick={() => setConfirmingAbandon(false)} style={{
               width: '100%', cursor: 'pointer',
-              background: '#F5EFE2',
+              background: '#1A1410',
               color: 'var(--ink-2)',
               border: '1px solid var(--line-strong)',
               borderRadius: 20,
@@ -1100,7 +1100,7 @@ function TornEdgeMini() {
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
       style={{ display: 'block', width: '100%', marginBottom: -1 }} aria-hidden="true">
-      <path d={d} fill="#FAF5EA"/>
+      <path d={d} fill="#1A1410"/>
     </svg>
   );
 }
@@ -1114,7 +1114,7 @@ function EliminatedPopup({ onRevive, onReview }: any) {
     }}>
       <div onClick={onRevive} style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(43,33,24,0.55)',
+        background: 'rgba(0,0,0,0.60)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
       }}/>
@@ -1127,14 +1127,14 @@ function EliminatedPopup({ onRevive, onReview }: any) {
 
         <div style={{
           position: 'relative',
-          background: '#FAF5EA',
+          background: '#1A1410',
           padding: '8px 22px 32px',
         }}>
           <button onClick={onRevive} aria-label="Close" style={{
             position: 'absolute', top: 14, right: 16,
             width: 32, height: 32, borderRadius: 999,
-            border: '1px solid rgba(43,33,24,0.08)',
-            background: '#EDE4D0',
+            border: '1px solid rgba(240,232,216,0.08)',
+            background: '#100C08',
             color: '#5C5043', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
@@ -1158,7 +1158,7 @@ function EliminatedPopup({ onRevive, onReview }: any) {
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 26, letterSpacing: '-0.02em',
-              color: '#2B2118', lineHeight: 1.1,
+              color: '#F0E8D8', lineHeight: 1.1,
             }}>You have been eliminated</div>
             <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
               If the game is over, head to review to rate your experience.
@@ -1169,14 +1169,14 @@ function EliminatedPopup({ onRevive, onReview }: any) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: '#2F5D3A', color: '#F5EFE2',
+              background: '#3F9F4D', color: '#F0E8D8',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
-              boxShadow: '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)',
+              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F5EFE2" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
@@ -1184,7 +1184,7 @@ function EliminatedPopup({ onRevive, onReview }: any) {
 
             <button onClick={onRevive} style={{
               width: '100%', cursor: 'pointer',
-              background: '#F5EFE2', color: 'var(--ink-2)',
+              background: '#1A1410', color: 'var(--ink-2)',
               border: '1px solid var(--line-strong)',
               borderRadius: 20,
               padding: '14px 18px',
