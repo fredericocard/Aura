@@ -9,6 +9,30 @@ import { supabase } from '@/lib/supabase';
 import { getQrCodeUrl } from '@/lib/pods';
 import { useWakeLock } from '@/lib/use-wake-lock';
 
+// Dark mode constants
+const DARK = {
+  bg:        '#0A0604',
+  bgCard:    '#150E08',
+  bgDeep:    '#050302',
+  ink:       '#F0E8D8',
+  ink2:      '#C5B9A5',
+  ink3:      '#8A7E6F',
+  ink4:      '#5C5043',
+  copper:    '#E2B858',
+  copperDim: 'rgba(226,184,88,0.55)',
+  copperGlow:'rgba(201,155,47,0.34)',
+  gold:      '#C99B2F',
+  forest:    '#3F9F4D',
+  forestDeep:'#2C7A37',
+  line:      'rgba(226,184,88,0.10)',
+  lineStrong:'rgba(226,184,88,0.18)',
+  cellBorder:'rgba(226,184,88,0.14)',
+  shadowRest:'0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
+  navBg:     'linear-gradient(180deg, rgba(10,6,4,0) 0%, rgba(10,6,4,0.92) 30%, #0A0604 100%)',
+  navPill:   '#150E08',
+  navBorder: 'rgba(226,184,88,0.18)',
+};
+
 interface PlayerState {
   life: number;
   name: string;
@@ -78,18 +102,6 @@ function PageContent() {
   const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const popupOpenRef = useRef(false);
   const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
-
-  const playerColors: Record<number, string> = {
-    1: 'rgb(26,122,106)',
-    2: 'rgb(168,74,58)',
-    3: 'rgb(42,138,86)',
-    4: 'rgb(184,146,46)',
-    5: 'rgb(90,110,98)'
-  };
-
-  const playerClasses: Record<number, string> = {
-    1: 'p1', 2: 'p2', 3: 'p3', 4: 'p4', 5: 'p5'
-  };
 
   const manaColorStyles: Record<string, ManaStyle> = {
     W: { grad: [[160, 140, 90], [190, 170, 115], [210, 192, 140]], border: [220, 200, 155], shadow: [160, 140, 90] },
@@ -463,12 +475,12 @@ function PageContent() {
             <svg viewBox="0 0 16 16" fill="none">
               <path
                 d="M8 1C9.657 1 11 2.343 11 4C11 5.657 9.657 7 8 7C6.343 7 5 5.657 5 4C5 2.343 6.343 1 8 1Z"
-                stroke="rgb(26,122,106)"
+                stroke={DARK.copper}
                 strokeWidth="1.5"
               />
               <path
                 d="M3 14C3 11.239 5.239 9 8 9C10.761 9 13 11.239 13 14"
-                stroke="rgb(26,122,106)"
+                stroke={DARK.copper}
                 strokeWidth="1.5"
                 strokeLinecap="round"
               />
@@ -528,7 +540,7 @@ function PageContent() {
               <div className="qr-box">
                 <div className="qr-pattern">
                   <div className="qr-center">
-                    <div className="qr-badge" style={{ background: `linear-gradient(135deg, ${playerColors[playerNum]}, rgb(184,146,46))` }}>P</div>
+                    <div className="qr-badge" style={{ background: `linear-gradient(135deg, rgb(226,184,88), rgb(201,155,47))` }}>P</div>
                   </div>
                 </div>
               </div>
@@ -559,7 +571,7 @@ function PageContent() {
           height: 100%;
           overflow: hidden;
           font-family: 'Inter', sans-serif;
-          background: #e8dcc8;
+          background: ${DARK.bg};
         }
 
         .app {
@@ -572,6 +584,7 @@ function PageContent() {
           padding-top: env(safe-area-inset-top, 0px);
           padding-bottom: env(safe-area-inset-bottom, 0px);
           overflow: hidden;
+          background: ${DARK.bg};
         }
 
         .grid-container {
@@ -579,20 +592,20 @@ function PageContent() {
           display: flex;
           flex-direction: column;
           gap: 6px;
-          padding: 10px;
+          padding: 8px;
           min-height: 0;
           overflow: hidden;
         }
 
         .grid-top {
-          flex: 4;
+          flex: 1;
           display: flex;
           gap: 6px;
           min-height: 0;
         }
 
         .grid-bottom-row {
-          flex: 1;
+          flex: 0.6;
           min-height: 0;
         }
 
@@ -611,15 +624,18 @@ function PageContent() {
           justify-content: center;
           position: relative;
           overflow: hidden;
+          background: ${DARK.bgCard};
+          border: 1px solid ${DARK.cellBorder};
+          box-shadow: ${DARK.shadowRest};
         }
 
         .player-tile.claimed {
-          border: 2px solid;
+          border: 1px solid ${DARK.cellBorder};
         }
 
         .player-tile.unclaimed {
-          border: 2px dashed rgba(138,154,142,0.25);
-          background-color: rgba(138,154,142,0.03);
+          border: 2px dashed ${DARK.cellBorder};
+          background: ${DARK.bgDeep};
         }
 
         .tile-content {
@@ -630,6 +646,7 @@ function PageContent() {
           width: 100%;
           height: 100%;
           position: relative;
+          z-index: 10;
         }
 
         .tile-content.rotate-left {
@@ -649,43 +666,56 @@ function PageContent() {
           max-width: 100%;
           max-height: 100%;
           overflow: hidden;
+          width: 100%;
+          height: 100%;
+          position: relative;
+          z-index: 2;
+        }
+
+        .tile-normal.hidden {
+          display: none;
         }
 
         .tile-commander {
           font-family: 'Inter', sans-serif;
-          font-weight: 700;
-          font-size: 10px;
+          font-weight: 600;
+          font-size: 7px;
           text-align: center;
-          margin-top: 6px;
+          margin-top: 4px;
           max-width: 90%;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          color: ${DARK.ink2};
+          letter-spacing: 0.02em;
         }
 
         .commander-dash {
-          color: rgb(138,154,142);
-          font-size: 10px;
+          color: ${DARK.ink3};
+          font-size: 7px;
           text-align: center;
-          margin-top: 6px;
+          margin-top: 4px;
+          letter-spacing: 0.02em;
         }
 
         .life-display {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
+          gap: 4px;
           width: 100%;
+          position: relative;
+          z-index: 10;
         }
 
         .life-minus-btn {
-          width: var(--btn-size, 32px);
-          height: var(--btn-size, 32px);
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
-          border: 1.5px solid rgba(168,74,58,0.2);
-          background: rgba(168,74,58,0.12);
-          color: rgb(168,74,58);
-          font-size: var(--btn-font, 20px);
+          border: 0.75px solid ${DARK.lineStrong};
+          background: transparent;
+          color: ${DARK.ink};
+          font-size: 14px;
           font-weight: bold;
           cursor: pointer;
           display: flex;
@@ -697,41 +727,43 @@ function PageContent() {
 
         .life-minus-btn:active {
           transform: scale(0.9);
+          background: rgba(255,80,80,0.08);
         }
 
         .claimed .life-minus-btn {
-          border: 1px solid rgb(245,239,227);
-          background: rgba(245,239,227,0.18);
-          color: rgb(245,239,227);
+          border: 0.75px solid ${DARK.lineStrong};
+          background: transparent;
+          color: ${DARK.ink};
         }
 
         .claimed .life-minus-btn:active {
-          background: rgba(245,239,227,0.3);
+          background: rgba(255,80,80,0.08);
         }
 
         .life-number {
           font-family: 'Jaldi', sans-serif;
           font-weight: 900;
-          font-size: var(--life-font-size, 80px);
-          color: rgb(44,62,54);
+          font-size: 44px;
+          color: ${DARK.ink};
           line-height: 1;
           text-align: center;
-          letter-spacing: -2px;
+          letter-spacing: -1px;
           transition: color 0.2s ease;
+          text-shadow: 0 0 20px rgba(226,184,88,0.08), 0 0.5px 0 rgba(10,6,4,0.6);
         }
 
         .life-number.critical {
-          color: rgb(168,74,58);
+          color: #FF6B6B;
         }
 
         .life-plus-btn {
-          width: var(--btn-size, 32px);
-          height: var(--btn-size, 32px);
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
-          border: 1.5px solid rgba(42,138,86,0.2);
-          background: rgba(42,138,86,0.12);
-          color: rgb(42,138,86);
-          font-size: var(--btn-font, 20px);
+          border: 0.75px solid ${DARK.lineStrong};
+          background: transparent;
+          color: ${DARK.ink};
+          font-size: 14px;
           font-weight: bold;
           cursor: pointer;
           display: flex;
@@ -743,59 +775,66 @@ function PageContent() {
 
         .life-plus-btn:active {
           transform: scale(0.9);
+          background: rgba(80,200,80,0.08);
         }
 
         .claimed .life-plus-btn {
-          border: 1px solid rgb(245,239,227);
-          background: rgba(245,239,227,0.18);
-          color: rgb(245,239,227);
+          border: 0.75px solid ${DARK.lineStrong};
+          background: transparent;
+          color: ${DARK.ink};
         }
 
         .claimed .life-plus-btn:active {
-          background: rgba(245,239,227,0.3);
+          background: rgba(80,200,80,0.08);
         }
 
         .join-btn {
           position: absolute;
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 8px;
-          background: rgba(26,122,106,0.18);
-          border: 1px solid rgba(26,122,106,0.35);
+          background: rgba(63,159,77,0.18);
+          border: 1px solid ${DARK.copper};
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          z-index: 2;
+          z-index: 20;
+          transition: all 0.2s ease;
+        }
+
+        .join-btn:active {
+          transform: scale(0.9);
+          background: rgba(63,159,77,0.28);
         }
 
         .grid-column:first-child .join-btn {
-          bottom: 8px;
-          left: 8px;
+          bottom: 6px;
+          left: 6px;
           transform: rotate(90deg);
         }
 
         .grid-column:last-child .join-btn {
-          top: 8px;
-          right: 8px;
+          top: 6px;
+          right: 6px;
           transform: rotate(-90deg);
         }
 
         .grid-bottom-row .join-btn {
-          bottom: 8px;
-          right: 8px;
+          bottom: 6px;
+          right: 6px;
         }
 
         .join-btn svg {
-          width: 18px;
-          height: 18px;
+          width: 16px;
+          height: 16px;
         }
 
         @keyframes joinPulseGlow {
-          0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(26,122,106,0); }
-          30%  { transform: scale(1.12); box-shadow: 0 0 12px 4px rgba(26,122,106,0.35); }
-          60%  { transform: scale(1.05); box-shadow: 0 0 8px 2px rgba(26,122,106,0.18); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26,122,106,0); }
+          0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); }
+          30%  { transform: scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35); }
+          60%  { transform: scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18); }
+          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); }
         }
 
         .join-btn.pulse-glow {
@@ -803,40 +842,43 @@ function PageContent() {
         }
 
         @keyframes joinPulseGlowLeft {
-          0%   { transform: rotate(90deg) scale(1); box-shadow: 0 0 0 0 rgba(26,122,106,0); background: rgba(26,122,106,0.18); }
-          30%  { transform: rotate(90deg) scale(1.12); box-shadow: 0 0 12px 4px rgba(26,122,106,0.35), 0 0 20px 8px rgba(255,255,255,0.15); background: rgba(255,255,255,0.35); }
-          60%  { transform: rotate(90deg) scale(1.05); box-shadow: 0 0 8px 2px rgba(26,122,106,0.18), 0 0 14px 5px rgba(255,255,255,0.08); background: rgba(255,255,255,0.2); }
-          100% { transform: rotate(90deg) scale(1); box-shadow: 0 0 0 0 rgba(26,122,106,0); background: rgba(26,122,106,0.18); }
+          0%   { transform: rotate(90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
+          30%  { transform: rotate(90deg) scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35), 0 0 20px 8px rgba(226,184,88,0.2); background: rgba(63,159,77,0.28); }
+          60%  { transform: rotate(90deg) scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18), 0 0 14px 5px rgba(226,184,88,0.1); background: rgba(63,159,77,0.22); }
+          100% { transform: rotate(90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
         }
 
         @keyframes joinPulseGlowRight {
-          0%   { transform: rotate(-90deg) scale(1); box-shadow: 0 0 0 0 rgba(26,122,106,0); background: rgba(26,122,106,0.18); }
-          30%  { transform: rotate(-90deg) scale(1.12); box-shadow: 0 0 12px 4px rgba(26,122,106,0.35), 0 0 20px 8px rgba(255,255,255,0.15); background: rgba(255,255,255,0.35); }
-          60%  { transform: rotate(-90deg) scale(1.05); box-shadow: 0 0 8px 2px rgba(26,122,106,0.18), 0 0 14px 5px rgba(255,255,255,0.08); background: rgba(255,255,255,0.2); }
-          100% { transform: rotate(-90deg) scale(1); box-shadow: 0 0 0 0 rgba(26,122,106,0); background: rgba(26,122,106,0.18); }
+          0%   { transform: rotate(-90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
+          30%  { transform: rotate(-90deg) scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35), 0 0 20px 8px rgba(226,184,88,0.2); background: rgba(63,159,77,0.28); }
+          60%  { transform: rotate(-90deg) scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18), 0 0 14px 5px rgba(226,184,88,0.1); background: rgba(63,159,77,0.22); }
+          100% { transform: rotate(-90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
         }
 
-        .tile-qr { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; gap: 4px; }
+        .tile-qr { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; gap: 3px; }
         .tile-qr.active { display: flex; }
         .tile-normal.hidden { display: none; }
 
         .player-tile.eliminated {
-          background-color: rgb(245,239,227) !important;
-          border: 2px solid rgb(184,168,138) !important;
+          background-color: ${DARK.bgCard} !important;
+          border: 1px solid ${DARK.cellBorder} !important;
         }
 
         .qr-label {
           font-family: 'Inter', sans-serif;
           font-weight: 600;
           font-size: 6px;
-          color: rgb(138,154,142);
+          color: ${DARK.ink3};
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
         }
 
         .qr-box {
-          width: 50px;
-          height: 50px;
-          background: rgb(44,62,54);
+          width: 40px;
+          height: 40px;
+          background: ${DARK.bgDeep};
           border-radius: 8px;
+          border: 1px solid ${DARK.cellBorder};
           display: flex;
           align-items: center;
           justify-content: center;
@@ -846,223 +888,324 @@ function PageContent() {
         .qr-pattern {
           width: 100%;
           height: 100%;
-          background: repeating-conic-gradient(#e8dcc8 0% 25%, rgb(44,62,54) 0% 50%) 50% / 8px 8px;
-          border-radius: 3px;
+          background: repeating-conic-gradient(${DARK.bgCard} 0% 25%, ${DARK.bgDeep} 0% 50%) 50% / 8px 8px;
+          border-radius: 4px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
         .qr-center {
-          background: rgb(44,62,54);
+          background: ${DARK.bgDeep};
           padding: 2px;
           border-radius: 3px;
         }
 
         .qr-badge {
-          width: 12px;
-          height: 12px;
+          width: 10px;
+          height: 10px;
           border-radius: 3px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 6px;
+          font-size: 5px;
           font-weight: 800;
-          color: rgb(245,239,227);
+          color: ${DARK.bgDeep};
         }
 
         .qr-player-label {
           font-family: 'Inter', sans-serif;
           font-weight: 400;
           font-size: 5px;
-          color: rgb(138,154,142);
+          color: ${DARK.ink3};
           font-style: italic;
         }
 
         .revive-btn {
           padding: 3px 8px;
-          background: rgba(42,138,86,0.15);
-          border: 1px solid rgba(42,138,86,0.35);
+          background: rgba(63,159,77,0.15);
+          border: 1px solid ${DARK.copper};
           border-radius: 6px;
           cursor: pointer;
           font-family: 'Inter', sans-serif;
           font-weight: 700;
-          font-size: 7px;
-          color: rgb(42,138,86);
-          margin-top: 2px;
+          font-size: 6px;
+          color: ${DARK.copper};
+          margin-top: 3px;
+          transition: all 0.2s ease;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
         .revive-btn:active {
           transform: scale(0.9);
+          background: rgba(63,159,77,0.25);
         }
 
         .join-modal {
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.55);
-          display: none; align-items: center; justify-content: center;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.65);
+          display: none;
+          align-items: center;
+          justify-content: center;
           z-index: 1000;
+          backdrop-filter: blur(4px);
         }
-        .join-modal.active { display: flex; }
+
+        .join-modal.active {
+          display: flex;
+        }
 
         .join-modal-card {
-          width: calc(100% - 40px); max-width: 335px;
-          background: rgb(245,239,227);
-          border: 1.3px solid rgb(184,168,138);
-          border-radius: 20px; padding: 24px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+          width: calc(100% - 40px);
+          max-width: 335px;
+          background: ${DARK.bgCard};
+          border: 1px solid ${DARK.lineStrong};
+          border-radius: 20px;
+          padding: 24px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
           position: relative;
           text-align: center;
         }
 
         .join-modal-title {
-          font-weight: 600; font-size: 16px; color: rgb(44,62,54);
-          margin-bottom: 4px; text-align: left;
+          font-weight: 700;
+          font-size: 16px;
+          color: ${DARK.ink};
+          margin-bottom: 4px;
+          text-align: center;
+          letter-spacing: 0.02em;
         }
 
         .join-modal-subtitle {
-          font-size: 12px; color: rgb(90,110,98);
+          font-size: 12px;
+          color: ${DARK.ink3};
           margin-bottom: 16px;
         }
 
         .join-qr-box {
-          width: 130px; height: 130px;
+          width: 130px;
+          height: 130px;
           margin: 0 auto;
-          background: rgb(44,62,54);
+          background: ${DARK.bgDeep};
           border-radius: 12px;
-          display: flex; align-items: center; justify-content: center;
+          border: 1px solid ${DARK.cellBorder};
+          display: flex;
+          align-items: center;
+          justify-content: center;
           padding: 8px;
         }
 
         .join-qr-pattern {
-          width: 100%; height: 100%;
-          background: repeating-conic-gradient(#e8dcc8 0% 25%, rgb(44,62,54) 0% 50%) 50% / 10px 10px;
-          border-radius: 4px;
-          display: flex; align-items: center; justify-content: center;
+          width: 100%;
+          height: 100%;
+          background: repeating-conic-gradient(${DARK.bgCard} 0% 25%, ${DARK.bgDeep} 0% 50%) 50% / 10px 10px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .join-qr-center {
-          background: rgb(44,62,54);
+          background: ${DARK.bgDeep};
           padding: 6px;
           border-radius: 6px;
         }
 
         .join-qr-badge {
-          width: 28px; height: 28px;
+          width: 28px;
+          height: 28px;
           border-radius: 6px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: 800;
-          color: rgb(245,239,227);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 800;
+          color: ${DARK.bgDeep};
+          background: ${DARK.copper};
         }
 
         .join-slot-code {
           margin-top: 12px;
-          padding: 6px 14px;
-          background: rgb(222,212,192);
+          padding: 8px 14px;
+          background: ${DARK.bgDeep};
+          border: 1px solid ${DARK.lineStrong};
           border-radius: 8px;
           display: inline-block;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .join-slot-code:active {
+          transform: scale(0.98);
+          border-color: ${DARK.copper};
         }
 
         .join-slot-code span {
-          color: rgb(184,146,46);
+          color: ${DARK.copper};
           font-size: 14px;
           font-weight: 700;
           letter-spacing: 3px;
+          font-family: 'Courier New', monospace;
         }
 
         .join-simulate-btn {
           margin-top: 14px;
           width: 100%;
           padding: 12px;
-          background: linear-gradient(135deg, rgb(26,122,106) 0%, rgb(21,138,114) 100%);
-          border: none; border-radius: 10px;
-          color: rgb(245,239,227);
-          font-weight: 600; font-size: 14px;
+          background: linear-gradient(135deg, ${DARK.forest} 0%, ${DARK.forestDeep} 100%);
+          border: none;
+          border-radius: 12px;
+          color: ${DARK.ink};
+          font-weight: 700;
+          font-size: 14px;
           cursor: pointer;
-          display: flex; align-items: center; justify-content: center; gap: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: all 0.2s ease;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
-        .join-simulate-btn:active { transform: scale(0.98); }
+        .join-simulate-btn:active {
+          transform: scale(0.98);
+        }
 
         .bottom-nav {
           margin-top: auto;
-          margin-bottom: 16px;
-          padding: 12px 8px;
-          height: 84px;
-          border-radius: 26px;
-          border-top: 1px solid rgba(184,168,138,0.5);
+          margin-bottom: 12px;
+          margin-left: 8px;
+          margin-right: 8px;
+          padding: 10px;
+          height: auto;
+          border-radius: 14px;
+          background: ${DARK.navBg};
+          border: 1px solid ${DARK.navBorder};
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           flex-shrink: 0;
           transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1), padding 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+          justify-content: space-around;
         }
 
         .bottom-nav.collapsed {
-          height: 48px;
+          height: auto;
           padding: 6px 8px;
         }
 
         .nav-item {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 6px; cursor: pointer; flex: 1;
-          padding: 8px 0;
-          border-radius: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          cursor: pointer;
+          flex: 1;
+          padding: 6px 10px;
+          border-radius: 10px;
           background: transparent;
-          transition: all 0.2s ease, gap 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s ease;
+          color: ${DARK.ink3};
         }
 
         .nav-item:active {
-          transform: scale(0.9);
-          background: linear-gradient(135deg, rgb(21,138,114) 0%, rgb(26,122,106) 100%);
-          border-radius: 12px;
+          transform: scale(0.92);
+          background: ${DARK.navPill};
+          border-radius: 10px;
         }
-        .nav-item:active .dice-icon { border-color: rgb(245,239,227); }
-        .nav-item:active .dice-dot { background: rgb(245,239,227); }
-        .nav-item:active .star-icon { border-color: rgb(245,239,227); }
-        .nav-item:active .star { background: rgb(245,239,227); }
-        .nav-item:active .nav-label { color: rgb(245,239,227); }
 
-        .nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+        .nav-item:active .dice-icon {
+          border-color: ${DARK.copper};
+        }
+
+        .nav-item:active .dice-dot {
+          background: ${DARK.copper};
+        }
+
+        .nav-item:active .star-icon {
+          border-color: ${DARK.copper};
+        }
+
+        .nav-item:active .star {
+          background: ${DARK.copper};
+        }
+
+        .nav-item:active .nav-label {
+          color: ${DARK.copper};
+        }
+
+        .nav-item:active .list-icon span {
+          background: ${DARK.copper};
+        }
+
+        .nav-icon {
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
 
         .dice-icon {
-          width: 24px; height: 24px;
-          border: 1.75px solid rgb(90,110,98); border-radius: 4px;
+          width: 18px;
+          height: 18px;
+          border: 1.25px solid ${DARK.ink3};
+          border-radius: 3px;
           position: relative;
           transition: border-color 0.2s ease;
         }
 
         .dice-dot {
-          width: 3px; height: 3px; background: rgb(90,110,98);
-          position: absolute; border-radius: 50%;
+          width: 1.5px;
+          height: 1.5px;
+          background: ${DARK.ink3};
+          position: absolute;
+          border-radius: 50%;
           transition: background 0.2s ease;
         }
 
-        .dice-dot:nth-child(1) { top: 3px; left: 3px; }
-        .dice-dot:nth-child(2) { top: 3px; right: 3px; }
-        .dice-dot:nth-child(3) { top: 9px; left: 9px; }
-        .dice-dot:nth-child(4) { bottom: 3px; left: 3px; }
-        .dice-dot:nth-child(5) { bottom: 3px; right: 3px; }
+        .dice-dot:nth-child(1) { top: 2px; left: 2px; }
+        .dice-dot:nth-child(2) { top: 2px; right: 2px; }
+        .dice-dot:nth-child(3) { top: 8px; left: 8px; }
+        .dice-dot:nth-child(4) { bottom: 2px; left: 2px; }
+        .dice-dot:nth-child(5) { bottom: 2px; right: 2px; }
 
         .star-icon {
-          width: 24px; height: 24px;
-          border: 1.75px solid rgb(90,110,98); border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
+          width: 18px;
+          height: 18px;
+          border: 1.25px solid ${DARK.ink3};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           transition: border-color 0.2s ease;
         }
 
         .star {
-          width: 12px; height: 12px;
+          width: 9px;
+          height: 9px;
           clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-          background: rgb(90,110,98);
+          background: ${DARK.ink3};
           transition: background 0.2s ease;
         }
 
         .nav-label {
-          font-weight: 500; font-size: 12px; color: rgb(90,110,98);
-          max-height: 18px;
+          font-weight: 500;
+          font-size: 9px;
+          color: ${DARK.ink3};
+          max-height: 16px;
           opacity: 1;
           overflow: hidden;
           transition: max-height 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), margin-top 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
         .bottom-nav.collapsed .nav-label {
@@ -1074,16 +1217,18 @@ function PageContent() {
           gap: 0;
         }
 
-        .nav-item:active .list-icon span {
-          background: rgb(245,239,227);
+        .list-icon {
+          width: 14px;
+          height: 10px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
 
-        .list-icon {
-          width: 16px; height: 12px;
-          display: flex; flex-direction: column; justify-content: space-between;
-        }
         .list-icon span {
-          height: 1.5px; background: rgb(90,110,98); border-radius: 1px;
+          height: 1.2px;
+          background: ${DARK.ink3};
+          border-radius: 1px;
           transition: background 0.2s ease;
         }
 
@@ -1093,11 +1238,12 @@ function PageContent() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0,0,0,0.55);
+          background: rgba(0,0,0,0.65);
           display: none;
           align-items: center;
           justify-content: center;
           z-index: 1000;
+          backdrop-filter: blur(4px);
         }
 
         .modal-overlay.active {
@@ -1107,95 +1253,110 @@ function PageContent() {
         .dice-modal {
           width: calc(100% - 40px);
           max-width: 335px;
-          background: rgb(245,239,227);
-          border: 1.3px solid rgb(184,168,138);
+          background: ${DARK.bgCard};
+          border: 1px solid ${DARK.lineStrong};
           border-radius: 20px;
           padding: 24px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
           position: relative;
         }
 
         .modal-close {
           position: absolute;
-          top: 16px;
-          right: 16px;
+          top: 12px;
+          right: 12px;
           background: none;
           border: none;
-          font-size: 20px;
-          color: rgb(90,110,98);
+          font-size: 24px;
+          color: ${DARK.ink3};
           cursor: pointer;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          transition: all 0.2s ease;
         }
 
         .modal-close:active {
           transform: scale(0.9);
+          background: ${DARK.bgDeep};
         }
 
         .modal-title {
-          font-weight: 600;
+          font-weight: 700;
           font-size: 16px;
-          color: rgb(44,62,54);
+          color: ${DARK.ink};
           margin-bottom: 16px;
           text-align: center;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
         }
 
         .tab-group {
           display: flex;
           justify-content: center;
           gap: 8px;
-          margin-bottom: 24px;
+          margin-bottom: 20px;
         }
 
         .tab {
           padding: 8px 16px;
-          border: 1.3px solid rgb(184,168,138);
-          background: rgb(222,212,192);
-          color: rgb(44,62,54);
+          border: 1px solid ${DARK.lineStrong};
+          background: ${DARK.bgDeep};
+          color: ${DARK.ink3};
           font-weight: 600;
-          font-size: 14px;
+          font-size: 12px;
           cursor: pointer;
-          border-radius: 999px;
+          border-radius: 10px;
           transition: all 0.2s ease;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
         .tab.active {
-          background: linear-gradient(135deg, rgb(26,122,106) 0%, rgb(21,138,114) 100%);
-          color: rgb(245,239,227);
-          border-color: transparent;
+          background: ${DARK.copper};
+          color: ${DARK.bgDeep};
+          border-color: ${DARK.copper};
         }
 
         .result-display {
           font-family: 'Inter', sans-serif;
           font-weight: 700;
-          font-size: 96px;
-          color: rgb(26,122,106);
+          font-size: 80px;
+          color: ${DARK.copper};
           text-align: center;
           margin-bottom: 8px;
           line-height: 1;
-          min-height: 100px;
+          min-height: 90px;
           display: flex;
           align-items: center;
           justify-content: center;
+          letter-spacing: -2px;
         }
 
         .rolling-text {
           font-size: 12px;
-          color: rgb(90,110,98);
+          color: ${DARK.ink3};
           text-align: center;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
           min-height: 16px;
         }
 
         .roll-button {
           width: 100%;
           padding: 12px;
-          background: linear-gradient(135deg, rgb(26,122,106) 0%, rgb(21,138,114) 100%);
+          background: ${DARK.copper};
           border: none;
           border-radius: 10px;
-          color: rgb(245,239,227);
-          font-weight: 600;
-          font-size: 14px;
+          color: ${DARK.bgDeep};
+          font-weight: 700;
+          font-size: 13px;
           cursor: pointer;
           transition: all 0.2s ease;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
         .roll-button:active {
@@ -1208,11 +1369,12 @@ function PageContent() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0,0,0,0.55);
+          background: rgba(0,0,0,0.65);
           display: none;
           align-items: center;
           justify-content: center;
           z-index: 1000;
+          backdrop-filter: blur(4px);
         }
 
         .counters-overlay.active {
@@ -1243,22 +1405,22 @@ function PageContent() {
         }
 
         .counters-flip-btn {
-          width: 48px;
-          height: 48px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
-          border: 1.3px solid rgb(184,168,138);
-          background: rgb(245,239,227);
-          color: rgb(44,62,54);
+          border: 1px solid ${DARK.lineStrong};
+          background: ${DARK.bgCard};
+          color: ${DARK.ink3};
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1002;
           position: absolute;
-          bottom: -28px;
+          bottom: -24px;
           left: 50%;
           transform: translateX(-50%);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
           transition: all 0.2s ease;
         }
 
@@ -1267,17 +1429,18 @@ function PageContent() {
         }
 
         .counters-flip-btn svg {
-          width: 22px;
-          height: 22px;
+          width: 18px;
+          height: 18px;
+          stroke: ${DARK.ink3};
         }
 
         .counters-modal {
-          width: 300px;
-          background: rgb(245,239,227);
-          border: 1.3px solid rgb(184,168,138);
-          border-radius: 20px;
-          padding: 20px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+          width: 280px;
+          background: ${DARK.bgCard};
+          border: 1px solid ${DARK.lineStrong};
+          border-radius: 16px;
+          padding: 18px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
           position: relative;
           transition: transform 0.3s ease;
         }
@@ -1286,42 +1449,46 @@ function PageContent() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
 
         .counters-title {
-          font-weight: 600;
-          font-size: 16px;
-          color: rgb(44,62,54);
+          font-weight: 700;
+          font-size: 14px;
+          color: ${DARK.ink};
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
         .player-selector {
           display: flex;
-          gap: 8px;
-          margin-bottom: 16px;
+          gap: 6px;
+          margin-bottom: 12px;
+          justify-content: space-between;
         }
 
         .player-selector-btn {
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
-          border: 2px solid rgb(184,168,138);
-          background: rgb(222,212,192);
+          border: 1.5px solid ${DARK.lineStrong};
+          background: ${DARK.bgDeep};
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           font-family: 'Jaldi', sans-serif;
           font-weight: 700;
-          font-size: 16px;
-          color: rgb(245,239,227);
+          font-size: 14px;
+          color: ${DARK.ink2};
           transition: all 0.2s ease;
           position: relative;
+          flex: 1;
         }
 
         .player-selector-btn.active {
-          border-color: rgb(44,62,54);
-          box-shadow: 0 0 0 2px rgb(44,62,54);
+          border-color: ${DARK.copper};
+          box-shadow: 0 0 0 1.5px ${DARK.copper};
           transform: scale(1.08);
         }
 
@@ -1331,34 +1498,35 @@ function PageContent() {
 
         .selected-player-info {
           text-align: center;
-          margin-bottom: 14px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid rgb(184,168,138);
+          margin-bottom: 10px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid ${DARK.cellBorder};
         }
 
         .selected-commander {
           font-family: 'Inter', sans-serif;
           font-weight: 600;
-          font-size: 13px;
-          color: rgb(44,62,54);
+          font-size: 11px;
+          color: ${DARK.ink2};
           margin-bottom: 2px;
         }
 
         .selected-player-name {
           font-family: 'Inter', sans-serif;
           font-weight: 400;
-          font-size: 11px;
-          color: rgb(90,110,98);
+          font-size: 10px;
+          color: ${DARK.ink3};
         }
 
         .counter-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 14px;
-          background: rgb(222,212,192);
-          border-radius: 12px;
-          margin-bottom: 10px;
+          padding: 10px;
+          background: ${DARK.bgDeep};
+          border-radius: 10px;
+          margin-bottom: 8px;
+          border: 1px solid ${DARK.cellBorder};
         }
 
         .counter-row:last-child {
@@ -1368,42 +1536,46 @@ function PageContent() {
         .counter-label {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 8px;
         }
 
         .counter-icon {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
         .counter-icon svg {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
+          stroke: ${DARK.ink2};
+          stroke-width: 2;
         }
 
         .counter-name {
-          font-weight: 400;
-          font-size: 14px;
-          color: rgb(44,62,54);
+          font-weight: 500;
+          font-size: 12px;
+          color: ${DARK.ink2};
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
         .counter-controls {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
         }
 
         .counter-btn {
-          width: 28px;
-          height: 32px;
-          border-radius: 8px;
-          border: 1.3px solid rgb(184,168,138);
-          background: rgb(245,239,227);
-          color: rgb(44,62,54);
-          font-size: 18px;
+          width: 24px;
+          height: 28px;
+          border-radius: 6px;
+          border: 1px solid ${DARK.lineStrong};
+          background: ${DARK.bgCard};
+          color: ${DARK.ink};
+          font-size: 14px;
           font-weight: 700;
           cursor: pointer;
           display: flex;
@@ -1414,28 +1586,29 @@ function PageContent() {
 
         .counter-btn:active {
           transform: scale(0.9);
+          background: ${DARK.bgDeep};
         }
 
         .counter-value {
           font-weight: 700;
-          font-size: 24px;
-          color: rgb(44,62,54);
-          min-width: 28px;
+          font-size: 18px;
+          color: ${DARK.ink};
+          min-width: 24px;
           text-align: center;
         }
 
         .tile-counters {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           justify-content: center;
-          min-height: 14px;
-          margin-bottom: 6px;
+          min-height: 12px;
+          margin-bottom: 4px;
         }
 
         .tile-counter-indicator {
           display: none;
           align-items: center;
-          gap: 3px;
+          gap: 2px;
           opacity: 0.85;
         }
 
@@ -1444,29 +1617,26 @@ function PageContent() {
         }
 
         .tile-counter-indicator svg {
-          width: 10px;
-          height: 10px;
+          width: 8px;
+          height: 8px;
+          stroke: ${DARK.ink};
+          stroke-width: 2;
         }
 
-        .tile-counter-indicator svg path {
-          stroke: rgb(44,62,54);
-          stroke-width: 2.8;
-        }
-
-        .claimed .tile-counter-indicator svg path {
-          stroke: rgb(245,239,227);
+        .claimed .tile-counter-indicator svg {
+          stroke: ${DARK.ink};
         }
 
         .tile-counter-number {
           font-family: 'Inter', sans-serif;
           font-weight: 700;
-          font-size: 11px;
-          color: rgb(44,62,54);
+          font-size: 8px;
+          color: ${DARK.ink};
           line-height: 1;
         }
 
         .claimed .tile-counter-number {
-          color: rgb(245,239,227);
+          color: ${DARK.ink};
         }
 
         .toast {
@@ -1474,11 +1644,12 @@ function PageContent() {
           bottom: 100px;
           left: 50%;
           transform: translateX(-50%) translateY(20px);
-          background: rgb(44,62,54);
-          color: rgb(245,239,227);
-          padding: 10px 20px;
+          background: ${DARK.bgCard};
+          color: ${DARK.ink};
+          padding: 10px 18px;
           border-radius: 8px;
-          font-size: 13px;
+          border: 1px solid ${DARK.cellBorder};
+          font-size: 12px;
           font-weight: 500;
           opacity: 0;
           pointer-events: none;
@@ -1605,16 +1776,16 @@ function PageContent() {
               <div className="player-selector">
                 {[1, 2, 3, 4, 5].map(num => {
                   const p = players[num];
-                  let bgColor = 'rgb(222,212,192)';
-                  let borderColor = 'rgb(184,168,138)';
-                  let textColor = 'rgb(90,110,98)';
+                  let bgColor = DARK.bgDeep;
+                  let borderColor = DARK.lineStrong;
+                  let textColor = DARK.ink2;
 
                   if (p.claimed && p.assignedColor && manaColorStyles[p.assignedColor]) {
                     const style = manaColorStyles[p.assignedColor];
                     const m = style.grad[1];
                     bgColor = `rgb(${m[0]},${m[1]},${m[2]})`;
                     borderColor = `rgb(${style.border[0]},${style.border[1]},${style.border[2]})`;
-                    textColor = 'rgb(245,239,227)';
+                    textColor = DARK.ink;
                   }
 
                   return (
@@ -1645,20 +1816,8 @@ function PageContent() {
                 <div className="counter-label">
                   <div className="counter-icon">
                     <svg viewBox="0 0 23 23" fill="none">
-                      <path
-                        d="M11.3 15.8455C16.8228 15.8455 21.3 12.5894 21.3 8.57278C21.3 4.55616 16.8228 1.30005 11.3 1.30005C5.77714 1.30005 1.29999 4.55616 1.29999 8.57278C1.29999 12.5894 5.77714 15.8455 11.3 15.8455Z"
-                        stroke="#2C3E36"
-                        strokeWidth="2.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M7.54999 6.75453L3.79999 3.11816M15.05 6.75453L18.8 3.11816M11.3 15.8454V21.3M6.29999 19.4818H16.3"
-                        stroke="#2C3E36"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M11.3 15.8455C16.8228 15.8455 21.3 12.5894 21.3 8.57278C21.3 4.55616 16.8228 1.30005 11.3 1.30005C5.77714 1.30005 1.29999 4.55616 1.29999 8.57278C1.29999 12.5894 5.77714 15.8455 11.3 15.8455Z" />
+                      <path d="M7.54999 6.75453L3.79999 3.11816M15.05 6.75453L18.8 3.11816M11.3 15.8454V21.3M6.29999 19.4818H16.3" />
                     </svg>
                   </div>
                   <div className="counter-name">Poison</div>
@@ -1684,14 +1843,8 @@ function PageContent() {
                 <div className="counter-label">
                   <div className="counter-icon">
                     <svg viewBox="0 0 23 23" fill="none">
-                      <path
-                        d="M1.30002 21.3L2.96668 5.74449L7.13335 12.4112L11.3 1.30005L15.4667 12.4112L19.6334 5.74449L21.3 21.3H1.30002Z"
-                        stroke="#2C3E36"
-                        strokeWidth="2.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path d="M1.30002 21.3H21.3" stroke="#2C3E36" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M1.30002 21.3L2.96668 5.74449L7.13335 12.4112L11.3 1.30005L15.4667 12.4112L19.6334 5.74449L21.3 21.3H1.30002Z" />
+                      <path d="M1.30002 21.3H21.3" />
                     </svg>
                   </div>
                   <div className="counter-name">Experience</div>
@@ -1717,13 +1870,7 @@ function PageContent() {
                 <div className="counter-label">
                   <div className="counter-icon">
                     <svg viewBox="0 0 23 23" fill="none">
-                      <path
-                        d="M13.8 1.30005L1.30005 12.7286H11.3L8.80005 21.3L21.3 9.87148H11.3L13.8 1.30005Z"
-                        stroke="#2C3E36"
-                        strokeWidth="2.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M13.8 1.30005L1.30005 12.7286H11.3L8.80005 21.3L21.3 9.87148H11.3L13.8 1.30005Z" />
                     </svg>
                   </div>
                   <div className="counter-name">Energy</div>
@@ -1757,29 +1904,29 @@ function PageContent() {
               <svg viewBox="0 0 20 20" fill="none">
                 <path
                   d="M14 2L18 6L14 10"
-                  stroke="#2C3E36"
-                  strokeWidth="2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
                 <path
                   d="M18 6H7C4.24 6 2 8.24 2 11V11"
-                  stroke="#2C3E36"
-                  strokeWidth="2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
                 <path
                   d="M6 18L2 14L6 10"
-                  stroke="#2C3E36"
-                  strokeWidth="2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
                 <path
                   d="M2 14H13C15.76 14 18 11.76 18 9V9"
-                  stroke="#2C3E36"
-                  strokeWidth="2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -1795,17 +1942,17 @@ function PageContent() {
             <button className="modal-close" onClick={closeJoinModal}>✕</button>
             <div className="join-modal-title">Join Slot {joinSlot}</div>
             <div className="join-modal-subtitle">Scan to claim this player slot</div>
-            <div style={{ width: 150, height: 150, margin: '0 auto', padding: 10, background: '#FFFFFF', borderRadius: 12, boxShadow: '0 0 0 1px rgba(43,33,24,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 150, height: 150, margin: '0 auto', padding: 10, background: DARK.bgDeep, borderRadius: 12, border: `1px solid ${DARK.cellBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {qrCodeUrl ? (
                 <img src={qrCodeUrl} alt="QR code to join pod" width={130} height={130} style={{ imageRendering: 'pixelated' }} />
               ) : (
-                <div style={{ color: '#B8AE9E', fontSize: 12 }}>No pod code</div>
+                <div style={{ color: DARK.ink3, fontSize: 12 }}>No pod code</div>
               )}
             </div>
             <div className="join-slot-code" onClick={copyPodCode} style={{ cursor: 'pointer' }}>
               <span>{podShortCode ? `${podShortCode.slice(0, 3)}—${podShortCode.slice(3)}` : '------'}</span>
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: 'rgb(90,110,98)', textAlign: 'center' }}>
+            <div style={{ marginTop: 8, fontSize: 10, color: DARK.ink3, textAlign: 'center' }}>
               Tap the code to copy
             </div>
           </div>
@@ -1821,7 +1968,7 @@ function PageContent() {
 
 export default function GridView5P() {
   return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: DARK.ink3 }}>Loading...</div>}>
       <PageContent />
     </Suspense>
   );
