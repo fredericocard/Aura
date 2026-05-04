@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
 
-// Dark mode constants
 const DARK = {
   bg:        '#0A0604',
   bgCard:    '#150E08',
@@ -33,13 +32,491 @@ const DARK = {
   navBorder: 'rgba(226,184,88,0.18)',
 };
 
+const MANA = {
+  W: '#F8E7B9', U: '#A6C8E6', B: '#3F3A36',
+  R: '#D27B5C', G: '#7BA37A', C: '#A89F8E',
+};
+
+const COLOR_WASH = {
+  G: 'rgba(123,163,122,0.14)',
+  W: 'rgba(248,231,185,0.18)',
+  U: 'rgba(166,200,230,0.14)',
+  B: 'rgba(63,58,54,0.10)',
+  R: 'rgba(210,123,92,0.14)',
+};
+
+const COUNTER_VOCAB = {
+  poison:     { label: 'Poison',     tone: '#4F8A4D', soft: '#E2EBDB', glyph: 'skull' },
+  energy:     { label: 'Energy',     tone: '#C99B2F', soft: '#F6ECD2', glyph: 'bolt' },
+  experience: { label: 'Experience', tone: '#7E4E8A', soft: '#EADDEE', glyph: 'star' },
+};
+
+// ─── Components ───────────────────────────────────────────────────────────
+
+function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name: string; size?: number; stroke?: string; width?: number }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: width, strokeLinecap: 'round', strokeLinejoin: 'round' } as React.SVGAttributes<SVGSVGElement>;
+  const paths: Record<string, React.ReactNode> = {
+    'chevron-left': <polyline points="15 18 9 12 15 6"/>,
+    grid:     <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></>,
+    user:     <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+    dice:     <><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill={stroke} stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill={stroke} stroke="none"/><circle cx="12" cy="12" r="1.2" fill={stroke} stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill={stroke} stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill={stroke} stroke="none"/></>,
+    plus:     <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+    minus:    <line x1="5" y1="12" x2="19" y2="12"/>,
+    sword:    <><path d="m14.5 17.5 4-4-9-9H4v6l9 9z"/><line x1="14.5" y1="17.5" x2="20" y2="23"/><path d="m9.5 4.5 4 4"/></>,
+    close:    <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+    skull:    <><path d="M8 21h8v-3a4 4 0 0 0 4-4v-2a8 8 0 1 0-16 0v2a4 4 0 0 0 4 4v3z"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M11 17h2"/></>,
+    bolt:     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
+    star:     <polygon points="12 2 15.1 8.6 22 9.6 17 14.5 18.2 21.5 12 18.2 5.8 21.5 7 14.5 2 9.6 8.9 8.6 12 2"/>,
+    'plus-circle': <><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></>,
+  };
+  return <svg {...p}>{paths[name] || null}</svg>;
+}
+
+function ManaDots({ colors = [], size = 7 }: { colors?: string[]; size?: number }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+      {colors.map((c, i) => (
+        <span key={i} style={{
+          width: size, height: size, borderRadius: 999,
+          background: MANA[c as keyof typeof MANA] || MANA.C,
+          boxShadow: '0 0 0 1px rgba(43,33,24,0.18)',
+          display: 'inline-block',
+        }}/>
+      ))}
+    </span>
+  );
+}
+
+function CompassRose({ color = DARK.copper, opacity = 0.22, size = 240 }: { color?: string; opacity?: number; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 320 320" style={{
+      position: 'absolute', top: '50%', left: '50%',
+      transform: 'translate(-50%, -50%)',
+      opacity, pointerEvents: 'none',
+    }}>
+      <g stroke={color} strokeWidth="0.8" fill="none">
+        {Array.from({ length: 24 }).map((_, i) => {
+          const a = (i / 24) * Math.PI * 2;
+          const r1 = 40, r2 = 150;
+          const cx = 160, cy = 160;
+          return <line key={i}
+            x1={cx + Math.cos(a) * r1} y1={cy + Math.sin(a) * r1}
+            x2={cx + Math.cos(a) * r2} y2={cy + Math.sin(a) * r2}/>;
+        })}
+        <circle cx="160" cy="160" r="40"/>
+        <circle cx="160" cy="160" r="60" strokeDasharray="1 3"/>
+        <circle cx="160" cy="160" r="100" strokeDasharray="1 4"/>
+        <circle cx="160" cy="160" r="150"/>
+      </g>
+    </svg>
+  );
+}
+
+function CounterChip({ kind, count }: { kind: string; count: number }) {
+  const v = COUNTER_VOCAB[kind as keyof typeof COUNTER_VOCAB] || COUNTER_VOCAB.poison;
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      height: 22, padding: '0 9px',
+      background: `${v.tone}22`,
+      color: v.soft,
+      border: `1px solid ${v.tone}44`,
+      borderRadius: 999,
+      fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
+      letterSpacing: '0.02em', whiteSpace: 'nowrap',
+    }}>
+      <Icon name={v.glyph} size={12} stroke={v.soft} width={1.9}/>
+      <span style={{
+        fontFamily: 'var(--font-display)', fontWeight: 400,
+        fontSize: 13, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+      }}>{count}</span>
+    </div>
+  );
+}
+
+function DarkCompassBg() {
+  return (
+    <svg width="520" height="520" viewBox="0 0 320 320" style={{
+      position: 'absolute', top: '22%', left: '50%',
+      transform: 'translate(-50%, -50%)',
+      opacity: 0.18,
+      pointerEvents: 'none',
+      zIndex: 0,
+      WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
+      maskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
+    } as React.CSSProperties}>
+      <g stroke={DARK.copper} strokeWidth="0.8" fill="none">
+        {Array.from({ length: 24 }).map((_, i) => {
+          const a = (i / 24) * Math.PI * 2;
+          const r1 = 40, r2 = 170;
+          const cx = 160, cy = 160;
+          return <line key={i}
+            x1={cx + Math.cos(a) * r1} y1={cy + Math.sin(a) * r1}
+            x2={cx + Math.cos(a) * r2} y2={cy + Math.sin(a) * r2}/>;
+        })}
+        <circle cx="160" cy="160" r="40"/>
+        <circle cx="160" cy="160" r="60" strokeDasharray="1 3"/>
+        <circle cx="160" cy="160" r="110" strokeDasharray="1 4"/>
+        <circle cx="160" cy="160" r="170"/>
+      </g>
+    </svg>
+  );
+}
+
+function ScreenBg({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      position: 'relative', height: '100%', width: '100%',
+      background: DARK.bg,
+      backgroundImage:
+        `radial-gradient(ellipse at 50% 12%, ${DARK.copperGlow}, transparent 50%), ` +
+        `radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.6), transparent 50%), ` +
+        `linear-gradient(180deg, #140C07 0%, #0A0604 45%, #050302 100%)`,
+      fontFamily: 'var(--font-ui)',
+    }}>
+      <DarkCompassBg/>
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(201,155,47,0.12)',
+      }}/>
+      {children}
+    </div>
+  );
+}
+
+function CommanderArt({ colors = ['C'], art = null, opacity = 0.4 }: { colors?: string[]; art?: string | null; opacity?: number }) {
+  if (art) {
+    return (
+      <img src={art} alt="" style={{
+        position:'absolute', inset:0, width:'100%', height:'100%',
+        objectFit:'cover', objectPosition:'center 25%', opacity,
+      }}/>
+    );
+  }
+  const top = MANA[colors[0] as keyof typeof MANA] || MANA.C;
+  const bot = MANA[colors[1] as keyof typeof MANA || colors[0] as keyof typeof MANA] || MANA.C;
+  return (
+    <div style={{
+      position:'absolute', inset:0,
+      background:
+        `radial-gradient(120% 80% at 50% 20%, ${top}cc 0%, ${top}55 35%, transparent 70%),`+
+        `linear-gradient(180deg, ${bot}33 0%, transparent 60%)`,
+      opacity,
+      mixBlendMode:'multiply',
+    } as React.CSSProperties}/>
+  );
+}
+
+function CellInner({ player }: { player: any }) {
+  const wash = COLOR_WASH[player.colors[0] as keyof typeof COLOR_WASH] || 'rgba(168,159,142,0.10)';
+  const counters = player.counters || {};
+  const counterEntries = Object.entries(counters).filter(([, n]) => n > 0);
+
+  const darkWash = (() => {
+    const c = player.colors[0];
+    const map = {
+      G: 'rgba(123,163,122,0.12)', W: 'rgba(248,231,185,0.10)',
+      U: 'rgba(166,200,230,0.10)', B: 'rgba(80,70,60,0.10)',
+      R: 'rgba(210,123,92,0.12)',
+    };
+    return (map as Record<string, string>)[c] || 'rgba(168,159,142,0.06)';
+  })();
+
+  return (
+    <div style={{ position:'absolute', inset:0, borderRadius:'20px', overflow:'hidden' }}>
+      <CommanderArt colors={player.colors} art={player.art} opacity={0.4}/>
+      <div style={{ position:'absolute', inset:0,
+        background: 'linear-gradient(180deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.35) 22%, rgba(10,6,4,0.25) 50%, rgba(10,6,4,0.45) 78%, rgba(10,6,4,0.90) 100%)',
+      }}/>
+      <div style={{ position:'absolute', inset:0,
+        background: `radial-gradient(ellipse 80% 60% at 50% 50%, ${darkWash} 0%, transparent 70%)`,
+      }}/>
+
+      <div style={{ position:'absolute', top:10, left:12, right:12,
+        display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:2, minWidth:0 }}>
+          <div style={{ fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700, letterSpacing:'0.20em', textTransform:'uppercase',
+            color: player.isYou ? DARK.copper : DARK.ink3,
+            display:'inline-flex', alignItems:'center', gap:5 }}>
+            {player.isYou && <span style={{
+              width:4, height:4, borderRadius:999,
+              background: DARK.copper,
+              boxShadow: '0 0 8px rgba(226,184,88,0.7)',
+            }}/>}
+            {player.isYou ? 'You' : player.name}
+          </div>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:11, lineHeight:1.1,
+            color: DARK.ink,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:130 }}>{player.commander}</div>
+        </div>
+        <ManaDots colors={player.colors} size={6}/>
+      </div>
+
+      <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column',
+        alignItems:'center', justifyContent:'center', gap:6 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:400,
+          fontSize:64, lineHeight:1, letterSpacing:'-0.04em',
+          color: DARK.ink,
+          fontVariantNumeric:'tabular-nums',
+          textShadow: '0 0 30px rgba(226,184,88,0.15), 0 1px 0 rgba(10,6,4,0.6)',
+        }}>{player.life}</div>
+
+        {counterEntries.length > 0 && (
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', maxWidth:'90%' }}>
+            {counterEntries.map(([k, n]) => (
+              <CounterChip key={k} kind={k} count={n as number}/>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ position:'absolute', bottom:8, left:12, right:12,
+        display:'flex', justifyContent:'space-between',
+        color: DARK.ink3,
+        fontFamily:'var(--font-display)', fontSize:22, lineHeight:1 }}>
+        <span>−</span><span>+</span>
+      </div>
+    </div>
+  );
+}
+
+function SidewaysCell({ player, rotation, onTapLeft, onTapRight }: { player: any; rotation: number; onTapLeft: () => void; onTapRight: () => void }) {
+  return (
+    <div style={{
+      position:'relative',
+      height:'100%',
+      containerType:'size',
+      borderRadius:'20px',
+      background: DARK.bgCard,
+      border: `1px solid ${DARK.cellBorder}`,
+      boxShadow: DARK.shadowRest,
+      overflow:'hidden',
+    } as React.CSSProperties}>
+      <div style={{
+        position:'absolute',
+        top:'50%',
+        left:'50%',
+        width:'100cqh',
+        height:'100cqw',
+        transform:`translate(-50%, -50%) rotate(${rotation}deg)`,
+        transformOrigin:'center center',
+      } as React.CSSProperties}>
+        <CellInner player={player}/>
+
+        {/* Tap zones */}
+        <div style={{ position:'absolute', inset:0, display:'flex', zIndex:10 }}>
+          <button style={{
+            flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }}
+            onClick={onTapLeft}
+            onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
+            onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
+            onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          />
+          <button style={{
+            flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }}
+            onClick={onTapRight}
+            onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
+            onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
+            onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SidewaysEmptyCell({ seatLabel = 'Seat', rotation, onClaimSeat }: { seatLabel?: string; rotation: number; onClaimSeat: () => void }) {
+  return (
+    <div style={{
+      position:'relative',
+      height:'100%',
+      containerType:'size',
+      borderRadius:'20px',
+      background: DARK.bgDeep,
+      border: `2.5px dashed rgba(226,184,88,0.25)`,
+      boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
+      overflow:'hidden',
+    } as React.CSSProperties}>
+      <div style={{
+        position:'absolute',
+        top:'50%',
+        left:'50%',
+        width:'100cqh',
+        height:'100cqw',
+        transform:`translate(-50%, -50%) rotate(${rotation}deg)`,
+        transformOrigin:'center center',
+      } as React.CSSProperties}>
+        <div style={{ position:'absolute', inset:0, borderRadius:'20px', overflow:'hidden' }}>
+          <div style={{
+            position:'absolute', top:10, left:12, right:12,
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+          }}>
+            <div style={{
+              fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
+              letterSpacing:'0.20em', textTransform:'uppercase',
+              color: DARK.ink3,
+            }}>{seatLabel}</div>
+            <div style={{
+              fontFamily:'var(--font-ui)', fontSize:8, fontWeight:700,
+              letterSpacing:'0.16em', textTransform:'uppercase',
+              color: DARK.ink4,
+              padding:'2px 7px',
+              border:`1px solid rgba(226,184,88,0.12)`,
+              borderRadius:999,
+            }}>Empty</div>
+          </div>
+
+          <div style={{
+            position:'absolute', inset:0,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            paddingBottom:20,
+          }}>
+            <div style={{
+              fontFamily:'var(--font-display)', fontWeight:400,
+              fontSize:64, lineHeight:1, letterSpacing:'-0.04em',
+              color: DARK.ink4,
+              fontVariantNumeric:'tabular-nums',
+              opacity:0.6,
+            }}>40</div>
+          </div>
+
+          <div style={{
+            position:'absolute', bottom:42, left:12, right:12,
+            display:'flex', justifyContent:'space-between',
+            color: DARK.ink4,
+            fontFamily:'var(--font-display)', fontSize:22, lineHeight:1,
+            opacity:0.5,
+          }}>
+            <span>−</span><span>+</span>
+          </div>
+
+          <div style={{
+            position:'absolute', bottom:10, left:12, right:12,
+            display:'flex', justifyContent:'center',
+          }}>
+            <button onClick={onClaimSeat} style={{
+              display:'flex', alignItems:'center', gap:6,
+              padding:'7px 14px',
+              background: DARK.forest,
+              color: DARK.ink,
+              border:'none', borderRadius:999,
+              boxShadow: '0 2px 8px -2px rgba(63,159,77,0.35)',
+              fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
+              letterSpacing:'0.14em', textTransform:'uppercase',
+              cursor:'pointer',
+            }}>
+              <Icon name="plus-circle" size={13} stroke={DARK.ink}/>
+              Claim Seat
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GameNav({ onDiceClick, onCountersClick, podId, gameId }: { onDiceClick: () => void; onCountersClick: () => void; podId: string; gameId: string }) {
+  const items = [
+    { id: 'dice',   icon: 'dice',   label: 'Dice' },
+    { id: 'count',  icon: 'plus',   label: 'Counters' },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      padding: '10px 16px 32px', zIndex: 8,
+      background: DARK.navBg,
+    }}>
+      <div style={{
+        background: DARK.navPill,
+        border: `1px solid ${DARK.navBorder}`,
+        borderRadius: 999, boxShadow: DARK.shadowRest,
+        padding: 6, display: 'flex', justifyContent: 'space-around',
+      }}>
+        <button onClick={onDiceClick} style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '6px 0', border: 'none',
+          background: 'transparent',
+          color: DARK.ink3,
+          borderRadius: 999,
+          fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+          letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
+          cursor: 'pointer',
+        }}>
+          <Icon name="dice" size={16} stroke={DARK.ink3}/>
+          <span>Dice</span>
+        </button>
+
+        <button onClick={onCountersClick} style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '6px 0', border: 'none',
+          background: 'transparent',
+          color: DARK.ink3,
+          borderRadius: 999,
+          fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+          letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
+          cursor: 'pointer',
+        }}>
+          <Icon name="plus" size={16} stroke={DARK.ink3}/>
+          <span>Counters</span>
+        </button>
+
+        <Link href={`/singleview?podId=${podId}&gameId=${gameId}`} style={{ textDecoration: 'none' }}>
+          <button style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '6px 0', border: 'none',
+            background: 'transparent',
+            color: DARK.ink3,
+            borderRadius: 999,
+            fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
+            cursor: 'pointer',
+          }}>
+            <Icon name="user" size={16} stroke={DARK.ink3}/>
+            <span>Single View</span>
+          </button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function ModalTitle({ kicker, title }: { kicker: string; title: string }) {
+  return (
+    <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+        letterSpacing: '0.32em', textTransform: 'uppercase',
+        color: DARK.copper,
+      }}>
+        <span style={{ width: 18, height: 1, background: DARK.copper, opacity: 0.5 }}/>
+        <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
+        <span>{kicker}</span>
+        <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
+        <span style={{ width: 18, height: 1, background: DARK.copper, opacity: 0.5 }}/>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-display)', fontSize: 26, lineHeight: 1.05,
+        color: DARK.ink, marginTop: 4, letterSpacing: '-0.01em',
+      }}>{title}</div>
+    </div>
+  );
+}
+
 function PageContent() {
   useWakeLock();
   const searchParams = useSearchParams();
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
 
-  // Sync life changes to backend (debounced fire-and-forget)
   const syncLife = (userId: string, newLife: number) => {
     if (gameId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
   };
@@ -52,31 +529,14 @@ function PageContent() {
   const syncEnergy = (userId: string, count: number) => {
     if (gameId) updateEnergyCounters(gameId, userId, count).catch(() => {});
   };
-  const [players, setPlayers] = useState<Record<number, { life: number; name: string; commander: string | null; claimed: boolean; colors: string[]; assignedColor: string | null }>>({
+
+  const [players, setPlayers] = useState<Record<number, { life: number; name: string; commander: string | null; claimed: boolean; colors: string[]; assignedColor: string | null; art?: string }>>({
     1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W', 'U', 'B', 'G'], assignedColor: null },
     2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [], assignedColor: null },
     3: { life: 40, name: 'Player 3', commander: null, claimed: false, colors: [], assignedColor: null },
     4: { life: 40, name: 'Player 4', commander: null, claimed: false, colors: [], assignedColor: null }
   });
 
-  const [playerColors] = useState<Record<number, string>>({
-    1: 'rgb(26,122,106)',
-    2: 'rgb(168,74,58)',
-    3: 'rgb(42,138,86)',
-    4: 'rgb(184,146,46)'
-  });
-
-  const [playerClasses] = useState<Record<number, string>>({ 1: 'p1', 2: 'p2', 3: 'p3', 4: 'p4' });
-
-  const [manaColorStyles] = useState<Record<string, { grad: number[][]; border: number[]; shadow: number[] }>>({
-    W: { grad: [[160, 140, 90], [190, 170, 115], [210, 192, 140]], border: [220, 200, 155], shadow: [160, 140, 90] },
-    U: { grad: [[14, 72, 110], [26, 100, 140], [42, 125, 165]], border: [56, 135, 170], shadow: [14, 72, 110] },
-    B: { grad: [[25, 18, 30], [42, 35, 50], [60, 52, 68]], border: [75, 65, 82], shadow: [25, 18, 30] },
-    R: { grad: [[120, 42, 30], [148, 64, 48], [172, 88, 68]], border: [185, 100, 80], shadow: [120, 42, 30] },
-    G: { grad: [[14, 92, 77], [26, 122, 106], [42, 143, 120]], border: [56, 158, 133], shadow: [14, 92, 77] }
-  });
-
-  const [usedColors, setUsedColors] = useState<string[]>([]);
   const [counters, setCounters] = useState<Record<number, { poison: number; experience: number; energy: number }>>({
     1: { poison: 0, experience: 0, energy: 0 },
     2: { poison: 0, experience: 0, energy: 0 },
@@ -93,29 +553,29 @@ function PageContent() {
   const [diceModalOpen, setDiceModalOpen] = useState(false);
   const [countersModalOpen, setCountersModalOpen] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
-  const [navCollapsed, setNavCollapsed] = useState(false);
-  const [popupOpen, setPopupOpen] = useState(false);
   const [toast, setToast] = useState('');
-  const [facingLeft, setFacingLeft] = useState(true);
-  const [cellSizes, setCellSizes] = useState<Record<number, { lifeSize: number; btnSize: number; btnFont: number }>>({});
-
   const [podShortCode, setPodShortCode] = useState<string>('');
+  const [usedColors, setUsedColors] = useState<string[]>([]);
+  const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+  const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
+
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const repeatTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
+
   const debouncedSync = (key: string, fn: () => void) => {
     if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
     syncTimerRef.current[key] = setTimeout(fn, 300);
   };
 
-  // Map player slot → user_id for backend sync
-  const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
-  const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
+  const manaColorStyles: Record<string, { grad: number[][]; border: number[]; shadow: number[] }> = {
+    W: { grad: [[160, 140, 90], [190, 170, 115], [210, 192, 140]], border: [220, 200, 155], shadow: [160, 140, 90] },
+    U: { grad: [[14, 72, 110], [26, 100, 140], [42, 125, 165]], border: [56, 135, 170], shadow: [14, 72, 110] },
+    B: { grad: [[25, 18, 30], [42, 35, 50], [60, 52, 68]], border: [75, 65, 82], shadow: [25, 18, 30] },
+    R: { grad: [[120, 42, 30], [148, 64, 48], [172, 88, 68]], border: [185, 100, 80], shadow: [120, 42, 30] },
+    G: { grad: [[14, 92, 77], [26, 122, 106], [42, 143, 120]], border: [56, 158, 133], shadow: [14, 92, 77] }
+  };
 
-  const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
-  const repeatTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
-  const navCollapseTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Load real game data if gameId is provided
   useEffect(() => {
     if (!gameId) return;
     async function loadGame() {
@@ -186,59 +646,6 @@ function PageContent() {
     loadGame();
   }, [gameId]);
 
-  const pickPlayerColor = (playerNum: number, newUsedColors: string[]) => {
-    const p = players[playerNum];
-    if (!p.colors || p.colors.length === 0) return null;
-
-    const allMana = Object.keys(manaColorStyles);
-
-    if (!newUsedColors.includes(p.colors[0])) {
-      newUsedColors.push(p.colors[0]);
-      return p.colors[0];
-    }
-
-    for (let i = 1; i < p.colors.length; i++) {
-      if (!newUsedColors.includes(p.colors[i])) {
-        newUsedColors.push(p.colors[i]);
-        return p.colors[i];
-      }
-    }
-
-    const available = allMana.filter((c: any) => !newUsedColors.includes(c));
-    if (available.length > 0) {
-      const pick = available[Math.floor(Math.random() * available.length)];
-      newUsedColors.push(pick);
-      return pick;
-    }
-
-    return p.colors[0];
-  };
-
-  const qrCodeUrl = podShortCode
-    ? getQrCodeUrl(podShortCode, typeof window !== 'undefined' ? window.location.origin : 'https://auramtg.com')
-    : '';
-
-  const applyColorIdentity = (playerNum: number) => {
-    const p = players[playerNum];
-    if (!p.claimed || !p.colors || p.colors.length === 0) return;
-
-    const newUsedColors = [...usedColors];
-    const mana = pickPlayerColor(playerNum, newUsedColors);
-    setUsedColors(newUsedColors);
-
-    if (!mana) return;
-
-    setPlayers(prev => ({
-      ...prev,
-      [playerNum]: { ...p, assignedColor: mana }
-    }));
-  };
-
-  const updateLifeDisplay = (playerNum: number) => {
-    const life = players[playerNum].life;
-    // State is managed in render
-  };
-
   const handleLifeChange = (playerNum: number, delta: number) => {
     setPlayers(prev => {
       const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
@@ -247,7 +654,6 @@ function PageContent() {
         if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
       }
 
-      // Sync to backend — userId or seat fallback
       if (gameId) {
         debouncedSync(`life-${playerNum}`, () => {
           const userId = playerUserIds[playerNum];
@@ -262,58 +668,6 @@ function PageContent() {
         [playerNum]: { ...prev[playerNum], life: newLife }
       };
     });
-  };
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 2000);
-  };
-
-  const openJoinModal = (slotNum: number) => {
-    setJoinSlot(slotNum);
-    setJoinModalOpen(true);
-  };
-
-  const copyPodCode = () => {
-    if (podShortCode) {
-      navigator.clipboard.writeText(podShortCode).catch(() => {});
-    }
-  };
-
-  const handleRevive = (playerNum: number) => {
-    setPlayers(prev => ({
-      ...prev,
-      [playerNum]: { ...prev[playerNum], life: 1 }
-    }));
-
-    const userId = playerUserIds[playerNum];
-    const seat = playerSeatNumbers[playerNum];
-    if (gameId) {
-      if (userId) updateLifeTotal(gameId, userId, 1).catch(() => {});
-      else if (seat) updateLifeBySeat(gameId, seat, 1).catch(() => {});
-    }
-  };
-
-  const handleDiceRoll = () => {
-    if (rolling) return;
-    setRolling(true);
-    setRollingText('Rolling…');
-
-    let frame = 0;
-    const interval = setInterval(() => {
-      frame++;
-      const max = diceTab === 'd6' ? 6 : diceTab === 'd20' ? 20 : 2;
-      const val = Math.floor(Math.random() * max) + 1;
-      setDiceResult(diceTab === 'coin' ? (val === 1 ? 'H' : 'T') : val.toString());
-
-      if (frame >= 14) {
-        clearInterval(interval);
-        setRolling(false);
-        const final = Math.floor(Math.random() * max) + 1;
-        setDiceResult(diceTab === 'coin' ? (final === 1 ? 'HEADS' : 'TAILS') : final.toString());
-        setRollingText('');
-      }
-    }, 70);
   };
 
   const handleCounterChange = (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => {
@@ -347,1306 +701,116 @@ function PageContent() {
     });
   };
 
-  const onPopupOpen = () => {
-    setPopupOpen(true);
-    if (navCollapseTimerRef.current) clearTimeout(navCollapseTimerRef.current);
-    setNavCollapsed(false);
+  const handleDiceRoll = () => {
+    if (rolling) return;
+    setRolling(true);
+    setRollingText('Rolling…');
+
+    let frame = 0;
+    const interval = setInterval(() => {
+      frame++;
+      const max = diceTab === 'd6' ? 6 : diceTab === 'd20' ? 20 : 2;
+      const val = Math.floor(Math.random() * max) + 1;
+      setDiceResult(diceTab === 'coin' ? (val === 1 ? 'H' : 'T') : val.toString());
+
+      if (frame >= 14) {
+        clearInterval(interval);
+        setRolling(false);
+        const final = Math.floor(Math.random() * max) + 1;
+        setDiceResult(diceTab === 'coin' ? (final === 1 ? 'HEADS' : 'TAILS') : final.toString());
+        setRollingText('');
+      }
+    }, 70);
   };
 
-  const onPopupClose = () => {
-    setPopupOpen(false);
-    scheduleCollapse();
+  const openJoinModal = (slotNum: number) => {
+    setJoinSlot(slotNum);
+    setJoinModalOpen(true);
   };
 
-  const collapseNav = () => {
-    if (popupOpen) return;
-    setNavCollapsed(true);
-  };
-
-  const scheduleCollapse = () => {
-    if (navCollapseTimerRef.current) clearTimeout(navCollapseTimerRef.current);
-    navCollapseTimerRef.current = setTimeout(collapseNav, 5000);
-  };
-
-  const expandNav = () => {
-    if (navCollapseTimerRef.current) clearTimeout(navCollapseTimerRef.current);
-    setNavCollapsed(false);
-  };
-
-  const handleNavClick = () => {
-    if (navCollapsed) {
-      expandNav();
-      if (!popupOpen) scheduleCollapse();
+  const copyPodCode = () => {
+    if (podShortCode) {
+      navigator.clipboard.writeText(podShortCode).catch(() => {});
     }
   };
 
-  const getPlayerColor = (playerNum: number) => {
-    const p = players[playerNum];
-    if (!p.claimed || !p.assignedColor) return null;
-    const style = manaColorStyles[p.assignedColor];
-    if (!style) return null;
-    const [d, m, l] = style.grad;
-    const brd = style.border;
-    const shd = style.shadow;
-    return {
-      background: `linear-gradient(135deg, rgb(${d[0]},${d[1]},${d[2]}) 0%, rgb(${m[0]},${m[1]},${m[2]}) 50%, rgb(${l[0]},${l[1]},${l[2]}) 100%)`,
-      border: `1.5px solid rgb(${brd[0]},${brd[1]},${brd[2]})`,
-      boxShadow: `0 8px 20px rgba(${shd[0]},${shd[1]},${shd[2]},0.35), 0 2px 6px rgba(${shd[0]},${shd[1]},${shd[2]},0.25)`
-    };
-  };
-
-  useEffect(() => {
-    scheduleCollapse();
-    const unclaimedExist = [1, 2, 3, 4].some(i => !players[i].claimed);
-    if (!unclaimedExist) return;
-
-    const PULSE_SCHEDULE = [30000, 30000, 60000, 60000];
-    const PULSE_ONGOING = 300000;
-    let pulseStep = 0;
-
-    const schedulePulse = () => {
-      const delay = pulseStep < PULSE_SCHEDULE.length ? PULSE_SCHEDULE[pulseStep] : PULSE_ONGOING;
-      pulseStep++;
-      pulseTimeoutRef.current = setTimeout(() => {
-        const unclaimedPlayers = [1, 2, 3, 4].filter(i => !players[i].claimed);
-        if (unclaimedPlayers.length > 0) {
-          schedulePulse();
-        }
-      }, delay);
-    };
-
-    schedulePulse();
-
-    return () => {
-      if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
-      if (navCollapseTimerRef.current) clearTimeout(navCollapseTimerRef.current);
-    };
-  }, []);
-
-  const renderPlayerTile = (playerNum: 1 | 2 | 3 | 4) => {
-    const p = players[playerNum];
-    const colorStyle = getPlayerColor(playerNum);
-    const isRotatedLeft = playerNum === 1 || playerNum === 3;
-    const isEliminated = p.life === 0;
-
-    const stopHold = () => {
-      if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
-      if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
-    };
-
-    const startHold = (delta: number) => {
-      const timer = setTimeout(() => {
-        handleLifeChange(playerNum, delta * 4);
-        const repeatTimer = setInterval(() => {
-          handleLifeChange(playerNum, delta * 5);
-        }, 200);
-        repeatTimersRef.current[playerNum] = repeatTimer;
-      }, 500);
-      holdTimersRef.current[playerNum] = timer;
-    };
-
-    return (
-      <div
-        key={playerNum}
-        className={`player-tile ${p.claimed ? 'claimed' : 'unclaimed'} ${playerClasses[playerNum]} ${isEliminated && !p.claimed ? 'eliminated' : ''}`}
-        id={`tile${playerNum}`}
-        style={colorStyle || {}}
-      >
-        {!p.claimed && p.life > 0 && (
-          <div className="join-btn" onClick={() => openJoinModal(playerNum)} data-slot={playerNum}>
-            <svg viewBox="0 0 16 16" fill="none">
-              <path d="M8 1C9.657 1 11 2.343 11 4C11 5.657 9.657 7 8 7C6.343 7 5 5.657 5 4C5 2.343 6.343 1 8 1Z" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M3 14C3 11.239 5.239 9 8 9C10.761 9 13 11.239 13 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </div>
-        )}
-        <div className={`tile-content ${isRotatedLeft ? 'rotate-left' : 'rotate-right'}`}>
-          {/* Normal: life > 0 */}
-          {!isEliminated && (
-            <div className="tile-normal" id={`normal${playerNum}`}>
-              <div className="tile-counters" id={`counters${playerNum}`}>
-                <div className={`tile-counter-indicator ${counters[playerNum].poison > 0 ? 'visible' : ''}`}>
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span className="tile-counter-number">{counters[playerNum].poison}</span>
-                </div>
-                <div className={`tile-counter-indicator ${counters[playerNum].experience > 0 ? 'visible' : ''}`}>
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M1.3 21.3H21.3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span className="tile-counter-number">{counters[playerNum].experience}</span>
-                </div>
-                <div className={`tile-counter-indicator ${counters[playerNum].energy > 0 ? 'visible' : ''}`}>
-                  <svg viewBox="0 0 23 23" fill="none">
-                    <path d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span className="tile-counter-number">{counters[playerNum].energy}</span>
-                </div>
-              </div>
-              <div className="life-display">
-                <button className="life-minus-btn" onClick={() => handleLifeChange(playerNum, -1)} onMouseDown={() => startHold(-1)} onMouseUp={stopHold} onMouseLeave={stopHold} onTouchStart={() => startHold(-1)} onTouchEnd={stopHold}>−</button>
-                <div className={`life-number ${p.life <= 10 ? 'critical' : ''}`}>{p.life}</div>
-                <button className="life-plus-btn" onClick={() => handleLifeChange(playerNum, 1)} onMouseDown={() => startHold(1)} onMouseUp={stopHold} onMouseLeave={stopHold} onTouchStart={() => startHold(1)} onTouchEnd={stopHold}>+</button>
-              </div>
-              {p.claimed ? (
-                <div className="tile-commander">{p.commander}</div>
-              ) : (
-                <div className="commander-dash">Player {playerNum}</div>
-              )}
-            </div>
-          )}
-
-          {/* Eliminated + unclaimed: QR code + revive */}
-          {isEliminated && !p.claimed && (
-            <div className="tile-qr active">
-              <div className="qr-label">Scan to review game</div>
-              <div className="qr-box">
-                <div className="qr-pattern">
-                  <div className="qr-center">
-                    <div className="qr-badge" style={{ background: `linear-gradient(135deg,${playerColors[playerNum]},rgb(184,146,46))` }}>P</div>
-                  </div>
-                </div>
-              </div>
-              <div className="qr-player-label">Player {playerNum} — eliminated</div>
-              <button className="revive-btn" onClick={() => handleRevive(playerNum)}>Revive</button>
-            </div>
-          )}
-
-          {/* Eliminated + claimed: life number + revive only */}
-          {isEliminated && p.claimed && (
-            <div className="tile-normal">
-              <div className="life-number critical">{p.life}</div>
-              <button className="revive-btn" onClick={() => handleRevive(playerNum)}>Revive</button>
-              <div className="tile-commander">{p.commander}</div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const qrCodeUrl = podShortCode
+    ? getQrCodeUrl(podShortCode, typeof window !== 'undefined' ? window.location.origin : 'https://auramtg.com')
+    : '';
 
   const styles = `
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Young+Serif&display=swap');
+
+    :root {
+      --font-ui: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+      --font-display: 'Young Serif', ui-serif, Georgia, serif;
+      --r-card: 20px;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; font-family: var(--font-ui); background: ${DARK.bg} !important; color: ${DARK.ink}; }
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Inter', sans-serif;
-      background: ${DARK.bg};
-    }
+    .app { width: 100%; height: 100%; max-width: 430px; margin: 0 auto; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); overflow: hidden; background: ${DARK.bg}; }
 
-    .app {
-      width: 100%;
-      height: 100%;
-      max-width: 430px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      overflow: hidden;
-      background: ${DARK.bg};
-    }
+    .grid-container { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; min-height: 0; overflow: hidden; }
+    .grid-column { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 
-    .grid-container {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      padding: 10px;
-      min-height: 0;
-      overflow: hidden;
-    }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .modal-overlay.active { display: flex; }
 
-    .grid-column {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-height: 0;
-    }
+    .dice-modal { width: calc(100% - 40px); max-width: 340px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
 
-    .player-tile {
-      flex: 1;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-      background: ${DARK.bgCard};
-      border: 1px solid ${DARK.cellBorder};
-      box-shadow: ${DARK.shadowRest};
-    }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 28px; color: ${DARK.ink3}; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s ease; }
+    .modal-close:active { transform: scale(0.9); background: ${DARK.bgDeep}; }
 
-    .player-tile.claimed {
-      border: 1px solid ${DARK.cellBorder};
-    }
+    .tab-group { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+    .tab { padding: 10px 18px; border: 1px solid ${DARK.lineStrong}; background: ${DARK.bgDeep}; color: ${DARK.ink3}; font-weight: 600; font-size: 13px; cursor: pointer; border-radius: 10px; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.02em; }
+    .tab.active { background: ${DARK.copper}; color: ${DARK.bgDeep}; border-color: ${DARK.copper}; }
 
-    .player-tile.unclaimed {
-      border: 2px dashed ${DARK.cellBorder};
-      background: ${DARK.bgDeep};
-    }
+    .result-display { font-family: var(--font-display); font-weight: 700; font-size: 120px; color: ${DARK.copper}; text-align: center; margin-bottom: 12px; line-height: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; letter-spacing: -2px; }
+    .rolling-text { font-size: 13px; color: ${DARK.ink3}; text-align: center; margin-bottom: 20px; min-height: 18px; }
+    .roll-button { width: 100%; padding: 14px; background: ${DARK.copper}; border: none; border-radius: 12px; color: ${DARK.bgDeep}; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.02em; }
+    .roll-button:active { transform: scale(0.98); }
 
-    .tile-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      z-index: 10;
-    }
+    .counters-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .counters-overlay.active { display: flex; }
 
-    .tile-content.rotate-left {
-      transform: rotate(90deg);
-    }
+    .counters-modal { width: 320px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
 
-    .tile-content.rotate-right {
-      transform: rotate(-90deg);
-    }
+    .counters-title { font-weight: 700; font-size: 16px; color: ${DARK.ink}; letter-spacing: 0.02em; text-transform: uppercase; }
 
-    .tile-normal {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0;
-      max-width: 100%;
-      max-height: 100%;
-      overflow: hidden;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      z-index: 2;
-    }
+    .player-selector { display: flex; gap: 10px; margin-bottom: 18px; }
+    .player-selector-btn { width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${DARK.lineStrong}; background: ${DARK.bgDeep}; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-weight: 700; font-size: 16px; color: ${DARK.ink}; transition: all 0.2s ease; position: relative; }
+    .player-selector-btn.active { border-color: ${DARK.copper}; background: ${DARK.copper}; color: ${DARK.bgDeep}; box-shadow: 0 0 0 1px ${DARK.bgCard}; transform: scale(1.08); }
+    .player-selector-btn:active { transform: scale(0.95); }
 
-    .tile-normal.hidden {
-      display: none;
-    }
+    .counter-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: ${DARK.bgDeep}; border-radius: 12px; margin-bottom: 12px; border: 1px solid ${DARK.line}; }
+    .counter-row:last-child { margin-bottom: 0; }
 
-    .tile-commander {
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      font-size: 9px;
-      text-align: center;
-      margin-top: 4px;
-      max-width: 90%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: ${DARK.ink2};
-      letter-spacing: 0.02em;
-    }
+    .counter-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: ${DARK.copper}; }
+    .counter-icon svg { width: 24px; height: 24px; stroke: ${DARK.copper}; }
 
-    .commander-dash {
-      color: ${DARK.ink3};
-      font-size: 9px;
-      text-align: center;
-      margin-top: 4px;
-      letter-spacing: 0.02em;
-    }
+    .counter-name { font-weight: 600; font-size: 14px; color: ${DARK.ink}; letter-spacing: 0.02em; text-transform: uppercase; }
 
-    .life-display {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      width: 100%;
-      position: relative;
-      z-index: 10;
-    }
+    .counter-controls { display: flex; align-items: center; gap: 12px; }
+    .counter-btn { width: 32px; height: 36px; border-radius: 8px; border: 1px solid ${DARK.lineStrong}; background: ${DARK.bgCard}; color: ${DARK.copper}; font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+    .counter-btn:active { transform: scale(0.9); background: ${DARK.bgDeep}; }
 
-    .life-minus-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 1px solid ${DARK.lineStrong};
-      background: transparent;
-      color: ${DARK.ink};
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
-    }
+    .counter-value { font-weight: 700; font-size: 26px; color: ${DARK.copper}; min-width: 32px; text-align: center; font-family: 'Courier New', monospace; }
 
-    .life-minus-btn:active {
-      transform: scale(0.9);
-      background: rgba(255,80,80,0.08);
-    }
+    .join-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .join-modal.active { display: flex; }
 
-    .claimed .life-minus-btn {
-      border: 1px solid ${DARK.lineStrong};
-      background: transparent;
-      color: ${DARK.ink};
-    }
+    .join-modal-card { width: calc(100% - 40px); max-width: 340px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; text-align: center; }
+    .join-modal-title { font-weight: 700; font-size: 18px; color: ${DARK.ink}; margin-bottom: 6px; text-align: center; letter-spacing: 0.02em; }
+    .join-modal-subtitle { font-size: 13px; color: ${DARK.ink3}; margin-bottom: 20px; }
 
-    .claimed .life-minus-btn:active {
-      background: rgba(255,80,80,0.08);
-    }
+    .join-slot-code { margin-top: 16px; padding: 10px 16px; background: ${DARK.bgDeep}; border: 1px solid ${DARK.lineStrong}; border-radius: 10px; display: inline-block; cursor: pointer; transition: all 0.2s ease; }
+    .join-slot-code:active { transform: scale(0.98); border-color: ${DARK.copper}; }
+    .join-slot-code span { color: ${DARK.copper}; font-size: 16px; font-weight: 700; letter-spacing: 4px; font-family: 'Courier New', monospace; }
 
-    .life-number {
-      font-family: 'Jaldi', sans-serif;
-      font-weight: 900;
-      font-size: 56px;
-      color: ${DARK.ink};
-      line-height: 1;
-      text-align: center;
-      letter-spacing: -2px;
-      transition: color 0.2s ease;
-      text-shadow: 0 0 40px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6);
-    }
-
-    .life-number.critical {
-      color: #FF6B6B;
-    }
-
-    .life-plus-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 1px solid ${DARK.lineStrong};
-      background: transparent;
-      color: ${DARK.ink};
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
-    }
-
-    .life-plus-btn:active {
-      transform: scale(0.9);
-      background: rgba(80,200,80,0.08);
-    }
-
-    .claimed .life-plus-btn {
-      border: 1px solid ${DARK.lineStrong};
-      background: transparent;
-      color: ${DARK.ink};
-    }
-
-    .claimed .life-plus-btn:active {
-      background: rgba(80,200,80,0.08);
-    }
-
-    .join-btn {
-      position: absolute;
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: rgba(63,159,77,0.18);
-      border: 1px solid ${DARK.copper};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 20;
-      transition: all 0.2s ease;
-    }
-
-    .join-btn:active {
-      transform: scale(0.9);
-      background: rgba(63,159,77,0.28);
-    }
-
-    .p1 .join-btn, .p3 .join-btn {
-      bottom: 6px;
-      left: 6px;
-      transform: rotate(90deg);
-    }
-
-    .p2 .join-btn, .p4 .join-btn {
-      top: 6px;
-      right: 6px;
-      transform: rotate(-90deg);
-    }
-
-    .join-btn svg {
-      width: 16px;
-      height: 16px;
-      stroke: ${DARK.copper};
-    }
-
-    @keyframes joinPulseGlow {
-      0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); }
-      30%  { transform: scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35); }
-      60%  { transform: scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); }
-    }
-
-    @keyframes joinPulseGlowLeft {
-      0%   { transform: rotate(90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
-      30%  { transform: rotate(90deg) scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35), 0 0 20px 8px rgba(226,184,88,0.2); background: rgba(63,159,77,0.28); }
-      60%  { transform: rotate(90deg) scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18), 0 0 14px 5px rgba(226,184,88,0.1); background: rgba(63,159,77,0.22); }
-      100% { transform: rotate(90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
-    }
-
-    @keyframes joinPulseGlowRight {
-      0%   { transform: rotate(-90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
-      30%  { transform: rotate(-90deg) scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35), 0 0 20px 8px rgba(226,184,88,0.2); background: rgba(63,159,77,0.28); }
-      60%  { transform: rotate(-90deg) scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18), 0 0 14px 5px rgba(226,184,88,0.1); background: rgba(63,159,77,0.22); }
-      100% { transform: rotate(-90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
-    }
-
-    .p1 .join-btn.pulse-glow, .p3 .join-btn.pulse-glow {
-      animation: joinPulseGlowLeft 1.6s ease-in-out;
-    }
-
-    .p2 .join-btn.pulse-glow, .p4 .join-btn.pulse-glow {
-      animation: joinPulseGlowRight 1.6s ease-in-out;
-    }
-
-    .tile-qr {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      gap: 4px;
-      position: relative;
-      z-index: 10;
-    }
-
-    .tile-qr.active {
-      display: flex;
-    }
-
-    .player-tile.eliminated {
-      background-color: ${DARK.bgCard} !important;
-      border: 1px solid ${DARK.cellBorder} !important;
-    }
-
-    .qr-label {
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      font-size: 8px;
-      color: ${DARK.ink3};
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-
-    .qr-box {
-      width: 50px;
-      height: 50px;
-      background: ${DARK.bgDeep};
-      border-radius: 8px;
-      border: 1px solid ${DARK.cellBorder};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px;
-    }
-
-    .qr-pattern {
-      width: 100%;
-      height: 100%;
-      background: repeating-conic-gradient(${DARK.bgCard} 0% 25%, ${DARK.bgDeep} 0% 50%) 50% / 8px 8px;
-      border-radius: 3px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .qr-center {
-      background: ${DARK.bgDeep};
-      padding: 2px;
-      border-radius: 2px;
-    }
-
-    .qr-badge {
-      width: 12px;
-      height: 12px;
-      border-radius: 2px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 6px;
-      font-weight: 800;
-      color: ${DARK.ink};
-    }
-
-    .qr-player-label {
-      font-family: 'Inter', sans-serif;
-      font-weight: 400;
-      font-size: 7px;
-      color: ${DARK.ink3};
-      font-style: italic;
-    }
-
-    .revive-btn {
-      padding: 4px 8px;
-      background: rgba(63,159,77,0.15);
-      border: 1px solid ${DARK.copper};
-      border-radius: 6px;
-      cursor: pointer;
-      font-family: 'Inter', sans-serif;
-      font-weight: 700;
-      font-size: 8px;
-      color: ${DARK.copper};
-      margin-top: 2px;
-      transition: all 0.2s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .revive-btn:active {
-      transform: scale(0.9);
-      background: rgba(63,159,77,0.25);
-    }
-
-    .join-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.65);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      backdrop-filter: blur(4px);
-    }
-
-    .join-modal.active {
-      display: flex;
-    }
-
-    .join-modal-card {
-      width: calc(100% - 40px);
-      max-width: 340px;
-      background: ${DARK.bgCard};
-      border: 1px solid ${DARK.lineStrong};
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      position: relative;
-      text-align: center;
-    }
-
-    .join-modal-title {
-      font-weight: 700;
-      font-size: 18px;
-      color: ${DARK.ink};
-      margin-bottom: 6px;
-      text-align: center;
-      letter-spacing: 0.02em;
-    }
-
-    .join-modal-subtitle {
-      font-size: 13px;
-      color: ${DARK.ink3};
-      margin-bottom: 20px;
-    }
-
-    .join-qr-box {
-      width: 150px;
-      height: 150px;
-      margin: 0 auto;
-      background: ${DARK.bgDeep};
-      border-radius: 14px;
-      border: 1px solid ${DARK.cellBorder};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-    }
-
-    .join-qr-pattern {
-      width: 100%;
-      height: 100%;
-      background: repeating-conic-gradient(${DARK.bgCard} 0% 25%, ${DARK.bgDeep} 0% 50%) 50% / 12px 12px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .join-qr-center {
-      background: ${DARK.bgDeep};
-      padding: 8px;
-      border-radius: 8px;
-    }
-
-    .join-qr-badge {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 800;
-      color: ${DARK.ink};
-      background: ${DARK.copper};
-    }
-
-    .join-slot-code {
-      margin-top: 16px;
-      padding: 10px 16px;
-      background: ${DARK.bgDeep};
-      border: 1px solid ${DARK.lineStrong};
-      border-radius: 10px;
-      display: inline-block;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .join-slot-code:active {
-      transform: scale(0.98);
-      border-color: ${DARK.copper};
-    }
-
-    .join-slot-code span {
-      color: ${DARK.copper};
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 4px;
-      font-family: 'Courier New', monospace;
-    }
-
-    .join-simulate-btn {
-      margin-top: 18px;
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, ${DARK.forest} 0%, ${DARK.forestDeep} 100%);
-      border: none;
-      border-radius: 12px;
-      color: ${DARK.ink};
-      font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.2s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .join-simulate-btn:active {
-      transform: scale(0.98);
-    }
-
-    .bottom-nav {
-      margin-top: auto;
-      margin-bottom: 16px;
-      margin-left: 12px;
-      margin-right: 12px;
-      padding: 12px;
-      height: auto;
-      border-radius: 16px;
-      background: ${DARK.navBg};
-      border: 1px solid ${DARK.navBorder};
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-      transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1), padding 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-      justify-content: space-around;
-    }
-
-    .bottom-nav.collapsed {
-      height: auto;
-      padding: 8px 12px;
-    }
-
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      cursor: pointer;
-      flex: 1;
-      padding: 8px 12px;
-      border-radius: 12px;
-      background: transparent;
-      transition: all 0.2s ease;
-      color: ${DARK.ink3};
-    }
-
-    .nav-item:active {
-      transform: scale(0.92);
-      background: ${DARK.navPill};
-      border-radius: 12px;
-    }
-
-    .nav-item:active .dice-icon {
-      border-color: ${DARK.copper};
-    }
-
-    .nav-item:active .dice-dot {
-      background: ${DARK.copper};
-    }
-
-    .nav-item:active .star-icon {
-      border-color: ${DARK.copper};
-    }
-
-    .nav-item:active .star {
-      background: ${DARK.copper};
-    }
-
-    .nav-item:active .nav-label {
-      color: ${DARK.copper};
-    }
-
-    .nav-item:active .list-icon span {
-      background: ${DARK.copper};
-    }
-
-    .nav-icon {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .dice-icon {
-      width: 20px;
-      height: 20px;
-      border: 1.5px solid ${DARK.ink3};
-      border-radius: 4px;
-      position: relative;
-      transition: border-color 0.2s ease;
-    }
-
-    .dice-dot {
-      width: 2px;
-      height: 2px;
-      background: ${DARK.ink3};
-      position: absolute;
-      border-radius: 50%;
-      transition: background 0.2s ease;
-    }
-
-    .dice-dot:nth-child(1) {
-      top: 2px;
-      left: 2px;
-    }
-
-    .dice-dot:nth-child(2) {
-      top: 2px;
-      right: 2px;
-    }
-
-    .dice-dot:nth-child(3) {
-      top: 8px;
-      left: 8px;
-    }
-
-    .dice-dot:nth-child(4) {
-      bottom: 2px;
-      left: 2px;
-    }
-
-    .dice-dot:nth-child(5) {
-      bottom: 2px;
-      right: 2px;
-    }
-
-    .star-icon {
-      width: 20px;
-      height: 20px;
-      border: 1.5px solid ${DARK.ink3};
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: border-color 0.2s ease;
-    }
-
-    .star {
-      width: 10px;
-      height: 10px;
-      clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-      background: ${DARK.ink3};
-      transition: background 0.2s ease;
-    }
-
-    .nav-label {
-      font-weight: 500;
-      font-size: 11px;
-      color: ${DARK.ink3};
-      max-height: 18px;
-      opacity: 1;
-      overflow: hidden;
-      transition: max-height 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), margin-top 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .bottom-nav.collapsed .nav-label {
-      max-height: 0;
-      opacity: 0;
-    }
-
-    .bottom-nav.collapsed .nav-item {
-      gap: 0;
-    }
-
-    .list-icon {
-      width: 16px;
-      height: 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .list-icon span {
-      height: 1.5px;
-      background: ${DARK.ink3};
-      border-radius: 1px;
-      transition: background 0.2s ease;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.65);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      backdrop-filter: blur(4px);
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    .dice-modal {
-      width: calc(100% - 40px);
-      max-width: 340px;
-      background: ${DARK.bgCard};
-      border: 1px solid ${DARK.lineStrong};
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      position: relative;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: none;
-      border: none;
-      font-size: 28px;
-      color: ${DARK.ink3};
-      cursor: pointer;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-    }
-
-    .modal-close:active {
-      transform: scale(0.9);
-      background: ${DARK.bgDeep};
-    }
-
-    .modal-title {
-      font-weight: 700;
-      font-size: 18px;
-      color: ${DARK.ink};
-      margin-bottom: 20px;
-      text-align: center;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-
-    .tab-group {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-
-    .tab {
-      padding: 10px 18px;
-      border: 1px solid ${DARK.lineStrong};
-      background: ${DARK.bgDeep};
-      color: ${DARK.ink3};
-      font-weight: 600;
-      font-size: 13px;
-      cursor: pointer;
-      border-radius: 10px;
-      transition: all 0.2s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .tab.active {
-      background: ${DARK.copper};
-      color: ${DARK.bgDeep};
-      border-color: ${DARK.copper};
-    }
-
-    .result-display {
-      font-family: 'Inter', sans-serif;
-      font-weight: 700;
-      font-size: 120px;
-      color: ${DARK.copper};
-      text-align: center;
-      margin-bottom: 12px;
-      line-height: 1;
-      min-height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      letter-spacing: -2px;
-    }
-
-    .rolling-text {
-      font-size: 13px;
-      color: ${DARK.ink3};
-      text-align: center;
-      margin-bottom: 20px;
-      min-height: 18px;
-    }
-
-    .roll-button {
-      width: 100%;
-      padding: 14px;
-      background: ${DARK.copper};
-      border: none;
-      border-radius: 12px;
-      color: ${DARK.bgDeep};
-      font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .roll-button:active {
-      transform: scale(0.98);
-    }
-
-    .counters-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.65);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      backdrop-filter: blur(4px);
-    }
-
-    .counters-overlay.active {
-      display: flex;
-    }
-
-    .counters-popup-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 0;
-    }
-
-    .counters-popup-wrapper.facing-left {
-      flex-direction: row;
-    }
-
-    .counters-popup-wrapper.facing-right {
-      flex-direction: row;
-    }
-
-    .counters-popup-wrapper.facing-left .counters-modal {
-      transform: rotate(90deg);
-    }
-
-    .counters-popup-wrapper.facing-right .counters-modal {
-      transform: rotate(-90deg);
-    }
-
-    .counters-flip-btn {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 1px solid ${DARK.lineStrong};
-      background: ${DARK.bgCard};
-      color: ${DARK.copper};
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1002;
-      position: absolute;
-      bottom: -32px;
-      left: 50%;
-      transform: translateX(-50%);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-      transition: all 0.2s ease;
-    }
-
-    .counters-flip-btn:active {
-      transform: translateX(-50%) scale(0.9);
-      background: ${DARK.bgDeep};
-    }
-
-    .counters-flip-btn svg {
-      width: 24px;
-      height: 24px;
-      stroke: ${DARK.copper};
-    }
-
-    .counters-modal {
-      width: 320px;
-      background: ${DARK.bgCard};
-      border: 1px solid ${DARK.lineStrong};
-      border-radius: 20px;
-      padding: 24px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      position: relative;
-      transition: transform 0.3s ease;
-    }
-
-    .counters-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 18px;
-    }
-
-    .counters-title {
-      font-weight: 700;
-      font-size: 16px;
-      color: ${DARK.ink};
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-
-    .player-selector {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 18px;
-    }
-
-    .player-selector-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 2px solid ${DARK.lineStrong};
-      background: ${DARK.bgDeep};
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Inter', sans-serif;
-      font-weight: 700;
-      font-size: 16px;
-      color: ${DARK.ink};
-      transition: all 0.2s ease;
-      position: relative;
-    }
-
-    .player-selector-btn.active {
-      border-color: ${DARK.copper};
-      background: ${DARK.copper};
-      color: ${DARK.bgDeep};
-      box-shadow: 0 0 0 1px ${DARK.bgCard};
-      transform: scale(1.08);
-    }
-
-    .player-selector-btn:active {
-      transform: scale(0.95);
-    }
-
-    .selected-player-info {
-      text-align: center;
-      margin-bottom: 18px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid ${DARK.lineStrong};
-    }
-
-    .selected-commander {
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      font-size: 14px;
-      color: ${DARK.copper};
-      margin-bottom: 4px;
-      letter-spacing: 0.02em;
-    }
-
-    .selected-player-name {
-      font-family: 'Inter', sans-serif;
-      font-weight: 400;
-      font-size: 12px;
-      color: ${DARK.ink3};
-    }
-
-    .counter-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px;
-      background: ${DARK.bgDeep};
-      border-radius: 12px;
-      margin-bottom: 12px;
-      border: 1px solid ${DARK.line};
-    }
-
-    .counter-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .counter-label {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .counter-icon {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: ${DARK.copper};
-    }
-
-    .counter-icon svg {
-      width: 24px;
-      height: 24px;
-      stroke: ${DARK.copper};
-    }
-
-    .counter-name {
-      font-weight: 600;
-      font-size: 14px;
-      color: ${DARK.ink};
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-
-    .counter-controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .counter-btn {
-      width: 32px;
-      height: 36px;
-      border-radius: 8px;
-      border: 1px solid ${DARK.lineStrong};
-      background: ${DARK.bgCard};
-      color: ${DARK.copper};
-      font-size: 20px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-
-    .counter-btn:active {
-      transform: scale(0.9);
-      background: ${DARK.bgDeep};
-    }
-
-    .counter-value {
-      font-weight: 700;
-      font-size: 26px;
-      color: ${DARK.copper};
-      min-width: 32px;
-      text-align: center;
-      font-family: 'Courier New', monospace;
-    }
-
-    .tile-counters {
-      display: flex;
-      gap: 4px;
-      justify-content: center;
-      min-height: 12px;
-      margin-bottom: 4px;
-      position: relative;
-      z-index: 5;
-    }
-
-    .tile-counter-indicator {
-      display: none;
-      align-items: center;
-      gap: 2px;
-      opacity: 0.9;
-    }
-
-    .tile-counter-indicator.visible {
-      display: flex;
-    }
-
-    .tile-counter-indicator svg {
-      width: 8px;
-      height: 8px;
-    }
-
-    .tile-counter-indicator svg path {
-      stroke: ${DARK.copper};
-      stroke-width: 2;
-    }
-
-    .tile-counter-number {
-      font-family: 'Inter', sans-serif;
-      font-weight: 700;
-      font-size: 9px;
-      color: ${DARK.copper};
-      line-height: 1;
-      letter-spacing: 0.02em;
-    }
-
-    .toast {
-      position: fixed;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: ${DARK.bgCard};
-      color: ${DARK.ink};
-      padding: 12px 24px;
-      border-radius: 10px;
-      border: 1px solid ${DARK.lineStrong};
-      font-size: 13px;
-      font-weight: 600;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.3s ease;
-      z-index: 9999;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Jaldi:wght@400;700&display=swap');
+    .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: ${DARK.bgCard}; color: ${DARK.ink}; padding: 12px 24px; border-radius: 10px; border: 1px solid ${DARK.lineStrong}; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 9999; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   `;
 
   return (
@@ -1655,82 +819,76 @@ function PageContent() {
       <div className="app">
         <div className="grid-container">
           <div className="grid-column">
-            {renderPlayerTile(1)}
-            {renderPlayerTile(3)}
+            <SidewaysCell
+              player={players[1]}
+              rotation={90}
+              onTapLeft={() => handleLifeChange(1, -1)}
+              onTapRight={() => handleLifeChange(1, 1)}
+            />
+            <SidewaysCell
+              player={players[3]}
+              rotation={90}
+              onTapLeft={() => handleLifeChange(3, -1)}
+              onTapRight={() => handleLifeChange(3, 1)}
+            />
           </div>
           <div className="grid-column">
-            {renderPlayerTile(2)}
-            {renderPlayerTile(4)}
+            {players[2].claimed ? (
+              <SidewaysCell
+                player={players[2]}
+                rotation={-90}
+                onTapLeft={() => handleLifeChange(2, -1)}
+                onTapRight={() => handleLifeChange(2, 1)}
+              />
+            ) : (
+              <SidewaysEmptyCell
+                seatLabel="Seat 2"
+                rotation={-90}
+                onClaimSeat={() => openJoinModal(2)}
+              />
+            )}
+            {players[4].claimed ? (
+              <SidewaysCell
+                player={players[4]}
+                rotation={-90}
+                onTapLeft={() => handleLifeChange(4, -1)}
+                onTapRight={() => handleLifeChange(4, 1)}
+              />
+            ) : (
+              <SidewaysEmptyCell
+                seatLabel="Seat 4"
+                rotation={-90}
+                onClaimSeat={() => openJoinModal(4)}
+              />
+            )}
           </div>
         </div>
 
-        <div className={`bottom-nav ${navCollapsed ? 'collapsed' : ''}`} onClick={handleNavClick}>
-          <div
-            className="nav-item"
-            onClick={() => {
-              onPopupOpen();
-              setDiceModalOpen(true);
-              setDiceResult('—');
-              setRollingText('');
-            }}
-          >
-            <div className="nav-icon">
-              <div className="dice-icon">
-                {[1, 2, 3, 4, 5].map(i => <div key={i} className="dice-dot"></div>)}
-              </div>
-            </div>
-            <div className="nav-label">Dice</div>
-          </div>
-          <div
-            className="nav-item"
-            onClick={() => {
-              onPopupOpen();
-              setCountersModalOpen(true);
-            }}
-          >
-            <div className="nav-icon">
-              <div className="star-icon">
-                <div className="star"></div>
-              </div>
-            </div>
-            <div className="nav-label">Counters</div>
-          </div>
-          <Link href={`/singleview?podId=${podId}&gameId=${gameId}`} style={{ textDecoration: 'none' }}>
-            <div className="nav-item">
-              <div className="nav-icon">
-                <div className="list-icon">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
-              <div className="nav-label">Single View</div>
-            </div>
-          </Link>
-        </div>
+        <GameNav
+          onDiceClick={() => setDiceModalOpen(true)}
+          onCountersClick={() => setCountersModalOpen(true)}
+          podId={podId}
+          gameId={gameId}
+        />
       </div>
 
       {diceModalOpen && (
         <div
           className="modal-overlay active"
-          onClick={() => {
-            if (event?.target === event?.currentTarget) {
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
               setDiceModalOpen(false);
-              onPopupClose();
             }
           }}
         >
           <div className="dice-modal">
             <button
               className="modal-close"
-              onClick={() => {
-                setDiceModalOpen(false);
-                onPopupClose();
-              }}
+              onClick={() => setDiceModalOpen(false)}
             >
               ✕
             </button>
-            <div className="modal-title">Dice Roller</div>
+            <ModalTitle kicker="Roll" title="Dice Roller"/>
             <div className="tab-group">
               {['d6', 'd20', 'coin'].map(tab => (
                 <button
@@ -1758,104 +916,78 @@ function PageContent() {
       {countersModalOpen && (
         <div
           className="counters-overlay active"
-          onClick={() => {
-            if (event?.target === event?.currentTarget) {
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
               setCountersModalOpen(false);
-              onPopupClose();
             }
           }}
         >
-          <div className={`counters-popup-wrapper ${facingLeft ? 'facing-left' : 'facing-right'}`}>
-            <div className="counters-modal">
-              <div className="counters-header">
-                <div className="counters-title">Counters</div>
-                <button
-                  className="modal-close"
-                  onClick={() => {
-                    setCountersModalOpen(false);
-                    onPopupClose();
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="player-selector">
-                {[1, 2, 3, 4].map(num => {
-                  const p = players[num];
-                  const style = p.claimed && p.assignedColor && manaColorStyles[p.assignedColor]
-                    ? { background: `rgb(${manaColorStyles[p.assignedColor].grad[1].join(',')})`, borderColor: `rgb(${manaColorStyles[p.assignedColor].border.join(',')})` }
-                    : { background: `${DARK.bgDeep}`, color: `${DARK.ink3}` };
-
-                  return (
-                    <button
-                      key={num}
-                      className={`player-selector-btn ${selectedCounterPlayer === num ? 'active' : ''}`}
-                      style={style}
-                      onClick={() => setSelectedCounterPlayer(num)}
-                    >
-                      {p.name.charAt(0).toUpperCase()}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="selected-player-info">
-                <div className="selected-commander">
-                  {players[selectedCounterPlayer].commander || '—'}
-                </div>
-                <div className="selected-player-name">
-                  {players[selectedCounterPlayer].claimed
-                    ? players[selectedCounterPlayer].name
-                    : `Player ${selectedCounterPlayer}`}
-                </div>
-              </div>
-
-              {(['poison', 'experience', 'energy'] as const).map(type => (
-                <div key={type} className="counter-row">
-                  <div className="counter-label">
-                    <div className="counter-icon">
-                      {type === 'poison' ? (
-                        <svg viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M11.3 15.8455C16.8228 15.8455 21.3 12.5894 21.3 8.57278C21.3 4.55616 16.8228 1.30005 11.3 1.30005C5.77714 1.30005 1.29999 4.55616 1.29999 8.57278C1.29999 12.5894 5.77714 15.8455 11.3 15.8455Z" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /><path d="M7.54999 6.75453L3.79999 3.11816M15.05 6.75453L18.8 3.11816M11.3 15.8454V21.3M6.29999 19.4818H16.3" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                      ) : type === 'experience' ? (
-                        <svg viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M1.30002 21.3L2.96668 5.74449L7.13335 12.4112L11.3 1.30005L15.4667 12.4112L19.6334 5.74449L21.3 21.3H1.30002Z" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /><path d="M1.30002 21.3H21.3" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                      ) : (
-                        <svg viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M13.8 1.30005L1.30005 12.7286H11.3L8.80005 21.3L21.3 9.87148H11.3L13.8 1.30005Z" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                      )}
-                    </div>
-                    <div className="counter-name">
-                      {type === 'experience' ? 'Experience' : type.charAt(0).toUpperCase() + type.slice(1)}
-                    </div>
-                  </div>
-                  <div className="counter-controls">
-                    <button className="counter-btn" onClick={() => handleCounterChange(type, 'minus')}>
-                      −
-                    </button>
-                    <div className="counter-value">
-                      {counters[selectedCounterPlayer][type]}
-                    </div>
-                    <button className="counter-btn" onClick={() => handleCounterChange(type, 'plus')}>
-                      +
-                    </button>
-                  </div>
-                </div>
-              ))}
+          <div className="counters-modal">
+            <button
+              className="modal-close"
+              onClick={() => setCountersModalOpen(false)}
+            >
+              ✕
+            </button>
+            <div style={{ marginBottom: 18 }}>
+              <ModalTitle kicker="Adjust" title="Counters"/>
             </div>
 
-            <button
-              className="counters-flip-btn"
-              onClick={() => setFacingLeft(!facingLeft)}
-            >
-              <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 2L18 6L14 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M18 6H7C4.24 6 2 8.24 2 11V11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M6 18L2 14L6 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M2 14H13C15.76 14 18 11.76 18 9V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+            <div className="player-selector">
+              {[1, 2, 3, 4].map(num => {
+                const p = players[num];
+                return (
+                  <button
+                    key={num}
+                    className={`player-selector-btn ${selectedCounterPlayer === num ? 'active' : ''}`}
+                    onClick={() => setSelectedCounterPlayer(num)}
+                  >
+                    {p.name.charAt(0).toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${DARK.lineStrong}`, textAlign: 'center' }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: DARK.copper, marginBottom: 4, letterSpacing: '0.02em' }}>
+                {players[selectedCounterPlayer].commander || '—'}
+              </div>
+              <div style={{ fontWeight: 400, fontSize: 12, color: DARK.ink3 }}>
+                {players[selectedCounterPlayer].claimed
+                  ? players[selectedCounterPlayer].name
+                  : `Player ${selectedCounterPlayer}`}
+              </div>
+            </div>
+
+            {(['poison', 'experience', 'energy'] as const).map(type => (
+              <div key={type} className="counter-row">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="counter-icon">
+                    {type === 'poison' ? (
+                      <Icon name="skull" size={24} stroke={COUNTER_VOCAB[type].tone}/>
+                    ) : type === 'experience' ? (
+                      <Icon name="star" size={24} stroke={COUNTER_VOCAB[type].tone}/>
+                    ) : (
+                      <Icon name="bolt" size={24} stroke={COUNTER_VOCAB[type].tone}/>
+                    )}
+                  </div>
+                  <div className="counter-name">
+                    {type === 'experience' ? 'Experience' : type.charAt(0).toUpperCase() + type.slice(1)}
+                  </div>
+                </div>
+                <div className="counter-controls">
+                  <button className="counter-btn" onClick={() => handleCounterChange(type, 'minus')}>
+                    −
+                  </button>
+                  <div className="counter-value">
+                    {counters[selectedCounterPlayer][type]}
+                  </div>
+                  <button className="counter-btn" onClick={() => handleCounterChange(type, 'plus')}>
+                    +
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -1900,7 +1032,9 @@ function PageContent() {
 export default function GridView4P() {
   return (
     <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: DARK.ink3 }}>Loading...</div>}>
-      <PageContent />
+      <ScreenBg>
+        <PageContent />
+      </ScreenBg>
     </Suspense>
   );
 }
