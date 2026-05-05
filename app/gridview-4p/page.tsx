@@ -210,7 +210,7 @@ function CommanderArt({ colors = ['C'], art = null, opacity = 0.4 }: { colors?: 
 function CellInner({ player }: { player: any }) {
   const wash = COLOR_WASH[player.colors[0] as keyof typeof COLOR_WASH] || 'rgba(168,159,142,0.10)';
   const counters = player.counters || {};
-  const counterEntries = Object.entries(counters).filter(([, n]) => n > 0);
+  const counterEntries = Object.entries(counters).filter(([, n]) => (n as number) > 0);
 
   const darkWash = (() => {
     const c = player.colors[0];
