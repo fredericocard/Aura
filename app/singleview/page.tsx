@@ -165,22 +165,22 @@ function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = fals
 // ─── Digital Mat Mesh ───────────────────────────────────────────────────────
 // Technical grid with thin lines and small + crosses at each intersection.
 function DigitalMatMesh() {
-  const gap = 56;
+  const gap = 36;
   const half = gap / 2;
   const arm = 4;
   return (
     <svg style={{
       position: 'absolute', inset: 0, width: '100%', height: '100%',
-      pointerEvents: 'none', zIndex: 1, opacity: 0.18,
+      pointerEvents: 'none', zIndex: 1, opacity: 0.35,
     }}>
       <defs>
         <pattern id="sv-grid-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
           {/* Grid lines */}
-          <line x1={half} y1="0" x2={half} y2={gap} stroke="rgba(180,155,100,0.18)" strokeWidth="0.5"/>
-          <line x1="0" y1={half} x2={gap} y2={half} stroke="rgba(180,155,100,0.18)" strokeWidth="0.5"/>
+          <line x1={half} y1="0" x2={half} y2={gap} stroke="rgba(180,155,100,0.22)" strokeWidth="0.5"/>
+          <line x1="0" y1={half} x2={gap} y2={half} stroke="rgba(180,155,100,0.22)" strokeWidth="0.5"/>
           {/* Cross at center */}
-          <line x1={half - arm} y1={half} x2={half + arm} y2={half} stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-          <line x1={half} y1={half - arm} x2={half} y2={half + arm} stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+          <line x1={half - arm} y1={half} x2={half + arm} y2={half} stroke="rgba(180,155,100,0.55)" strokeWidth="1"/>
+          <line x1={half} y1={half - arm} x2={half} y2={half + arm} stroke="rgba(180,155,100,0.55)" strokeWidth="1"/>
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#sv-grid-mesh)"/>
