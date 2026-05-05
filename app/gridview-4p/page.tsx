@@ -186,6 +186,46 @@ function ScreenBg({ children }: { children: React.ReactNode }) {
   );
 }
 
+function CmdrDamageRing({ damages = [], radius = 20, strokeWidth = 3 }: {
+  damages?: { from: string; amount: number; colorIndex: number }[];
+  radius?: number;
+  strokeWidth?: number;
+}) {
+  if (!damages.length) return null;
+  let cursor = 0;
+  return (
+    <svg style={{
+      position: 'absolute', inset: 0,
+      width: '100%', height: '100%',
+      pointerEvents: 'none',
+      overflow: 'visible',
+      zIndex: 4,
+    }}>
+      {damages.map((d, i) => {
+        const len = Math.min(100, (d.amount / 21) * 100);
+        const offset = -cursor;
+        cursor += len;
+        return (
+          <rect key={i}
+            x={strokeWidth / 2} y={strokeWidth / 2}
+            width={`calc(100% - ${strokeWidth}px)`}
+            height={`calc(100% - ${strokeWidth}px)`}
+            rx={radius - strokeWidth / 2}
+            ry={radius - strokeWidth / 2}
+            fill="none"
+            stroke={CMDR_DMG_COLORS[d.colorIndex % CMDR_DMG_COLORS.length]}
+            strokeWidth={strokeWidth}
+            strokeLinecap="butt"
+            pathLength={100}
+            strokeDasharray={`${len} 100`}
+            strokeDashoffset={offset}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 function CommanderArt({ colors = ['C'], art = null, opacity = 0.4 }: { colors?: string[]; art?: string | null; opacity?: number }) {
   if (art) {
     return (
@@ -213,6 +253,7 @@ function CellInner({ player }: { player: any }) {
   const wash = COLOR_WASH[player.colors[0] as keyof typeof COLOR_WASH] || 'rgba(168,159,142,0.10)';
   const counters = player.counters || {};
   const counterEntries = Object.entries(counters).filter(([, n]) => (n as number) > 0);
+  const hasRing = (player.cmdrDamage || []).length > 0;
 
   const darkWash = (() => {
     const c = player.colors[0];
@@ -233,6 +274,8 @@ function CellInner({ player }: { player: any }) {
       <div style={{ position:'absolute', inset:0,
         background: `radial-gradient(ellipse 80% 60% at 50% 50%, ${darkWash} 0%, transparent 70%)`,
       }}/>
+
+      {hasRing && <CmdrDamageRing damages={player.cmdrDamage || []} radius={20} strokeWidth={3}/>}
 
       <div style={{ position:'absolute', top:10, left:12, right:12,
         display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
@@ -277,6 +320,7 @@ function CellInner({ player }: { player: any }) {
 }
 
 function SidewaysCell({ player, rotation, onTapLeft, onTapRight }: { player: any; rotation: number; onTapLeft: () => void; onTapRight: () => void }) {
+  const hasRing = (player.cmdrDamage || []).length > 0;
   return (
     <div style={{
       position:'relative',
@@ -284,7 +328,7 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight }: { player: any
       containerType:'size',
       borderRadius:'20px',
       background: DARK.bgCard,
-      border: `1px solid ${DARK.cellBorder}`,
+      border: hasRing ? '1px solid transparent' : `1px solid ${DARK.cellBorder}`,
       boxShadow: DARK.shadowRest,
       overflow:'hidden',
     } as React.CSSProperties}>
@@ -1160,6 +1204,33 @@ function PageContent() {
     loadGame();
   }, [gameId]);
 
+
+  // Merge counters + cmdr damage onto a player so cells get all visual data
+  const enrichPlayer = (n: number, isYou = false) => {
+    const base = players[n];
+    if (!base) return { ...base, isYou, counters: { poison: 0, energy: 0, experience: 0 }, cmdrDamage: [] };
+    const damages: { from: string; amount: number; colorIndex: number }[] = [];
+    Object.keys(players).map(Number).filter(fromN => fromN !== n).forEach(fromN => {
+      const amount = cmdrDamage[fromN]?.[n] ?? 0;
+      if (amount <= 0) return;
+      const heatIdx = Math.min(
+        CMDR_DMG_COLORS.length - 1,
+        Math.floor((amount / 21) * CMDR_DMG_COLORS.length)
+      );
+      damages.push({
+        from: fromN === 1 ? 'You' : (players[fromN]?.name || `P${fromN}`),
+        amount,
+        colorIndex: heatIdx,
+      });
+    });
+    return {
+      ...base,
+      isYou,
+      counters: counters[n] ?? { poison: 0, energy: 0, experience: 0 },
+      cmdrDamage: damages,
+    };
+  };
+
   const handleLifeChange = (playerNum: number, delta: number) => {
     setPlayers(prev => {
       const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
@@ -1359,13 +1430,13 @@ function PageContent() {
         <div className="grid-container">
           <div className="grid-column">
             <SidewaysCell
-              player={players[1]}
+              player={enrichPlayer(1)}
               rotation={90}
               onTapLeft={() => handleLifeChange(1, -1)}
               onTapRight={() => handleLifeChange(1, 1)}
             />
             <SidewaysCell
-              player={players[3]}
+              player={enrichPlayer(3)}
               rotation={90}
               onTapLeft={() => handleLifeChange(3, -1)}
               onTapRight={() => handleLifeChange(3, 1)}
@@ -1374,7 +1445,7 @@ function PageContent() {
           <div className="grid-column">
             {players[2].claimed ? (
               <SidewaysCell
-                player={players[2]}
+                player={enrichPlayer(2)}
                 rotation={-90}
                 onTapLeft={() => handleLifeChange(2, -1)}
                 onTapRight={() => handleLifeChange(2, 1)}
@@ -1391,7 +1462,7 @@ function PageContent() {
             )}
             {players[4].claimed ? (
               <SidewaysCell
-                player={players[4]}
+                player={enrichPlayer(4)}
                 rotation={-90}
                 onTapLeft={() => handleLifeChange(4, -1)}
                 onTapRight={() => handleLifeChange(4, 1)}
