@@ -315,6 +315,17 @@ function CellInner({ player }: { player: any }) {
         )}
       </div>
 
+      {/* Tap-zone hints */}
+      <div style={{
+        position:'absolute', bottom:8, left:12, right:12, zIndex:3,
+        display:'flex', justifyContent:'space-between',
+        color: DARK.ink3,
+        fontFamily:'var(--font-display)', fontSize:22, lineHeight:1,
+        pointerEvents:'none',
+      }}>
+        <span>−</span><span>+</span>
+      </div>
+
     </div>
   );
 }
@@ -442,6 +453,19 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
                 ))}
               </div>
             )}
+          </div>
+
+
+
+          {/* Tap-zone hints */}
+          <div style={{
+            position:'absolute', bottom:8, left:12, right:12, zIndex:3,
+            display:'flex', justifyContent:'space-between',
+            color: DARK.ink3,
+            fontFamily:'var(--font-display)', fontSize:22, lineHeight:1,
+            pointerEvents:'none',
+          }}>
+            <span>−</span><span>+</span>
           </div>
 
           {/* Tap zones for life +/- (under the Claim button via z-index) */}
