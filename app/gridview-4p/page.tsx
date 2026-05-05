@@ -1,7 +1,6 @@
 'use client';
 
 import React, { Suspense, useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat } from '@/lib/game-triggers';
@@ -270,12 +269,6 @@ function CellInner({ player }: { player: any }) {
         )}
       </div>
 
-      <div style={{ position:'absolute', bottom:8, left:12, right:12,
-        display:'flex', justifyContent:'space-between',
-        color: DARK.ink3,
-        fontFamily:'var(--font-display)', fontSize:22, lineHeight:1 }}>
-        <span>−</span><span>+</span>
-      </div>
     </div>
   );
 }
@@ -389,16 +382,6 @@ function SidewaysEmptyCell({ seatLabel = 'Seat', rotation, onClaimSeat }: { seat
           </div>
 
           <div style={{
-            position:'absolute', bottom:42, left:12, right:12,
-            display:'flex', justifyContent:'space-between',
-            color: DARK.ink4,
-            fontFamily:'var(--font-display)', fontSize:22, lineHeight:1,
-            opacity:0.5,
-          }}>
-            <span>−</span><span>+</span>
-          </div>
-
-          <div style={{
             position:'absolute', bottom:10, left:12, right:12,
             display:'flex', justifyContent:'center',
           }}>
@@ -423,10 +406,13 @@ function SidewaysEmptyCell({ seatLabel = 'Seat', rotation, onClaimSeat }: { seat
   );
 }
 
-function GameNav({ onDiceClick, onCountersClick, podId, gameId }: { onDiceClick: () => void; onCountersClick: () => void; podId: string; gameId: string }) {
+function GameNav({ active = 'grid', onDiceClick, onCountersClick, podId, gameId }: { active?: string; onDiceClick: () => void; onCountersClick: () => void; podId: string; gameId: string }) {
   const items = [
+    { id: 'grid',   icon: 'grid',   label: 'Grid' },
+    { id: 'single', icon: 'user',   label: 'You' },
     { id: 'dice',   icon: 'dice',   label: 'Dice' },
     { id: 'count',  icon: 'plus',   label: 'Counters' },
+    { id: 'cmdr',   icon: 'sword',  label: 'Cmdr Dmg' },
   ];
   return (
     <div style={{
@@ -438,51 +424,31 @@ function GameNav({ onDiceClick, onCountersClick, podId, gameId }: { onDiceClick:
         background: DARK.navPill,
         border: `1px solid ${DARK.navBorder}`,
         borderRadius: 999, boxShadow: DARK.shadowRest,
-        padding: 6, display: 'flex', justifyContent: 'space-around',
+        padding: 6, display: 'flex', justifyContent: 'space-between',
       }}>
-        <button onClick={onDiceClick} style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          padding: '6px 0', border: 'none',
-          background: 'transparent',
-          color: DARK.ink3,
-          borderRadius: 999,
-          fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
-          letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
-          cursor: 'pointer',
-        }}>
-          <Icon name="dice" size={16} stroke={DARK.ink3}/>
-          <span>Dice</span>
-        </button>
-
-        <button onClick={onCountersClick} style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          padding: '6px 0', border: 'none',
-          background: 'transparent',
-          color: DARK.ink3,
-          borderRadius: 999,
-          fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
-          letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
-          cursor: 'pointer',
-        }}>
-          <Icon name="plus" size={16} stroke={DARK.ink3}/>
-          <span>Counters</span>
-        </button>
-
-        <Link href={`/singleview?podId=${podId}&gameId=${gameId}`} style={{ textDecoration: 'none' }}>
-          <button style={{
-            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-            padding: '6px 0', border: 'none',
-            background: 'transparent',
-            color: DARK.ink3,
-            borderRadius: 999,
-            fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
-            letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
-            cursor: 'pointer',
-          }}>
-            <Icon name="user" size={16} stroke={DARK.ink3}/>
-            <span>Single View</span>
-          </button>
-        </Link>
+        {items.map(it => {
+          const on = it.id === active;
+          const handleClick = () => {
+            if (it.id === 'dice') onDiceClick();
+            else if (it.id === 'count') onCountersClick();
+            else if (it.id === 'single') window.location.href = `/singleview?podId=${podId}&gameId=${gameId}`;
+          };
+          return (
+            <button key={it.id} onClick={handleClick} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '6px 0', border: 'none',
+              background: on ? DARK.forest : 'transparent',
+              color: on ? DARK.ink : DARK.ink3,
+              borderRadius: 999,
+              fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
+              cursor: 'pointer',
+            }}>
+              <Icon name={it.icon} size={16} stroke={on ? DARK.ink : DARK.ink3}/>
+              <span>{it.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
