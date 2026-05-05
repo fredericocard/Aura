@@ -1056,6 +1056,7 @@ function PageContent() {
   const [podShortCode, setPodShortCode] = useState<string>('');
   const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
   const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
+  const [commanderArt, setCommanderArt] = useState<Record<string, string>>({});
 
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
@@ -1136,6 +1137,28 @@ function PageContent() {
     loadGame();
   }, [gameId]);
 
+  // Fetch commander art from Scryfall for each claimed player. De-duped by commander name.
+  useEffect(() => {
+    const fetchedNames = new Set<string>();
+    Object.values(players).forEach((p) => {
+      const name = p?.commander;
+      if (!name || !p?.claimed) return;
+      if (commanderArt[name] || fetchedNames.has(name)) return;
+      fetchedNames.add(name);
+      fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((card) => {
+          if (!card) return;
+          const art = card.image_uris?.art_crop || card.card_faces?.[0]?.image_uris?.art_crop;
+          if (art) {
+            setCommanderArt((prev) => ({ ...prev, [name]: art }));
+          }
+        })
+        .catch(() => { /* Scryfall offline or rate-limited — fall back to gradient */ });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players]);
+
 
   // Merge counters + cmdr damage onto a player so cells get all visual data
   const enrichPlayer = (n: number, isYou = false) => {
@@ -1158,6 +1181,7 @@ function PageContent() {
     return {
       ...base,
       isYou,
+      art: base.commander ? commanderArt[base.commander] : undefined,
       counters: counters[n] ?? { poison: 0, energy: 0, experience: 0 },
       cmdrDamage: damages,
     };
@@ -1233,7 +1257,11 @@ function PageContent() {
   };
 
   const handleDiceRoll = (optId: string) => {
-    if (rollingOpt) return;
+    // If a roll is already in progress, cancel it and start fresh — every tap re-rolls.
+    if (diceIntervalRef.current) {
+      clearInterval(diceIntervalRef.current);
+      diceIntervalRef.current = null;
+    }
     setDiceTab(optId);
     setRollingOpt(optId);
 
@@ -1245,20 +1273,24 @@ function PageContent() {
         return final ? (v ? 'Heads' : 'Tails') : (v ? 'H' : 'T');
       }
       if (optId === 'random') {
+        // Include claimed players first; fall back to ALL slots so the random
+        // pick still varies even when other seats are unclaimed.
         const claimed = Object.entries(players).filter(([, p]) => p.claimed);
-        if (claimed.length === 0) return '—';
-        const [num, p] = claimed[Math.floor(Math.random() * claimed.length)];
-        return num === '1' ? 'You' : (p.name || `P${num}`);
+        const pool = claimed.length >= 2 ? claimed : Object.entries(players);
+        if (pool.length === 0) return '—';
+        const [num, p] = pool[Math.floor(Math.random() * pool.length)];
+        return num === '1' ? 'You' : (p.name || `Player ${num}`);
       }
       return '?';
     };
 
     let frame = 0;
-    const interval = setInterval(() => {
+    diceIntervalRef.current = setInterval(() => {
       frame++;
       setDiceResults(prev => ({ ...prev, [optId]: rollOne(false) }));
       if (frame >= 14) {
-        clearInterval(interval);
+        if (diceIntervalRef.current) clearInterval(diceIntervalRef.current);
+        diceIntervalRef.current = null;
         setDiceResults(prev => ({ ...prev, [optId]: rollOne(true) }));
         setRollingOpt(null);
       }
