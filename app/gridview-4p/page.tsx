@@ -656,20 +656,6 @@ function DicePlaque({ option, active, result, onClick }: { option: { id: string;
         : `inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)`,
       overflow: 'hidden',
     }}>
-      {active && (
-        <svg viewBox="0 0 80 80" width="100%" height="100%" aria-hidden="true" style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.20,
-        }}>
-          <g stroke={DARK.copper} strokeWidth="0.5" fill="none">
-            {Array.from({ length: 12 }).map((_, i) => {
-              const a = (i / 12) * Math.PI * 2;
-              return <line key={i}
-                x1={40 + Math.cos(a) * 22} y1={40 + Math.sin(a) * 22}
-                x2={40 + Math.cos(a) * 32} y2={40 + Math.sin(a) * 32}/>;
-            })}
-          </g>
-        </svg>
-      )}
       <div style={{
         position: 'relative',
         display: 'inline-flex', alignItems: 'center', gap: 6,
