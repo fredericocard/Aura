@@ -1125,6 +1125,7 @@ function PageContent() {
   const [commanderArt, setCommanderArt] = useState<Record<string, string>>({});
 
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const diceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
   const repeatTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
 
