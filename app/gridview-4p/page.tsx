@@ -373,7 +373,8 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight }: { player: any
   );
 }
 
-function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, rotation, onClaimSeat, onTapLeft, onTapRight }: { seatLabel?: string; life?: number; rotation: number; onClaimSeat: () => void; onTapLeft?: () => void; onTapRight?: () => void }) {
+function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, rotation, onClaimSeat, onTapLeft, onTapRight }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; rotation: number; onClaimSeat: () => void; onTapLeft?: () => void; onTapRight?: () => void }) {
+  const counterEntries = Object.entries(cellCounters || {}).filter(([, n]) => (n as number) > 0);
   return (
     <div style={{
       position:'relative',
@@ -395,40 +396,55 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, rotation, onClaimS
         transformOrigin:'center center',
       } as React.CSSProperties}>
         <div style={{ position:'absolute', inset:0, borderRadius:'20px', overflow:'hidden' }}>
+          {/* Header: seat label + compact Claim button (replaces the old Empty pill) */}
           <div style={{
-            position:'absolute', top:10, left:12, right:12, zIndex:5, pointerEvents:'none',
-            display:'flex', alignItems:'center', justifyContent:'space-between',
+            position:'absolute', top:10, left:12, right:12, zIndex:10,
+            display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
           }}>
             <div style={{
               fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
               letterSpacing:'0.20em', textTransform:'uppercase',
-              color: DARK.ink3,
+              color: DARK.ink3, pointerEvents:'none',
             }}>{seatLabel}</div>
-            <div style={{
+            <button onClick={onClaimSeat} style={{
+              display:'inline-flex', alignItems:'center', gap:5,
+              padding:'4px 9px',
+              background: DARK.forest,
+              color: DARK.ink,
+              border:'none', borderRadius:999,
+              boxShadow: '0 2px 6px -2px rgba(63,159,77,0.4)',
               fontFamily:'var(--font-ui)', fontSize:8, fontWeight:700,
-              letterSpacing:'0.16em', textTransform:'uppercase',
-              color: DARK.ink4,
-              padding:'2px 7px',
-              border:`1px solid rgba(226,184,88,0.12)`,
-              borderRadius:999,
-            }}>Empty</div>
+              letterSpacing:'0.14em', textTransform:'uppercase',
+              cursor:'pointer', whiteSpace:'nowrap',
+            }}>
+              <Icon name="plus-circle" size={11} stroke={DARK.ink}/>
+              Claim
+            </button>
           </div>
 
+          {/* Life + counters — same color/size as claimed cells */}
           <div style={{
             position:'absolute', inset:0, zIndex:5, pointerEvents:'none',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            paddingBottom:20,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6,
           }}>
             <div style={{
               fontFamily:'var(--font-display)', fontWeight:400,
               fontSize:64, lineHeight:1, letterSpacing:'-0.04em',
-              color: DARK.ink4,
+              color: DARK.ink,
               fontVariantNumeric:'tabular-nums',
-              opacity:0.6,
+              textShadow: '0 0 30px rgba(226,184,88,0.15), 0 1px 0 rgba(10,6,4,0.6)',
             }}>{life}</div>
+
+            {counterEntries.length > 0 && (
+              <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', maxWidth:'90%' }}>
+                {counterEntries.map(([k, n]) => (
+                  <CounterChip key={k} kind={k} count={n as number}/>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Tap zones for life +/- */}
+          {/* Tap zones for life +/- (under the Claim button via z-index) */}
           <div style={{ position:'absolute', inset:0, display:'flex', zIndex:6 }}>
             <button style={{
               flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
@@ -450,26 +466,6 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, rotation, onClaimS
               onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
               onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
             />
-          </div>
-
-          <div style={{
-            position:'absolute', bottom:10, left:12, right:12, zIndex:10,
-            display:'flex', justifyContent:'center',
-          }}>
-            <button onClick={onClaimSeat} style={{
-              display:'flex', alignItems:'center', gap:6,
-              padding:'7px 14px',
-              background: DARK.forest,
-              color: DARK.ink,
-              border:'none', borderRadius:999,
-              boxShadow: '0 2px 8px -2px rgba(63,159,77,0.35)',
-              fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
-              letterSpacing:'0.14em', textTransform:'uppercase',
-              cursor:'pointer',
-            }}>
-              <Icon name="plus-circle" size={13} stroke={DARK.ink}/>
-              Claim Seat
-            </button>
           </div>
         </div>
       </div>
@@ -1454,6 +1450,7 @@ function PageContent() {
               <SidewaysEmptyCell
                 seatLabel="Player 2"
                 life={players[2].life}
+                counters={counters[2]}
                 rotation={-90}
                 onClaimSeat={() => openJoinModal(2)}
                 onTapLeft={() => handleLifeChange(2, -1)}
@@ -1471,6 +1468,7 @@ function PageContent() {
               <SidewaysEmptyCell
                 seatLabel="Player 4"
                 life={players[4].life}
+                counters={counters[4]}
                 rotation={-90}
                 onClaimSeat={() => openJoinModal(4)}
                 onTapLeft={() => handleLifeChange(4, -1)}
