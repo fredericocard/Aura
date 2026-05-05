@@ -163,16 +163,28 @@ function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = fals
 }
 
 // ─── Digital Mat Mesh ───────────────────────────────────────────────────────
-// Halftone dot-matrix pattern — warm copper tones, like a printed trading card.
+// Technical grid with thin lines and small + crosses at each intersection.
 function DigitalMatMesh() {
+  const gap = 56;
+  const half = gap / 2;
+  const arm = 4;
   return (
-    <div style={{
-      position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-      backgroundImage: `radial-gradient(circle, rgba(180,130,60,0.45) 0.5px, transparent 0.5px)`,
-      backgroundSize: '3px 3px',
-      opacity: 0.12,
-      mixBlendMode: 'multiply',
-    }}/>
+    <svg style={{
+      position: 'absolute', inset: 0, width: '100%', height: '100%',
+      pointerEvents: 'none', zIndex: 1, opacity: 0.18,
+    }}>
+      <defs>
+        <pattern id="sv-grid-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
+          {/* Grid lines */}
+          <line x1={half} y1="0" x2={half} y2={gap} stroke="rgba(180,155,100,0.18)" strokeWidth="0.5"/>
+          <line x1="0" y1={half} x2={gap} y2={half} stroke="rgba(180,155,100,0.18)" strokeWidth="0.5"/>
+          {/* Cross at center */}
+          <line x1={half - arm} y1={half} x2={half + arm} y2={half} stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+          <line x1={half} y1={half - arm} x2={half} y2={half + arm} stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#sv-grid-mesh)"/>
+    </svg>
   );
 }
 
