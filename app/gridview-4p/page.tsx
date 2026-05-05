@@ -1208,7 +1208,7 @@ function PageContent() {
   // Merge counters + cmdr damage onto a player so cells get all visual data
   const enrichPlayer = (n: number, isYou = false) => {
     const base = players[n];
-    if (!base) return { ...base, isYou, counters: { poison: 0, energy: 0, experience: 0 }, cmdrDamage: [] };
+    if (!base) return { life: 40, name: `Player ${n}`, commander: null, claimed: false, colors: [] as string[], isYou, counters: { poison: 0, energy: 0, experience: 0 }, cmdrDamage: [] as { from: string; amount: number; colorIndex: number }[] };
     const damages: { from: string; amount: number; colorIndex: number }[] = [];
     Object.keys(players).map(Number).filter(fromN => fromN !== n).forEach(fromN => {
       const amount = cmdrDamage[fromN]?.[n] ?? 0;
