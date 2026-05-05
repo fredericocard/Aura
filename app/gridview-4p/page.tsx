@@ -1072,6 +1072,288 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   );
 }
 
+function LandscapeModalShell({ children, rotation = 90, width = 540, height = 310, onClose, showCompass = true }: {
+  children: React.ReactNode;
+  rotation?: number;
+  width?: number;
+  height?: number;
+  onClose: () => void;
+  showCompass?: boolean;
+}) {
+  return (
+    <div onClick={(e) => e.stopPropagation()} style={{
+      padding: 3,
+      transform: `rotate(${rotation}deg)`,
+      background: 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
+      borderRadius: 26,
+      boxShadow: '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
+    }}>
+      <div style={{
+        position: 'relative',
+        width, height, padding: '18px 20px 16px',
+        background: '#1C140C',
+        borderRadius: 23,
+        overflow: 'hidden',
+      }}>
+        {showCompass && <ModalCompass size={260} opacity={0.08}/>}
+        <button onClick={onClose} style={{
+          position: 'absolute', top: 10, left: 10, zIndex: 2,
+          width: 36, height: 36, borderRadius: 999,
+          background: 'rgba(226,184,88,0.12)',
+          border: '1.5px solid rgba(226,184,88,0.30)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+          boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+        }}>
+          <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
+        </button>
+        <div style={{ position: 'relative', height: '100%' }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function DiceModalLandscape({ open, onClose, players, selectedDiceOpt, diceResults, onRoll }: {
+  open: boolean;
+  onClose: () => void;
+  players: Record<number, { name: string; commander: string | null; claimed: boolean; colors: string[]; assignedColor?: string | null; art?: string }>;
+  selectedDiceOpt: string;
+  diceResults: Record<string, string>;
+  onRoll: (id: string) => void;
+}) {
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1000, backdropFilter: 'blur(4px)',
+    }}>
+      <LandscapeModalShell width={500} height={240} onClose={onClose}>
+        <ModalTitle kicker="Roll" title="Dice & Random"/>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {DICE_OPTS.map(opt => (
+            <div key={opt.id} style={{ flex: 1 }}>
+              <DicePlaque option={opt}
+                active={selectedDiceOpt === opt.id}
+                result={diceResults[opt.id] || null}
+                onClick={() => onRoll(opt.id)}
+              />
+            </div>
+          ))}
+        </div>
+      </LandscapeModalShell>
+    </div>
+  );
+}
+
+function CountersModalLandscape({ open, onClose, players, selectedNum, setSelectedNum, counters, onChange }: {
+  open: boolean;
+  onClose: () => void;
+  players: Record<number, { name: string; commander: string | null; claimed: boolean; colors: string[]; assignedColor?: string | null; art?: string }>;
+  selectedNum: number;
+  setSelectedNum: (n: number) => void;
+  counters: Record<number, { poison: number; experience: number; energy: number }>;
+  onChange: (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => void;
+}) {
+  if (!open) return null;
+  const playerCounts = counters[selectedNum] ?? { poison: 0, energy: 0, experience: 0 };
+  const playerNums = Object.keys(players).map(Number).sort();
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1000, backdropFilter: 'blur(4px)',
+    }}>
+      <LandscapeModalShell width={460} height={300} onClose={onClose} showCompass={false}>
+        <ModalTitle kicker="Adjust" title="Counters"/>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {/* Player picker — small grid */}
+          <div style={{ flexShrink: 0 }}>
+            <div style={{
+              fontFamily: 'var(--font-ui)', fontSize: 7, fontWeight: 700,
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              color: DARK.ink3,
+              textAlign: 'center', marginBottom: 6,
+            }}>Player</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, justifyItems: 'center' }}>
+              {playerNums.map(n => {
+                const p = players[n];
+                const on = n === selectedNum;
+                const initial = (p?.name || `P${n}`).charAt(0).toUpperCase();
+                return (
+                  <button key={n} onClick={() => setSelectedNum(n)} style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                    background: 'transparent', border: 'none', cursor: 'pointer', padding: 1,
+                  }}>
+                    <div style={{
+                      position: 'relative',
+                      width: 34, height: 34, borderRadius: 999, overflow: 'hidden',
+                      border: `2px solid ${DARK.bgCard}`,
+                      boxShadow: on
+                        ? `0 0 0 2px ${DARK.copper}, 0 0 10px -2px rgba(226,184,88,0.4)`
+                        : `0 0 0 1px ${DARK.lineStrong}`,
+                      background: DARK.bgDeep,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {p?.art ? (
+                        <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 25%' }}/>
+                      ) : (
+                        <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, color: DARK.ink2 }}>{initial}</span>
+                      )}
+                      {!on && <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,6,4,0.25)' }}/>}
+                    </div>
+                    <div style={{
+                      fontFamily: 'var(--font-ui)', fontSize: 7, fontWeight: 600,
+                      color: on ? DARK.ink : DARK.ink2,
+                      letterSpacing: '0.02em',
+                    }}>{n === 1 ? 'You' : (p?.name || `P${n}`)}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Vertical divider */}
+          <div style={{ width: 1, background: 'rgba(226,184,88,0.28)', alignSelf: 'stretch', margin: '4px 0' }}/>
+
+          {/* Counter rows */}
+          <div style={{ flex: 1 }}>
+            {COUNTER_DEFS.map((c, i) => (
+              <CounterRow key={c.id} counter={c}
+                count={playerCounts[c.id] ?? 0}
+                isFirst={i === 0}
+                onMinus={() => onChange(c.id, 'minus')}
+                onPlus={() => onChange(c.id, 'plus')}
+              />
+            ))}
+          </div>
+        </div>
+      </LandscapeModalShell>
+    </div>
+  );
+}
+
+function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, toNum, setToNum, damage, onChange }: {
+  open: boolean;
+  onClose: () => void;
+  players: Record<number, { name: string; commander: string | null; claimed: boolean; colors: string[]; assignedColor?: string | null; art?: string }>;
+  fromNum: number;
+  toNum: number;
+  setFromNum: (n: number) => void;
+  setToNum: (n: number) => void;
+  damage: Record<number, Record<number, number>>;
+  onChange: (delta: number) => void;
+}) {
+  if (!open) return null;
+  const amount = damage[fromNum]?.[toNum] ?? 0;
+  const lethal = 21;
+  const pct = Math.min(1, amount / lethal);
+  const heatIdx = Math.min(CMDR_DMG_COLORS.length - 1, Math.floor(pct * CMDR_DMG_COLORS.length));
+  const accent = CMDR_DMG_COLORS[heatIdx];
+  const fromPlayer = players[fromNum];
+  const toPlayer = players[toNum];
+  const playerNums = Object.keys(players).map(Number).sort();
+
+  const renderColumn = (label: string, selectedN: number, setN: (n: number) => void, colAccent: string) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <div style={{
+        fontFamily: 'var(--font-ui)', fontSize: 8, fontWeight: 700,
+        letterSpacing: '0.18em', textTransform: 'uppercase',
+        color: DARK.ink3,
+      }}>{label}</div>
+      {playerNums.map(n => {
+        const p = players[n];
+        const on = n === selectedN;
+        const initial = (p?.name || `P${n}`).charAt(0).toUpperCase();
+        return (
+          <button key={n} onClick={() => setN(n)} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'transparent', border: 'none', cursor: 'pointer', padding: 2,
+          }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 999, overflow: 'hidden',
+                border: `2px solid ${DARK.bgCard}`,
+                boxShadow: on
+                  ? `0 0 0 2px ${colAccent}, 0 0 10px -2px ${colAccent}66`
+                  : `0 0 0 1px ${DARK.lineStrong}`,
+                background: DARK.bgDeep,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {p?.art ? (
+                  <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 25%' }}/>
+                ) : (
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, color: DARK.ink2 }}>{initial}</span>
+                )}
+                {!on && <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,6,4,0.25)' }}/>}
+              </div>
+            </div>
+            <div style={{
+              fontFamily: 'var(--font-ui)', fontSize: 8, fontWeight: 600,
+              color: on ? DARK.ink : DARK.ink3,
+            }}>{n === 1 ? 'You' : (p?.name || `P${n}`)}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1000, backdropFilter: 'blur(4px)',
+    }}>
+      <LandscapeModalShell width={530} height={290} onClose={onClose} showCompass={false}>
+        <ModalTitle kicker="Track" title="Commander Damage"/>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            {renderColumn('From', fromNum, setFromNum, accent)}
+            {/* Sword divider */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              alignSelf: 'stretch', gap: 4, padding: '20px 0',
+            }}>
+              <div style={{ flex: 1, width: 1, background: 'rgba(226,184,88,0.18)' }}/>
+              <Icon name="sword" size={12} stroke={DARK.ink3} width={1.4}/>
+              <div style={{ flex: 1, width: 1, background: 'rgba(226,184,88,0.18)' }}/>
+            </div>
+            {renderColumn('To', toNum, setToNum, DARK.ink)}
+          </div>
+          {/* Vertical divider */}
+          <div style={{ width: 1, background: 'rgba(226,184,88,0.28)', alignSelf: 'stretch' }}/>
+          {/* Damage seal */}
+          <div style={{
+            flexShrink: 0,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+          }}>
+            <div style={{
+              background: '#140E08',
+              border: `1px solid ${accent}44`,
+              borderRadius: 18, padding: '4px 10px 8px',
+              boxShadow: 'inset 0 0 24px rgba(0,0,0,0.2)',
+            }}>
+              <DamageSeal amount={amount} lethal={lethal} accent={accent}
+                onMinus={() => onChange(-1)} onPlus={() => onChange(1)}/>
+            </div>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              fontFamily: 'var(--font-ui)', fontSize: 10,
+            }}>
+              <span style={{ color: accent, fontWeight: 700, letterSpacing: '0.04em' }}>
+                {fromNum === 1 ? 'You' : (fromPlayer?.name || `P${fromNum}`)}
+              </span>
+              <Icon name="arrow" size={11} stroke={accent} width={2}/>
+              <span style={{ color: DARK.ink, fontWeight: 700, letterSpacing: '0.04em' }}>
+                {toNum === 1 ? 'You' : (toPlayer?.name || `P${toNum}`)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </LandscapeModalShell>
+    </div>
+  );
+}
+
 function PageContent() {
   useWakeLock();
   const searchParams = useSearchParams();
@@ -1531,7 +1813,7 @@ function PageContent() {
       </div>
 
       {diceModalOpen && (
-        <DiceModal
+        <DiceModalLandscape
           open={diceModalOpen}
           onClose={() => setDiceModalOpen(false)}
           players={players}
@@ -1542,7 +1824,7 @@ function PageContent() {
       )}
 
       {countersModalOpen && (
-        <CountersModal
+        <CountersModalLandscape
           open={countersModalOpen}
           onClose={() => setCountersModalOpen(false)}
           players={players}
@@ -1554,7 +1836,7 @@ function PageContent() {
       )}
 
       {cmdrModalOpen && (
-        <CmdrDmgModal
+        <CmdrDmgModalLandscape
           open={cmdrModalOpen}
           onClose={() => setCmdrModalOpen(false)}
           players={players}
