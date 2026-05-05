@@ -1,15 +1,13 @@
 'use client';
 
-import React, { Suspense, useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
-import { getQrCodeUrl } from '@/lib/pods';
 import { useWakeLock } from '@/lib/use-wake-lock';
+import { getQrCodeUrl } from '@/lib/pods';
 
-// Dark mode constants
 const DARK = {
   bg:        '#0A0604',
   bgCard:    '#150E08',
@@ -33,25 +31,465 @@ const DARK = {
   navBorder: 'rgba(226,184,88,0.18)',
 };
 
-interface PlayerState {
-  life: number;
-  name: string;
-  commander: string | null;
-  claimed: boolean;
-  colors: string[];
-  assignedColor?: string;
+const MANA = {
+  W: '#F8E7B9', U: '#A6C8E6', B: '#3F3A36',
+  R: '#D27B5C', G: '#7BA37A', C: '#A89F8E',
+};
+
+const COLOR_WASH = {
+  G: 'rgba(123,163,122,0.14)',
+  W: 'rgba(248,231,185,0.18)',
+  U: 'rgba(166,200,230,0.14)',
+  B: 'rgba(63,58,54,0.10)',
+  R: 'rgba(210,123,92,0.14)',
+};
+
+const COUNTER_VOCAB = {
+  poison:     { label: 'Poison',     tone: '#4F8A4D', soft: '#E2EBDB', glyph: 'skull' },
+  energy:     { label: 'Energy',     tone: '#C99B2F', soft: '#F6ECD2', glyph: 'bolt' },
+  experience: { label: 'Experience', tone: '#7E4E8A', soft: '#EADDEE', glyph: 'star' },
+};
+
+// ─── Components ───────────────────────────────────────────────────────────
+
+function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name: string; size?: number; stroke?: string; width?: number }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: width, strokeLinecap: 'round', strokeLinejoin: 'round' } as React.SVGAttributes<SVGSVGElement>;
+  const paths: Record<string, React.ReactNode> = {
+    'chevron-left': <polyline points="15 18 9 12 15 6"/>,
+    grid:     <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></>,
+    user:     <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+    dice:     <><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill={stroke} stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill={stroke} stroke="none"/><circle cx="12" cy="12" r="1.2" fill={stroke} stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill={stroke} stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill={stroke} stroke="none"/></>,
+    plus:     <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+    minus:    <line x1="5" y1="12" x2="19" y2="12"/>,
+    sword:    <><path d="m14.5 17.5 4-4-9-9H4v6l9 9z"/><line x1="14.5" y1="17.5" x2="20" y2="23"/><path d="m9.5 4.5 4 4"/></>,
+    close:    <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+    skull:    <><path d="M8 21h8v-3a4 4 0 0 0 4-4v-2a8 8 0 1 0-16 0v2a4 4 0 0 0 4 4v3z"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M11 17h2"/></>,
+    bolt:     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
+    star:     <polygon points="12 2 15.1 8.6 22 9.6 17 14.5 18.2 21.5 12 18.2 5.8 21.5 7 14.5 2 9.6 8.9 8.6 12 2"/>,
+    'plus-circle': <><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></>,
+  };
+  return <svg {...p}>{paths[name] || null}</svg>;
 }
 
-interface CountersState {
-  poison: number;
-  experience: number;
-  energy: number;
+function ManaDots({ colors = [], size = 7 }: { colors?: string[]; size?: number }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+      {colors.map((c, i) => (
+        <span key={i} style={{
+          width: size, height: size, borderRadius: 999,
+          background: MANA[c as keyof typeof MANA] || MANA.C,
+          boxShadow: '0 0 0 1px rgba(43,33,24,0.18)',
+          display: 'inline-block',
+        }}/>
+      ))}
+    </span>
+  );
 }
 
-interface ManaStyle {
-  grad: [number, number, number][];
-  border: [number, number, number];
-  shadow: [number, number, number];
+function CounterChip({ kind, count }: { kind: string; count: number }) {
+  const v = COUNTER_VOCAB[kind as keyof typeof COUNTER_VOCAB] || COUNTER_VOCAB.poison;
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      height: 22, padding: '0 9px',
+      background: `${v.tone}22`,
+      color: v.soft,
+      border: `1px solid ${v.tone}44`,
+      borderRadius: 999,
+      fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
+      letterSpacing: '0.02em', whiteSpace: 'nowrap',
+    }}>
+      <Icon name={v.glyph} size={12} stroke={v.soft} width={1.9}/>
+      <span style={{
+        fontFamily: 'var(--font-display)', fontWeight: 400,
+        fontSize: 13, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+      }}>{count}</span>
+    </div>
+  );
+}
+
+function DarkCompassBg() {
+  return (
+    <svg width="520" height="520" viewBox="0 0 320 320" style={{
+      position: 'absolute', top: '22%', left: '50%',
+      transform: 'translate(-50%, -50%)',
+      opacity: 0.18,
+      pointerEvents: 'none',
+      zIndex: 0,
+      WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
+      maskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
+    } as React.CSSProperties}>
+      <g stroke={DARK.copper} strokeWidth="0.8" fill="none">
+        {Array.from({ length: 24 }).map((_, i) => {
+          const a = (i / 24) * Math.PI * 2;
+          const r1 = 40, r2 = 170;
+          const cx = 160, cy = 160;
+          return <line key={i}
+            x1={cx + Math.cos(a) * r1} y1={cy + Math.sin(a) * r1}
+            x2={cx + Math.cos(a) * r2} y2={cy + Math.sin(a) * r2}/>;
+        })}
+        <circle cx="160" cy="160" r="40"/>
+        <circle cx="160" cy="160" r="60" strokeDasharray="1 3"/>
+        <circle cx="160" cy="160" r="110" strokeDasharray="1 4"/>
+        <circle cx="160" cy="160" r="170"/>
+      </g>
+    </svg>
+  );
+}
+
+function ScreenBg({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      position: 'relative', height: '100%', width: '100%',
+      background: DARK.bg,
+      backgroundImage:
+        `radial-gradient(ellipse at 50% 12%, ${DARK.copperGlow}, transparent 50%), ` +
+        `radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.6), transparent 50%), ` +
+        `linear-gradient(180deg, #140C07 0%, #0A0604 45%, #050302 100%)`,
+      fontFamily: 'var(--font-ui)',
+    }}>
+      <DarkCompassBg/>
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(201,155,47,0.12)',
+      }}/>
+      {children}
+    </div>
+  );
+}
+
+function CommanderArt({ colors = ['C'], art = null, opacity = 0.4 }: { colors?: string[]; art?: string | null; opacity?: number }) {
+  if (art) {
+    return (
+      <img src={art} alt="" style={{
+        position:'absolute', inset:0, width:'100%', height:'100%',
+        objectFit:'cover', objectPosition:'center 25%', opacity,
+      }}/>
+    );
+  }
+  const top = MANA[colors[0] as keyof typeof MANA] || MANA.C;
+  const bot = MANA[colors[1] as keyof typeof MANA || colors[0] as keyof typeof MANA] || MANA.C;
+  return (
+    <div style={{
+      position:'absolute', inset:0,
+      background:
+        `radial-gradient(120% 80% at 50% 20%, ${top}cc 0%, ${top}55 35%, transparent 70%),`+
+        `linear-gradient(180deg, ${bot}33 0%, transparent 60%)`,
+      opacity,
+      mixBlendMode:'multiply',
+    } as React.CSSProperties}/>
+  );
+}
+
+function CellInner({ player, lifeSize = 64 }: { player: any; lifeSize?: number }) {
+  const counters = player.counters || {};
+  const counterEntries = Object.entries(counters).filter(([, n]) => (n as number) > 0);
+
+  const darkWash = (() => {
+    const c = player.colors[0];
+    const map = {
+      G: 'rgba(123,163,122,0.12)', W: 'rgba(248,231,185,0.10)',
+      U: 'rgba(166,200,230,0.10)', B: 'rgba(80,70,60,0.10)',
+      R: 'rgba(210,123,92,0.12)',
+    };
+    return (map as Record<string, string>)[c] || 'rgba(168,159,142,0.06)';
+  })();
+
+  return (
+    <div style={{ position:'absolute', inset:0, borderRadius:'20px', overflow:'hidden' }}>
+      <CommanderArt colors={player.colors} art={player.art} opacity={0.4}/>
+      <div style={{ position:'absolute', inset:0,
+        background: 'linear-gradient(180deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.35) 22%, rgba(10,6,4,0.25) 50%, rgba(10,6,4,0.45) 78%, rgba(10,6,4,0.90) 100%)',
+      }}/>
+      <div style={{ position:'absolute', inset:0,
+        background: `radial-gradient(ellipse 80% 60% at 50% 50%, ${darkWash} 0%, transparent 70%)`,
+      }}/>
+
+      <div style={{ position:'absolute', top:10, left:12, right:12,
+        display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:2, minWidth:0 }}>
+          <div style={{ fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700, letterSpacing:'0.20em', textTransform:'uppercase',
+            color: player.isYou ? DARK.copper : DARK.ink3,
+            display:'inline-flex', alignItems:'center', gap:5 }}>
+            {player.isYou && <span style={{
+              width:4, height:4, borderRadius:999,
+              background: DARK.copper,
+              boxShadow: '0 0 8px rgba(226,184,88,0.7)',
+            }}/>}
+            {player.isYou ? 'You' : player.name}
+          </div>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:11, lineHeight:1.1,
+            color: DARK.ink,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:160 }}>{player.commander}</div>
+        </div>
+        <ManaDots colors={player.colors} size={6}/>
+      </div>
+
+      <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column',
+        alignItems:'center', justifyContent:'center', gap:6 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:400,
+          fontSize:lifeSize, lineHeight:1, letterSpacing:'-0.04em',
+          color: DARK.ink,
+          fontVariantNumeric:'tabular-nums',
+          textShadow: '0 0 30px rgba(226,184,88,0.15), 0 1px 0 rgba(10,6,4,0.6)',
+        }}>{player.life}</div>
+
+        {counterEntries.length > 0 && (
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', maxWidth:'90%' }}>
+            {counterEntries.map(([k, n]) => (
+              <CounterChip key={k} kind={k} count={n as number}/>
+            ))}
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+}
+
+function SidewaysCell({ player, rotation, onTapLeft, onTapRight }: { player: any; rotation: number; onTapLeft: () => void; onTapRight: () => void }) {
+  return (
+    <div style={{
+      position:'relative',
+      height:'100%',
+      containerType:'size',
+      borderRadius:'20px',
+      background: DARK.bgCard,
+      border: `1px solid ${DARK.cellBorder}`,
+      boxShadow: DARK.shadowRest,
+      overflow:'hidden',
+    } as React.CSSProperties}>
+      <div style={{
+        position:'absolute',
+        top:'50%',
+        left:'50%',
+        width:'100cqh',
+        height:'100cqw',
+        transform:`translate(-50%, -50%) rotate(${rotation}deg)`,
+        transformOrigin:'center center',
+      } as React.CSSProperties}>
+        <CellInner player={player}/>
+
+        {/* Tap zones */}
+        <div style={{ position:'absolute', inset:0, display:'flex', zIndex:10 }}>
+          <button style={{
+            flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }}
+            onClick={onTapLeft}
+            onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
+            onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
+            onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          />
+          <button style={{
+            flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }}
+            onClick={onTapRight}
+            onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
+            onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
+            onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SidewaysEmptyCell({ seatLabel = 'Seat', rotation, onClaimSeat }: { seatLabel?: string; rotation: number; onClaimSeat: () => void }) {
+  return (
+    <div style={{
+      position:'relative',
+      height:'100%',
+      containerType:'size',
+      borderRadius:'20px',
+      background: DARK.bgDeep,
+      border: `2.5px dashed rgba(226,184,88,0.25)`,
+      boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
+      overflow:'hidden',
+    } as React.CSSProperties}>
+      <div style={{
+        position:'absolute',
+        top:'50%',
+        left:'50%',
+        width:'100cqh',
+        height:'100cqw',
+        transform:`translate(-50%, -50%) rotate(${rotation}deg)`,
+        transformOrigin:'center center',
+      } as React.CSSProperties}>
+        <div style={{ position:'absolute', inset:0, borderRadius:'20px', overflow:'hidden' }}>
+          <div style={{
+            position:'absolute', top:10, left:12, right:12,
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+          }}>
+            <div style={{
+              fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
+              letterSpacing:'0.20em', textTransform:'uppercase',
+              color: DARK.ink3,
+            }}>{seatLabel}</div>
+            <div style={{
+              fontFamily:'var(--font-ui)', fontSize:8, fontWeight:700,
+              letterSpacing:'0.16em', textTransform:'uppercase',
+              color: DARK.ink4,
+              padding:'2px 7px',
+              border:`1px solid rgba(226,184,88,0.12)`,
+              borderRadius:999,
+            }}>Empty</div>
+          </div>
+
+          <div style={{
+            position:'absolute', inset:0,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            paddingBottom:20,
+          }}>
+            <div style={{
+              fontFamily:'var(--font-display)', fontWeight:400,
+              fontSize:64, lineHeight:1, letterSpacing:'-0.04em',
+              color: DARK.ink4,
+              fontVariantNumeric:'tabular-nums',
+              opacity:0.6,
+            }}>40</div>
+          </div>
+
+          <div style={{
+            position:'absolute', bottom:10, left:12, right:12,
+            display:'flex', justifyContent:'center',
+          }}>
+            <button onClick={onClaimSeat} style={{
+              display:'flex', alignItems:'center', gap:6,
+              padding:'7px 14px',
+              background: DARK.forest,
+              color: DARK.ink,
+              border:'none', borderRadius:999,
+              boxShadow: '0 2px 8px -2px rgba(63,159,77,0.35)',
+              fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
+              letterSpacing:'0.14em', textTransform:'uppercase',
+              cursor:'pointer',
+            }}>
+              <Icon name="plus-circle" size={13} stroke={DARK.ink}/>
+              Claim Seat
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NormalCell({ player, onTapLeft, onTapRight, lifeSize = 72 }: { player: any; onTapLeft: () => void; onTapRight: () => void; lifeSize?: number }) {
+  return (
+    <div style={{
+      position:'relative',
+      height:'100%',
+      borderRadius:'20px',
+      background: DARK.bgCard,
+      border: `1px solid ${DARK.cellBorder}`,
+      boxShadow: DARK.shadowRest,
+      overflow:'hidden',
+    }}>
+      <CellInner player={player} lifeSize={lifeSize}/>
+
+      <div style={{ position:'absolute', inset:0, display:'flex', zIndex:10 }}>
+        <button style={{
+          flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
+          display:'flex', alignItems:'center', justifyContent:'center',
+        }}
+          onClick={onTapLeft}
+          onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
+          onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
+          onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+        />
+        <button style={{
+          flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
+          display:'flex', alignItems:'center', justifyContent:'center',
+        }}
+          onClick={onTapRight}
+          onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
+          onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
+          onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function GameNav({ active = 'grid', onDiceClick, onCountersClick, podId, gameId }: { active?: string; onDiceClick: () => void; onCountersClick: () => void; podId: string; gameId: string }) {
+  const items = [
+    { id: 'grid',   icon: 'grid',   label: 'Grid' },
+    { id: 'single', icon: 'user',   label: 'You' },
+    { id: 'dice',   icon: 'dice',   label: 'Dice' },
+    { id: 'count',  icon: 'plus',   label: 'Counters' },
+    { id: 'cmdr',   icon: 'sword',  label: 'Cmdr Dmg' },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      padding: '10px 16px 32px', zIndex: 8,
+      background: DARK.navBg,
+    }}>
+      <div style={{
+        background: DARK.navPill,
+        border: `1px solid ${DARK.navBorder}`,
+        borderRadius: 999, boxShadow: DARK.shadowRest,
+        padding: 6, display: 'flex', justifyContent: 'space-between',
+      }}>
+        {items.map(it => {
+          const on = it.id === active;
+          const handleClick = () => {
+            if (it.id === 'dice') onDiceClick();
+            else if (it.id === 'count') onCountersClick();
+            else if (it.id === 'single') window.location.href = `/singleview?podId=${podId}&gameId=${gameId}`;
+          };
+          return (
+            <button key={it.id} onClick={handleClick} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '6px 0', border: 'none',
+              background: on ? DARK.forest : 'transparent',
+              color: on ? DARK.ink : DARK.ink3,
+              borderRadius: 999,
+              fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
+              cursor: 'pointer',
+            }}>
+              <Icon name={it.icon} size={16} stroke={on ? DARK.ink : DARK.ink3}/>
+              <span>{it.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ModalTitle({ kicker, title }: { kicker: string; title: string }) {
+  return (
+    <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+        letterSpacing: '0.32em', textTransform: 'uppercase',
+        color: DARK.copper,
+      }}>
+        <span style={{ width: 18, height: 1, background: DARK.copper, opacity: 0.5 }}/>
+        <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
+        <span>{kicker}</span>
+        <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
+        <span style={{ width: 18, height: 1, background: DARK.copper, opacity: 0.5 }}/>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-display)', fontSize: 26, lineHeight: 1.05,
+        color: DARK.ink, marginTop: 4, letterSpacing: '-0.01em',
+      }}>{title}</div>
+    </div>
+  );
 }
 
 function PageContent() {
@@ -59,24 +497,16 @@ function PageContent() {
   const searchParams = useSearchParams();
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
-  const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
-  const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
-  const [podShortCode, setPodShortCode] = useState<string>('');
-  const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
-  const debouncedSync = (key: string, fn: () => void) => {
-    if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
-    syncTimerRef.current[key] = setTimeout(fn, 300);
-  };
 
-  const [players, setPlayers] = useState<Record<number, PlayerState>>({
-    1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W', 'U', 'B', 'G'] },
-    2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] },
-    3: { life: 40, name: 'Player 3', commander: null, claimed: false, colors: [] },
-    4: { life: 40, name: 'Player 4', commander: null, claimed: false, colors: [] },
-    5: { life: 40, name: 'Player 5', commander: null, claimed: false, colors: [] }
+  const [players, setPlayers] = useState<Record<number, { life: number; name: string; commander: string | null; claimed: boolean; colors: string[]; assignedColor: string | null; art?: string }>>({
+    1: { life: 40, name: 'Frederico', commander: 'Atraxa, Praetors\' Voice', claimed: true, colors: ['W', 'U', 'B', 'G'], assignedColor: null },
+    2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [], assignedColor: null },
+    3: { life: 40, name: 'Player 3', commander: null, claimed: false, colors: [], assignedColor: null },
+    4: { life: 40, name: 'Player 4', commander: null, claimed: false, colors: [], assignedColor: null },
+    5: { life: 40, name: 'Player 5', commander: null, claimed: false, colors: [], assignedColor: null }
   });
 
-  const [counters, setCounters] = useState<Record<number, CountersState>>({
+  const [counters, setCounters] = useState<Record<number, { poison: number; experience: number; energy: number }>>({
     1: { poison: 0, experience: 0, energy: 0 },
     2: { poison: 0, experience: 0, energy: 0 },
     3: { poison: 0, experience: 0, energy: 0 },
@@ -84,100 +514,116 @@ function PageContent() {
     5: { poison: 0, experience: 0, energy: 0 }
   });
 
-  const [usedColors, setUsedColors] = useState<string[]>([]);
   const [selectedCounterPlayer, setSelectedCounterPlayer] = useState(1);
   const [diceTab, setDiceTab] = useState('d6');
   const [rolling, setRolling] = useState(false);
   const [diceResult, setDiceResult] = useState('—');
   const [rollingText, setRollingText] = useState('');
+  const [joinSlot, setJoinSlot] = useState<number | null>(null);
   const [diceModalOpen, setDiceModalOpen] = useState(false);
   const [countersModalOpen, setCountersModalOpen] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
-  const [joinSlot, setJoinSlot] = useState<number | null>(null);
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
-  const [navCollapsed, setNavCollapsed] = useState(false);
-  const [countersFacingDirection, setCountersFacingDirection] = useState('facing-left');
-  const navCollapseTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const popupOpenRef = useRef(false);
-  const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });
+  const [toast, setToast] = useState('');
+  const [podShortCode, setPodShortCode] = useState<string>('');
+  const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
+  const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
 
-  const manaColorStyles: Record<string, ManaStyle> = {
-    W: { grad: [[160, 140, 90], [190, 170, 115], [210, 192, 140]], border: [220, 200, 155], shadow: [160, 140, 90] },
-    U: { grad: [[14, 72, 110], [26, 100, 140], [42, 125, 165]], border: [56, 135, 170], shadow: [14, 72, 110] },
-    B: { grad: [[25, 18, 30], [42, 35, 50], [60, 52, 68]], border: [75, 65, 82], shadow: [25, 18, 30] },
-    R: { grad: [[120, 42, 30], [148, 64, 48], [172, 88, 68]], border: [185, 100, 80], shadow: [120, 42, 30] },
-    G: { grad: [[14, 92, 77], [26, 122, 106], [42, 143, 120]], border: [56, 158, 133], shadow: [14, 92, 77] }
+  const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const repeatTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
+
+  const debouncedSync = (key: string, fn: () => void) => {
+    if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
+    syncTimerRef.current[key] = setTimeout(fn, 300);
   };
 
-  const qrCodeUrl = podShortCode
-    ? getQrCodeUrl(podShortCode, typeof window !== 'undefined' ? window.location.origin : 'https://auramtg.com')
-    : '';
-
-  const pickPlayerColor = (playerNum: number): string | null => {
-    const p = players[playerNum];
-    if (!p.colors || p.colors.length === 0) return null;
-
-    const allMana = Object.keys(manaColorStyles);
-    const currentUsedColors = usedColors;
-
-    if (!currentUsedColors.includes(p.colors[0])) {
-      return p.colors[0];
-    }
-
-    for (let i = 1; i < p.colors.length; i++) {
-      if (!currentUsedColors.includes(p.colors[i])) {
-        return p.colors[i];
-      }
-    }
-
-    const available = allMana.filter((c: any) => !currentUsedColors.includes(c));
-    if (available.length > 0) {
-      return available[Math.floor(Math.random() * available.length)];
-    }
-
-    return p.colors[0];
-  };
-
-  const applyColorIdentity = (playerNum: number) => {
-    const p = players[playerNum];
-    if (!p.claimed || !p.colors || p.colors.length === 0) return;
-
-    const mana = pickPlayerColor(playerNum);
-    if (!mana || !manaColorStyles[mana]) return;
-
-    setPlayers(prev => ({
-      ...prev,
-      [playerNum]: { ...prev[playerNum], assignedColor: mana }
-    }));
-
-    if (!usedColors.includes(mana)) {
-      setUsedColors(prev => [...prev, mana]);
-    }
-  };
-
-  const stopLongPress = () => {
-    if (longPressRef.current.timeout) { clearTimeout(longPressRef.current.timeout); longPressRef.current.timeout = null; }
-    if (longPressRef.current.interval) { clearInterval(longPressRef.current.interval); longPressRef.current.interval = null; }
-  };
-
-  // Sync life to backend — uses userId if available, otherwise falls back to seat_number
-  const syncLife = (playerNum: number, newLife: number) => {
+  useEffect(() => {
     if (!gameId) return;
-    const userId = playerUserIds[playerNum];
-    const seat = playerSeatNumbers[playerNum];
-    if (userId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
-    else if (seat) updateLifeBySeat(gameId, seat, newLife).catch(() => {});
-  };
+    async function loadGame() {
+      const { data: game } = await getGame(gameId);
+      if (!game) return;
 
-  const updateLife = (playerNum: number, delta: number) => {
+      if (game.pod_id) {
+        const { data: pod } = await supabase.from('pods').select('short_code').eq('id', game.pod_id).single() as { data: any };
+        if (pod?.short_code) setPodShortCode(pod.short_code);
+      }
+
+      const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
+      let deckMap = new Map();
+      if (deckIds.length > 0) {
+        const { data: decks } = await supabase
+          .from('decks')
+          .select('id, commander_name, color_identity')
+          .in('id', deckIds) as { data: any };
+        deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+      }
+
+      const newPlayers: Record<number, typeof players[1]> = {};
+      const newUserIds: Record<number, string> = {};
+      const newSeatNumbers: Record<number, number> = {};
+      const newCounters: Record<number, { poison: number; experience: number; energy: number }> = {};
+      game.players.forEach((p: any) => {
+        const deck: any = p.deck_id ? deckMap.get(p.deck_id) : null;
+        const slot = p.seat_number ?? 1;
+        if (slot > 5) return;
+        const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
+        const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${slot}`;
+
+        newPlayers[slot] = {
+          life: p.life_total ?? 40,
+          name: displayName.split(',')[0],
+          commander: deck?.commander_name ?? p.commander_name ?? null,
+          claimed: !isEmptySeat,
+          colors: (deck?.color_identity ?? '').split('').filter((c: string) => 'WUBRG'.includes(c)),
+          assignedColor: null,
+        };
+        if (p.user_id) newUserIds[slot] = p.user_id;
+        newSeatNumbers[slot] = slot;
+        newCounters[slot] = {
+          poison: p.poison_counters ?? 0,
+          experience: p.experience_counters ?? 0,
+          energy: p.energy_counters ?? 0
+        };
+      });
+      setPlayers(newPlayers);
+      setPlayerUserIds(newUserIds);
+      setPlayerSeatNumbers(newSeatNumbers);
+      setCounters(newCounters);
+
+      const channel = supabase
+        .channel(`game-${gameId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+          const num = row.seat_number;
+          if (num && num <= 5) {
+            setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
+            setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
+          }
+        })
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    }
+    loadGame();
+  }, [gameId]);
+
+  const handleLifeChange = (playerNum: number, delta: number) => {
     setPlayers(prev => {
       const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
-      if (newLife === 0) stopLongPress();
-      debouncedSync(`life-${playerNum}`, () => {
-        syncLife(playerNum, newLife);
-      });
+      if (newLife === 0) {
+        if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
+        if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
+      }
+
+      if (gameId) {
+        debouncedSync(`life-${playerNum}`, () => {
+          const userId = playerUserIds[playerNum];
+          const seat = playerSeatNumbers[playerNum];
+          if (userId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
+          else if (seat) updateLifeBySeat(gameId, seat, newLife).catch(() => {});
+        });
+      }
+
       return {
         ...prev,
         [playerNum]: { ...prev[playerNum], life: newLife }
@@ -185,103 +631,11 @@ function PageContent() {
     });
   };
 
-  const openDiceModal = () => {
-    setDiceModalOpen(true);
-    setDiceResult('—');
-    setRollingText('');
-    onPopupOpen();
-  };
-
-  const closeDiceModal = () => {
-    setDiceModalOpen(false);
-    onPopupClose();
-  };
-
-  const openCountersModal = () => {
-    setCountersModalOpen(true);
-    onPopupOpen();
-  };
-
-  const closeCountersModal = () => {
-    setCountersModalOpen(false);
-    onPopupClose();
-  };
-
-  const openJoinModal = (slot: number) => {
-    setJoinSlot(slot);
-    setJoinModalOpen(true);
-  };
-
-  const closeJoinModal = () => {
-    setJoinModalOpen(false);
-  };
-
-  const copyPodCode = () => {
-    if (podShortCode) {
-      navigator.clipboard.writeText(podShortCode).catch(() => {});
-    }
-  };
-
-  const rollDice = () => {
-    if (rolling) return;
-    setRolling(true);
-    setRollingText('Rolling…');
-
-    let frame = 0;
-    const interval = setInterval(() => {
-      frame++;
-      const max = diceTab === 'd6' ? 6 : diceTab === 'd20' ? 20 : 2;
-      const val = Math.floor(Math.random() * max) + 1;
-      setDiceResult(diceTab === 'coin' ? (val === 1 ? 'H' : 'T') : String(val));
-
-      if (frame >= 14) {
-        clearInterval(interval);
-        setRolling(false);
-        const final = Math.floor(Math.random() * max) + 1;
-        setDiceResult(diceTab === 'coin' ? (final === 1 ? 'HEADS' : 'TAILS') : String(final));
-        setRollingText('');
-      }
-    }, 70);
-  };
-
-  const showToastMessage = (message: string) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
-  };
-
-  const onPopupOpen = () => {
-    popupOpenRef.current = true;
-    if (navCollapseTimerRef.current) clearTimeout(navCollapseTimerRef.current);
-  };
-
-  const onPopupClose = () => {
-    popupOpenRef.current = false;
-    scheduleCollapse();
-  };
-
-  const scheduleCollapse = () => {
-    if (navCollapseTimerRef.current) clearTimeout(navCollapseTimerRef.current);
-    navCollapseTimerRef.current = setTimeout(() => {
-      setNavCollapsed(true);
-    }, 5000);
-  };
-
-  const expandNav = () => {
-    if (navCollapseTimerRef.current) clearTimeout(navCollapseTimerRef.current);
-    setNavCollapsed(false);
-  };
-
-  const handleNavClick = () => {
-    if (navCollapsed) {
-      expandNav();
-      if (!popupOpenRef.current) scheduleCollapse();
-    }
-  };
-
-  const updateCounters = (playerNum: number, type: 'poison' | 'experience' | 'energy', delta: number) => {
+  const handleCounterChange = (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => {
+    const playerNum = selectedCounterPlayer;
     setCounters(prev => {
-      const newVal = Math.max(0, prev[playerNum][type] + delta);
+      const newVal = action === 'plus' ? prev[playerNum][type] + 1 : Math.max(0, prev[playerNum][type] - 1);
+
       const userId = playerUserIds[playerNum];
       const seat = playerSeatNumbers[playerNum];
       if (gameId) {
@@ -297,6 +651,7 @@ function PageContent() {
           }
         });
       }
+
       return {
         ...prev,
         [playerNum]: {
@@ -307,1454 +662,256 @@ function PageContent() {
     });
   };
 
-  const selectCounterPlayer = (num: number) => {
-    setSelectedCounterPlayer(num);
-  };
+  const handleDiceRoll = () => {
+    if (rolling) return;
+    setRolling(true);
+    setRollingText('Rolling…');
 
-  const revivePlayer = (playerNum: number) => {
-    setPlayers(prev => ({
-      ...prev,
-      [playerNum]: { ...prev[playerNum], life: 1 }
-    }));
-    syncLife(playerNum, 1);
-  };
+    let frame = 0;
+    const interval = setInterval(() => {
+      frame++;
+      const max = diceTab === 'd6' ? 6 : diceTab === 'd20' ? 20 : 2;
+      const val = Math.floor(Math.random() * max) + 1;
+      setDiceResult(diceTab === 'coin' ? (val === 1 ? 'H' : 'T') : val.toString());
 
-  const startLongPress = (playerNum: number, delta: number) => {
-    longPressRef.current.timeout = setTimeout(() => {
-      updateLife(playerNum, delta * 4);
-      longPressRef.current.interval = setInterval(() => {
-        updateLife(playerNum, delta * 5);
-      }, 200);
-    }, 500);
-  };
-
-  useEffect(() => {
-    const loadGameData = async () => {
-      if (!gameId) {
-        // No gameId, use default setup
-        applyColorIdentity(1);
-        scheduleCollapse();
-        return;
+      if (frame >= 14) {
+        clearInterval(interval);
+        setRolling(false);
+        const final = Math.floor(Math.random() * max) + 1;
+        setDiceResult(diceTab === 'coin' ? (final === 1 ? 'HEADS' : 'TAILS') : final.toString());
+        setRollingText('');
       }
+    }, 70);
+  };
 
-      try {
-        // Fetch game details
-        const { data: game } = await getGame(gameId);
-        if (!game) {
-          applyColorIdentity(1);
-          scheduleCollapse();
-          return;
-        }
+  const openJoinModal = (slotNum: number) => {
+    setJoinSlot(slotNum);
+    setJoinModalOpen(true);
+  };
 
-        const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
-        let deckMap = new Map();
-        if (deckIds.length > 0) {
-          const { data: decks } = await supabase
-            .from('decks')
-            .select('id, commander_name, color_identity')
-            .in('id', deckIds) as { data: any };
-          deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
-        }
+  const copyPodCode = () => {
+    if (podShortCode) {
+      navigator.clipboard.writeText(podShortCode).catch(() => {});
+    }
+  };
 
-        const newPlayers: Record<number, PlayerState> = {
-          1: { life: 40, name: 'Player 1', commander: null, claimed: false, colors: [] },
-          2: { life: 40, name: 'Player 2', commander: null, claimed: false, colors: [] },
-          3: { life: 40, name: 'Player 3', commander: null, claimed: false, colors: [] },
-          4: { life: 40, name: 'Player 4', commander: null, claimed: false, colors: [] },
-          5: { life: 40, name: 'Player 5', commander: null, claimed: false, colors: [] }
-        };
+  const qrCodeUrl = podShortCode
+    ? getQrCodeUrl(podShortCode, typeof window !== 'undefined' ? window.location.origin : 'https://auramtg.com')
+    : '';
 
-        const newPlayerUserIds: Record<number, string> = {};
-        const newSeatNumbers: Record<number, number> = {};
-        const newCounters: Record<number, CountersState> = {
-          1: { poison: 0, experience: 0, energy: 0 },
-          2: { poison: 0, experience: 0, energy: 0 },
-          3: { poison: 0, experience: 0, energy: 0 },
-          4: { poison: 0, experience: 0, energy: 0 },
-          5: { poison: 0, experience: 0, energy: 0 }
-        };
+  const styles = `
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Young+Serif&display=swap');
 
-        game.players.forEach((p: any) => {
-          const slot = p.seat_number ?? 1;
-          if (slot > 5) return;
-          const deck: any = p.deck_id ? deckMap.get(p.deck_id) : null;
-          const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
-          const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${slot}`;
-
-          newPlayers[slot] = {
-            life: p.life_total ?? 40,
-            name: displayName,
-            commander: deck?.commander_name ?? p.commander_name ?? null,
-            claimed: !isEmptySeat,
-            colors: deck?.color_identity ? deck.color_identity.split('').filter((c: string) => 'WUBRG'.includes(c)) : []
-          };
-          if (p.user_id) newPlayerUserIds[slot] = p.user_id;
-          newSeatNumbers[slot] = slot;
-          newCounters[slot] = {
-            poison: p.poison_counters ?? 0,
-            experience: p.experience_counters ?? 0,
-            energy: p.energy_counters ?? 0
-          };
-        });
-
-        setPlayerUserIds(newPlayerUserIds);
-        setPlayerSeatNumbers(newSeatNumbers);
-        setPlayers(newPlayers);
-        setCounters(newCounters);
-
-        if (game.pod_id) {
-          const { data: pod } = await supabase.from('pods').select('short_code').eq('id', game.pod_id).single() as { data: any };
-          if (pod?.short_code) setPodShortCode(pod.short_code);
-        }
-
-        // Apply color identity to claimed players
-        for (let i = 1; i <= 5; i++) {
-          if (newPlayers[i].claimed) {
-            applyColorIdentity(i);
-          }
-        }
-      } catch (err) {
-        // Error loading game, use default setup
-        applyColorIdentity(1);
-      }
-
-      scheduleCollapse();
-    };
-
-    loadGameData();
-
-    const channel = supabase
-      .channel(`game-${gameId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
-        const row = payload.new;
-        if (!row) return;
-        const num = row.seat_number;
-        if (num && num <= 5) {
-          setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
-          setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
-        }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [gameId]);
-
-  const getTileStyle = (playerNum: number): React.CSSProperties => {
-    const p = players[playerNum];
-    if (!p.claimed || !p.assignedColor || !manaColorStyles[p.assignedColor]) {
-      return {};
+    :root {
+      --font-ui: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+      --font-display: 'Young Serif', ui-serif, Georgia, serif;
+      --r-card: 20px;
     }
 
-    const style = manaColorStyles[p.assignedColor];
-    const [d, m, l] = style.grad;
-    const brd = style.border;
-    const shd = style.shadow;
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; font-family: var(--font-ui); background: ${DARK.bg} !important; color: ${DARK.ink}; }
 
-    return {
-      background: `linear-gradient(135deg, rgb(${d[0]},${d[1]},${d[2]}) 0%, rgb(${m[0]},${m[1]},${m[2]}) 50%, rgb(${l[0]},${l[1]},${l[2]}) 100%)`,
-      border: `1.5px solid rgb(${brd[0]},${brd[1]},${brd[2]})`,
-      boxShadow: `0 8px 20px rgba(${shd[0]},${shd[1]},${shd[2]},0.35), 0 2px 6px rgba(${shd[0]},${shd[1]},${shd[2]},0.25)`
-    };
-  };
+    .app { width: 100%; height: 100%; max-width: 430px; margin: 0 auto; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); overflow: hidden; background: ${DARK.bg}; }
 
-  const renderPlayerTile = (playerNum: number, rotation?: string) => {
-    const p = players[playerNum];
-    const isEliminated = p.life === 0;
-    const isClaimed = p.claimed;
-    const showQr = isEliminated && !isClaimed;
+    .grid-container-5p { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 10px; min-height: 0; overflow: hidden; }
+    .grid-top-5p { flex: 3; display: flex; flex-direction: row; gap: 10px; min-height: 0; }
+    .grid-bottom-5p { flex: 1; display: flex; min-height: 0; }
+    .grid-col-5p { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+    .grid-cell-5p { flex: 1; min-height: 0; }
+    .grid-bottom-cell { flex: 1; }
 
-    return (
-      <div
-        key={playerNum}
-        className={`player-tile ${isClaimed ? 'claimed' : 'unclaimed'} ${showQr ? 'eliminated' : ''}`}
-        id={`tile${playerNum}`}
-        style={getTileStyle(playerNum)}
-      >
-        {!isClaimed && !showQr && (
-          <div className="join-btn" onClick={() => openJoinModal(playerNum)}>
-            <svg viewBox="0 0 16 16" fill="none">
-              <path
-                d="M8 1C9.657 1 11 2.343 11 4C11 5.657 9.657 7 8 7C6.343 7 5 5.657 5 4C5 2.343 6.343 1 8 1Z"
-                stroke={DARK.copper}
-                strokeWidth="1.5"
-              />
-              <path
-                d="M3 14C3 11.239 5.239 9 8 9C10.761 9 13 11.239 13 14"
-                stroke={DARK.copper}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-        )}
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .modal-overlay.active { display: flex; }
 
-        <div className={`tile-content ${rotation ? rotation : ''}`}>
-          {/* Normal: life > 0 */}
-          {!isEliminated && (
-            <div className="tile-normal">
-              <div className="tile-counters">
-                {counters[playerNum].poison > 0 && (
-                  <div className="tile-counter-indicator visible">
-                    <svg viewBox="0 0 23 23" fill="none">
-                      <path d="M11.3 15.8C16.8 15.8 21.3 12.6 21.3 8.6C21.3 4.6 16.8 1.3 11.3 1.3C5.8 1.3 1.3 4.6 1.3 8.6C1.3 12.6 5.8 15.8 11.3 15.8Z" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M7.5 6.8L3.8 3.1M15 6.8L18.8 3.1M11.3 15.8V21.3M6.3 19.5H16.3" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="tile-counter-number">{counters[playerNum].poison}</span>
-                  </div>
-                )}
-                {counters[playerNum].experience > 0 && (
-                  <div className="tile-counter-indicator visible">
-                    <svg viewBox="0 0 23 23" fill="none">
-                      <path d="M1.3 21.3L3 5.7L7.1 12.4L11.3 1.3L15.5 12.4L19.6 5.7L21.3 21.3H1.3Z" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M1.3 21.3H21.3" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="tile-counter-number">{counters[playerNum].experience}</span>
-                  </div>
-                )}
-                {counters[playerNum].energy > 0 && (
-                  <div className="tile-counter-indicator visible">
-                    <svg viewBox="0 0 23 23" fill="none">
-                      <path d="M13.8 1.3L1.3 12.7H11.3L8.8 21.3L21.3 9.9H11.3L13.8 1.3Z" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="tile-counter-number">{counters[playerNum].energy}</span>
-                  </div>
-                )}
-              </div>
-              <div className="life-display">
-                <button className="life-minus-btn" onClick={() => updateLife(playerNum, -1)} onMouseDown={() => startLongPress(playerNum, -1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(playerNum, -1)} onTouchEnd={stopLongPress}>−</button>
-                <div className={`life-number ${p.life <= 10 && p.life > 0 ? 'critical' : ''}`}>{p.life}</div>
-                <button className="life-plus-btn" onClick={() => updateLife(playerNum, 1)} onMouseDown={() => startLongPress(playerNum, 1)} onMouseUp={stopLongPress} onMouseLeave={stopLongPress} onTouchStart={() => startLongPress(playerNum, 1)} onTouchEnd={stopLongPress}>+</button>
-              </div>
-              {p.claimed ? (
-                <div className="tile-commander">{p.commander}</div>
-              ) : (
-                <div className="commander-dash">Player {playerNum}</div>
-              )}
-            </div>
-          )}
+    .dice-modal { width: calc(100% - 40px); max-width: 340px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
 
-          {/* Eliminated + unclaimed: QR code + revive */}
-          {showQr && (
-            <div className="tile-qr active">
-              <div className="qr-label">Scan to review game</div>
-              <div className="qr-box">
-                <div className="qr-pattern">
-                  <div className="qr-center">
-                    <div className="qr-badge" style={{ background: `linear-gradient(135deg, rgb(226,184,88), rgb(201,155,47))` }}>P</div>
-                  </div>
-                </div>
-              </div>
-              <div className="qr-player-label">Player {playerNum} — eliminated</div>
-              <button className="revive-btn" onClick={() => revivePlayer(playerNum)}>Revive</button>
-            </div>
-          )}
+    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 28px; color: ${DARK.ink3}; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s ease; }
+    .modal-close:active { transform: scale(0.9); background: ${DARK.bgDeep}; }
 
-          {/* Eliminated + claimed: life number + revive only */}
-          {isEliminated && isClaimed && (
-            <div className="tile-normal">
-              <div className="life-number critical">{p.life}</div>
-              <button className="revive-btn" onClick={() => revivePlayer(playerNum)}>Revive</button>
-              <div className="tile-commander">{p.commander}</div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+    .tab-group { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+    .tab { padding: 10px 18px; border: 1px solid ${DARK.lineStrong}; background: ${DARK.bgDeep}; color: ${DARK.ink3}; font-weight: 600; font-size: 13px; cursor: pointer; border-radius: 10px; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.02em; }
+    .tab.active { background: ${DARK.copper}; color: ${DARK.bgDeep}; border-color: ${DARK.copper}; }
+
+    .result-display { font-family: var(--font-display); font-weight: 700; font-size: 120px; color: ${DARK.copper}; text-align: center; margin-bottom: 12px; line-height: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; letter-spacing: -2px; }
+    .rolling-text { font-size: 13px; color: ${DARK.ink3}; text-align: center; margin-bottom: 20px; min-height: 18px; }
+    .roll-button { width: 100%; padding: 14px; background: ${DARK.copper}; border: none; border-radius: 12px; color: ${DARK.bgDeep}; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.02em; }
+    .roll-button:active { transform: scale(0.98); }
+
+    .counters-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .counters-overlay.active { display: flex; }
+
+    .counters-modal { width: 320px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
+
+    .counters-title { font-weight: 700; font-size: 16px; color: ${DARK.ink}; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    .player-selector { display: flex; gap: 8px; margin-bottom: 18px; justify-content: center; flex-wrap: wrap; }
+    .player-selector-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid ${DARK.lineStrong}; background: ${DARK.bgDeep}; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-weight: 700; font-size: 15px; color: ${DARK.ink}; transition: all 0.2s ease; position: relative; }
+    .player-selector-btn.active { border-color: ${DARK.copper}; background: ${DARK.copper}; color: ${DARK.bgDeep}; box-shadow: 0 0 0 1px ${DARK.bgCard}; transform: scale(1.08); }
+    .player-selector-btn:active { transform: scale(0.95); }
+
+    .counter-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: ${DARK.bgDeep}; border-radius: 12px; margin-bottom: 12px; border: 1px solid ${DARK.line}; }
+    .counter-row:last-child { margin-bottom: 0; }
+
+    .counter-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: ${DARK.copper}; }
+    .counter-icon svg { width: 24px; height: 24px; stroke: ${DARK.copper}; }
+
+    .counter-name { font-weight: 600; font-size: 14px; color: ${DARK.ink}; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    .counter-controls { display: flex; align-items: center; gap: 12px; }
+    .counter-btn { width: 32px; height: 36px; border-radius: 8px; border: 1px solid ${DARK.lineStrong}; background: ${DARK.bgCard}; color: ${DARK.copper}; font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+    .counter-btn:active { transform: scale(0.9); background: ${DARK.bgDeep}; }
+
+    .counter-value { font-weight: 700; font-size: 26px; color: ${DARK.copper}; min-width: 32px; text-align: center; font-family: 'Courier New', monospace; }
+
+    .join-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .join-modal.active { display: flex; }
+
+    .join-modal-card { width: calc(100% - 40px); max-width: 340px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; text-align: center; }
+    .join-modal-title { font-weight: 700; font-size: 18px; color: ${DARK.ink}; margin-bottom: 6px; text-align: center; letter-spacing: 0.02em; }
+    .join-modal-subtitle { font-size: 13px; color: ${DARK.ink3}; margin-bottom: 20px; }
+
+    .join-slot-code { margin-top: 16px; padding: 10px 16px; background: ${DARK.bgDeep}; border: 1px solid ${DARK.lineStrong}; border-radius: 10px; display: inline-block; cursor: pointer; transition: all 0.2s ease; }
+    .join-slot-code:active { transform: scale(0.98); border-color: ${DARK.copper}; }
+    .join-slot-code span { color: ${DARK.copper}; font-size: 16px; font-weight: 700; letter-spacing: 4px; font-family: 'Courier New', monospace; }
+
+    .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: ${DARK.bgCard}; color: ${DARK.ink}; padding: 12px 24px; border-radius: 10px; border: 1px solid ${DARK.lineStrong}; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 9999; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  `;
 
   return (
-    <div className="app">
-      <style dangerouslySetInnerHTML={{ __html: `
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        html, body {
-          height: 100%;
-          overflow: hidden;
-          font-family: 'Inter', sans-serif;
-          background: ${DARK.bg};
-        }
-
-        .app {
-          width: 100%;
-          height: 100%;
-          max-width: 430px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          padding-top: env(safe-area-inset-top, 0px);
-          padding-bottom: env(safe-area-inset-bottom, 0px);
-          overflow: hidden;
-          background: ${DARK.bg};
-        }
-
-        .grid-container {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          padding: 8px;
-          min-height: 0;
-          overflow: hidden;
-        }
-
-        .grid-top {
-          flex: 1;
-          display: flex;
-          gap: 6px;
-          min-height: 0;
-        }
-
-        .grid-bottom-row {
-          flex: 0.6;
-          min-height: 0;
-        }
-
-        .grid-column {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .player-tile {
-          flex: 1;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          overflow: hidden;
-          background: ${DARK.bgCard};
-          border: 1px solid ${DARK.cellBorder};
-          box-shadow: ${DARK.shadowRest};
-        }
-
-        .player-tile.claimed {
-          border: 1px solid ${DARK.cellBorder};
-        }
-
-        .player-tile.unclaimed {
-          border: 2px dashed ${DARK.cellBorder};
-          background: ${DARK.bgDeep};
-        }
-
-        .tile-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-          position: relative;
-          z-index: 10;
-        }
-
-        .tile-content.rotate-left {
-          transform: rotate(90deg);
-        }
-
-        .tile-content.rotate-right {
-          transform: rotate(-90deg);
-        }
-
-        .tile-normal {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 0;
-          max-width: 100%;
-          max-height: 100%;
-          overflow: hidden;
-          width: 100%;
-          height: 100%;
-          position: relative;
-          z-index: 2;
-        }
-
-        .tile-normal.hidden {
-          display: none;
-        }
-
-        .tile-commander {
-          font-family: 'Inter', sans-serif;
-          font-weight: 600;
-          font-size: 7px;
-          text-align: center;
-          margin-top: 4px;
-          max-width: 90%;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          color: ${DARK.ink2};
-          letter-spacing: 0.02em;
-        }
-
-        .commander-dash {
-          color: ${DARK.ink3};
-          font-size: 7px;
-          text-align: center;
-          margin-top: 4px;
-          letter-spacing: 0.02em;
-        }
-
-        .life-display {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          width: 100%;
-          position: relative;
-          z-index: 10;
-        }
-
-        .life-minus-btn {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          border: 0.75px solid ${DARK.lineStrong};
-          background: transparent;
-          color: ${DARK.ink};
-          font-size: 14px;
-          font-weight: bold;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-          flex-shrink: 0;
-        }
-
-        .life-minus-btn:active {
-          transform: scale(0.9);
-          background: rgba(255,80,80,0.08);
-        }
-
-        .claimed .life-minus-btn {
-          border: 0.75px solid ${DARK.lineStrong};
-          background: transparent;
-          color: ${DARK.ink};
-        }
-
-        .claimed .life-minus-btn:active {
-          background: rgba(255,80,80,0.08);
-        }
-
-        .life-number {
-          font-family: 'Jaldi', sans-serif;
-          font-weight: 900;
-          font-size: 44px;
-          color: ${DARK.ink};
-          line-height: 1;
-          text-align: center;
-          letter-spacing: -1px;
-          transition: color 0.2s ease;
-          text-shadow: 0 0 20px rgba(226,184,88,0.08), 0 0.5px 0 rgba(10,6,4,0.6);
-        }
-
-        .life-number.critical {
-          color: #FF6B6B;
-        }
-
-        .life-plus-btn {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          border: 0.75px solid ${DARK.lineStrong};
-          background: transparent;
-          color: ${DARK.ink};
-          font-size: 14px;
-          font-weight: bold;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-          flex-shrink: 0;
-        }
-
-        .life-plus-btn:active {
-          transform: scale(0.9);
-          background: rgba(80,200,80,0.08);
-        }
-
-        .claimed .life-plus-btn {
-          border: 0.75px solid ${DARK.lineStrong};
-          background: transparent;
-          color: ${DARK.ink};
-        }
-
-        .claimed .life-plus-btn:active {
-          background: rgba(80,200,80,0.08);
-        }
-
-        .join-btn {
-          position: absolute;
-          width: 28px;
-          height: 28px;
-          border-radius: 8px;
-          background: rgba(63,159,77,0.18);
-          border: 1px solid ${DARK.copper};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          z-index: 20;
-          transition: all 0.2s ease;
-        }
-
-        .join-btn:active {
-          transform: scale(0.9);
-          background: rgba(63,159,77,0.28);
-        }
-
-        .grid-column:first-child .join-btn {
-          bottom: 6px;
-          left: 6px;
-          transform: rotate(90deg);
-        }
-
-        .grid-column:last-child .join-btn {
-          top: 6px;
-          right: 6px;
-          transform: rotate(-90deg);
-        }
-
-        .grid-bottom-row .join-btn {
-          bottom: 6px;
-          right: 6px;
-        }
-
-        .join-btn svg {
-          width: 16px;
-          height: 16px;
-        }
-
-        @keyframes joinPulseGlow {
-          0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); }
-          30%  { transform: scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35); }
-          60%  { transform: scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); }
-        }
-
-        .join-btn.pulse-glow {
-          animation: joinPulseGlow 1.6s ease-in-out;
-        }
-
-        @keyframes joinPulseGlowLeft {
-          0%   { transform: rotate(90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
-          30%  { transform: rotate(90deg) scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35), 0 0 20px 8px rgba(226,184,88,0.2); background: rgba(63,159,77,0.28); }
-          60%  { transform: rotate(90deg) scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18), 0 0 14px 5px rgba(226,184,88,0.1); background: rgba(63,159,77,0.22); }
-          100% { transform: rotate(90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
-        }
-
-        @keyframes joinPulseGlowRight {
-          0%   { transform: rotate(-90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
-          30%  { transform: rotate(-90deg) scale(1.12); box-shadow: 0 0 12px 4px rgba(226,184,88,0.35), 0 0 20px 8px rgba(226,184,88,0.2); background: rgba(63,159,77,0.28); }
-          60%  { transform: rotate(-90deg) scale(1.05); box-shadow: 0 0 8px 2px rgba(226,184,88,0.18), 0 0 14px 5px rgba(226,184,88,0.1); background: rgba(63,159,77,0.22); }
-          100% { transform: rotate(-90deg) scale(1); box-shadow: 0 0 0 0 rgba(226,184,88,0); background: rgba(63,159,77,0.18); }
-        }
-
-        .tile-qr { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; gap: 3px; }
-        .tile-qr.active { display: flex; }
-        .tile-normal.hidden { display: none; }
-
-        .player-tile.eliminated {
-          background-color: ${DARK.bgCard} !important;
-          border: 1px solid ${DARK.cellBorder} !important;
-        }
-
-        .qr-label {
-          font-family: 'Inter', sans-serif;
-          font-weight: 600;
-          font-size: 6px;
-          color: ${DARK.ink3};
-          letter-spacing: 0.02em;
-          text-transform: uppercase;
-        }
-
-        .qr-box {
-          width: 40px;
-          height: 40px;
-          background: ${DARK.bgDeep};
-          border-radius: 8px;
-          border: 1px solid ${DARK.cellBorder};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 4px;
-        }
-
-        .qr-pattern {
-          width: 100%;
-          height: 100%;
-          background: repeating-conic-gradient(${DARK.bgCard} 0% 25%, ${DARK.bgDeep} 0% 50%) 50% / 8px 8px;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .qr-center {
-          background: ${DARK.bgDeep};
-          padding: 2px;
-          border-radius: 3px;
-        }
-
-        .qr-badge {
-          width: 10px;
-          height: 10px;
-          border-radius: 3px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 5px;
-          font-weight: 800;
-          color: ${DARK.bgDeep};
-        }
-
-        .qr-player-label {
-          font-family: 'Inter', sans-serif;
-          font-weight: 400;
-          font-size: 5px;
-          color: ${DARK.ink3};
-          font-style: italic;
-        }
-
-        .revive-btn {
-          padding: 3px 8px;
-          background: rgba(63,159,77,0.15);
-          border: 1px solid ${DARK.copper};
-          border-radius: 6px;
-          cursor: pointer;
-          font-family: 'Inter', sans-serif;
-          font-weight: 700;
-          font-size: 6px;
-          color: ${DARK.copper};
-          margin-top: 3px;
-          transition: all 0.2s ease;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .revive-btn:active {
-          transform: scale(0.9);
-          background: rgba(63,159,77,0.25);
-        }
-
-        .join-modal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.65);
-          display: none;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          backdrop-filter: blur(4px);
-        }
-
-        .join-modal.active {
-          display: flex;
-        }
-
-        .join-modal-card {
-          width: calc(100% - 40px);
-          max-width: 335px;
-          background: ${DARK.bgCard};
-          border: 1px solid ${DARK.lineStrong};
-          border-radius: 20px;
-          padding: 24px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-          position: relative;
-          text-align: center;
-        }
-
-        .join-modal-title {
-          font-weight: 700;
-          font-size: 16px;
-          color: ${DARK.ink};
-          margin-bottom: 4px;
-          text-align: center;
-          letter-spacing: 0.02em;
-        }
-
-        .join-modal-subtitle {
-          font-size: 12px;
-          color: ${DARK.ink3};
-          margin-bottom: 16px;
-        }
-
-        .join-qr-box {
-          width: 130px;
-          height: 130px;
-          margin: 0 auto;
-          background: ${DARK.bgDeep};
-          border-radius: 12px;
-          border: 1px solid ${DARK.cellBorder};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 8px;
-        }
-
-        .join-qr-pattern {
-          width: 100%;
-          height: 100%;
-          background: repeating-conic-gradient(${DARK.bgCard} 0% 25%, ${DARK.bgDeep} 0% 50%) 50% / 10px 10px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .join-qr-center {
-          background: ${DARK.bgDeep};
-          padding: 6px;
-          border-radius: 6px;
-        }
-
-        .join-qr-badge {
-          width: 28px;
-          height: 28px;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 800;
-          color: ${DARK.bgDeep};
-          background: ${DARK.copper};
-        }
-
-        .join-slot-code {
-          margin-top: 12px;
-          padding: 8px 14px;
-          background: ${DARK.bgDeep};
-          border: 1px solid ${DARK.lineStrong};
-          border-radius: 8px;
-          display: inline-block;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .join-slot-code:active {
-          transform: scale(0.98);
-          border-color: ${DARK.copper};
-        }
-
-        .join-slot-code span {
-          color: ${DARK.copper};
-          font-size: 14px;
-          font-weight: 700;
-          letter-spacing: 3px;
-          font-family: 'Courier New', monospace;
-        }
-
-        .join-simulate-btn {
-          margin-top: 14px;
-          width: 100%;
-          padding: 12px;
-          background: linear-gradient(135deg, ${DARK.forest} 0%, ${DARK.forestDeep} 100%);
-          border: none;
-          border-radius: 12px;
-          color: ${DARK.ink};
-          font-weight: 700;
-          font-size: 14px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          transition: all 0.2s ease;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .join-simulate-btn:active {
-          transform: scale(0.98);
-        }
-
-        .bottom-nav {
-          margin-top: auto;
-          margin-bottom: 12px;
-          margin-left: 8px;
-          margin-right: 8px;
-          padding: 10px;
-          height: auto;
-          border-radius: 14px;
-          background: ${DARK.navBg};
-          border: 1px solid ${DARK.navBorder};
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex-shrink: 0;
-          transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1), padding 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-          justify-content: space-around;
-        }
-
-        .bottom-nav.collapsed {
-          height: auto;
-          padding: 6px 8px;
-        }
-
-        .nav-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          cursor: pointer;
-          flex: 1;
-          padding: 6px 10px;
-          border-radius: 10px;
-          background: transparent;
-          transition: all 0.2s ease;
-          color: ${DARK.ink3};
-        }
-
-        .nav-item:active {
-          transform: scale(0.92);
-          background: ${DARK.navPill};
-          border-radius: 10px;
-        }
-
-        .nav-item:active .dice-icon {
-          border-color: ${DARK.copper};
-        }
-
-        .nav-item:active .dice-dot {
-          background: ${DARK.copper};
-        }
-
-        .nav-item:active .star-icon {
-          border-color: ${DARK.copper};
-        }
-
-        .nav-item:active .star {
-          background: ${DARK.copper};
-        }
-
-        .nav-item:active .nav-label {
-          color: ${DARK.copper};
-        }
-
-        .nav-item:active .list-icon span {
-          background: ${DARK.copper};
-        }
-
-        .nav-icon {
-          width: 20px;
-          height: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .dice-icon {
-          width: 18px;
-          height: 18px;
-          border: 1.25px solid ${DARK.ink3};
-          border-radius: 3px;
-          position: relative;
-          transition: border-color 0.2s ease;
-        }
-
-        .dice-dot {
-          width: 1.5px;
-          height: 1.5px;
-          background: ${DARK.ink3};
-          position: absolute;
-          border-radius: 50%;
-          transition: background 0.2s ease;
-        }
-
-        .dice-dot:nth-child(1) { top: 2px; left: 2px; }
-        .dice-dot:nth-child(2) { top: 2px; right: 2px; }
-        .dice-dot:nth-child(3) { top: 8px; left: 8px; }
-        .dice-dot:nth-child(4) { bottom: 2px; left: 2px; }
-        .dice-dot:nth-child(5) { bottom: 2px; right: 2px; }
-
-        .star-icon {
-          width: 18px;
-          height: 18px;
-          border: 1.25px solid ${DARK.ink3};
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: border-color 0.2s ease;
-        }
-
-        .star {
-          width: 9px;
-          height: 9px;
-          clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-          background: ${DARK.ink3};
-          transition: background 0.2s ease;
-        }
-
-        .nav-label {
-          font-weight: 500;
-          font-size: 9px;
-          color: ${DARK.ink3};
-          max-height: 16px;
-          opacity: 1;
-          overflow: hidden;
-          transition: max-height 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), margin-top 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .bottom-nav.collapsed .nav-label {
-          max-height: 0;
-          opacity: 0;
-        }
-
-        .bottom-nav.collapsed .nav-item {
-          gap: 0;
-        }
-
-        .list-icon {
-          width: 14px;
-          height: 10px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-        }
-
-        .list-icon span {
-          height: 1.2px;
-          background: ${DARK.ink3};
-          border-radius: 1px;
-          transition: background 0.2s ease;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.65);
-          display: none;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          backdrop-filter: blur(4px);
-        }
-
-        .modal-overlay.active {
-          display: flex;
-        }
-
-        .dice-modal {
-          width: calc(100% - 40px);
-          max-width: 335px;
-          background: ${DARK.bgCard};
-          border: 1px solid ${DARK.lineStrong};
-          border-radius: 20px;
-          padding: 24px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-          position: relative;
-        }
-
-        .modal-close {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          background: none;
-          border: none;
-          font-size: 24px;
-          color: ${DARK.ink3};
-          cursor: pointer;
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          transition: all 0.2s ease;
-        }
-
-        .modal-close:active {
-          transform: scale(0.9);
-          background: ${DARK.bgDeep};
-        }
-
-        .modal-title {
-          font-weight: 700;
-          font-size: 16px;
-          color: ${DARK.ink};
-          margin-bottom: 16px;
-          text-align: center;
-          letter-spacing: 0.02em;
-          text-transform: uppercase;
-        }
-
-        .tab-group {
-          display: flex;
-          justify-content: center;
-          gap: 8px;
-          margin-bottom: 20px;
-        }
-
-        .tab {
-          padding: 8px 16px;
-          border: 1px solid ${DARK.lineStrong};
-          background: ${DARK.bgDeep};
-          color: ${DARK.ink3};
-          font-weight: 600;
-          font-size: 12px;
-          cursor: pointer;
-          border-radius: 10px;
-          transition: all 0.2s ease;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .tab.active {
-          background: ${DARK.copper};
-          color: ${DARK.bgDeep};
-          border-color: ${DARK.copper};
-        }
-
-        .result-display {
-          font-family: 'Inter', sans-serif;
-          font-weight: 700;
-          font-size: 80px;
-          color: ${DARK.copper};
-          text-align: center;
-          margin-bottom: 8px;
-          line-height: 1;
-          min-height: 90px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          letter-spacing: -2px;
-        }
-
-        .rolling-text {
-          font-size: 12px;
-          color: ${DARK.ink3};
-          text-align: center;
-          margin-bottom: 16px;
-          min-height: 16px;
-        }
-
-        .roll-button {
-          width: 100%;
-          padding: 12px;
-          background: ${DARK.copper};
-          border: none;
-          border-radius: 10px;
-          color: ${DARK.bgDeep};
-          font-weight: 700;
-          font-size: 13px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .roll-button:active {
-          transform: scale(0.98);
-        }
-
-        .counters-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.65);
-          display: none;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          backdrop-filter: blur(4px);
-        }
-
-        .counters-overlay.active {
-          display: flex;
-        }
-
-        .counters-popup-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 0;
-        }
-
-        .counters-popup-wrapper.facing-left {
-          flex-direction: row;
-        }
-
-        .counters-popup-wrapper.facing-right {
-          flex-direction: row;
-        }
-
-        .counters-popup-wrapper.facing-left .counters-modal {
-          transform: rotate(90deg);
-        }
-
-        .counters-popup-wrapper.facing-right .counters-modal {
-          transform: rotate(-90deg);
-        }
-
-        .counters-flip-btn {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          border: 1px solid ${DARK.lineStrong};
-          background: ${DARK.bgCard};
-          color: ${DARK.ink3};
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1002;
-          position: absolute;
-          bottom: -24px;
-          left: 50%;
-          transform: translateX(-50%);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          transition: all 0.2s ease;
-        }
-
-        .counters-flip-btn:active {
-          transform: translateX(-50%) scale(0.9);
-        }
-
-        .counters-flip-btn svg {
-          width: 18px;
-          height: 18px;
-          stroke: ${DARK.ink3};
-        }
-
-        .counters-modal {
-          width: 280px;
-          background: ${DARK.bgCard};
-          border: 1px solid ${DARK.lineStrong};
-          border-radius: 16px;
-          padding: 18px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-          position: relative;
-          transition: transform 0.3s ease;
-        }
-
-        .counters-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-        }
-
-        .counters-title {
-          font-weight: 700;
-          font-size: 14px;
-          color: ${DARK.ink};
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .player-selector {
-          display: flex;
-          gap: 6px;
-          margin-bottom: 12px;
-          justify-content: space-between;
-        }
-
-        .player-selector-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          border: 1.5px solid ${DARK.lineStrong};
-          background: ${DARK.bgDeep};
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'Jaldi', sans-serif;
-          font-weight: 700;
-          font-size: 14px;
-          color: ${DARK.ink2};
-          transition: all 0.2s ease;
-          position: relative;
-          flex: 1;
-        }
-
-        .player-selector-btn.active {
-          border-color: ${DARK.copper};
-          box-shadow: 0 0 0 1.5px ${DARK.copper};
-          transform: scale(1.08);
-        }
-
-        .player-selector-btn:active {
-          transform: scale(0.95);
-        }
-
-        .selected-player-info {
-          text-align: center;
-          margin-bottom: 10px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid ${DARK.cellBorder};
-        }
-
-        .selected-commander {
-          font-family: 'Inter', sans-serif;
-          font-weight: 600;
-          font-size: 11px;
-          color: ${DARK.ink2};
-          margin-bottom: 2px;
-        }
-
-        .selected-player-name {
-          font-family: 'Inter', sans-serif;
-          font-weight: 400;
-          font-size: 10px;
-          color: ${DARK.ink3};
-        }
-
-        .counter-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px;
-          background: ${DARK.bgDeep};
-          border-radius: 10px;
-          margin-bottom: 8px;
-          border: 1px solid ${DARK.cellBorder};
-        }
-
-        .counter-row:last-child {
-          margin-bottom: 0;
-        }
-
-        .counter-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .counter-icon {
-          width: 18px;
-          height: 18px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .counter-icon svg {
-          width: 18px;
-          height: 18px;
-          stroke: ${DARK.ink2};
-          stroke-width: 2;
-        }
-
-        .counter-name {
-          font-weight: 500;
-          font-size: 12px;
-          color: ${DARK.ink2};
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .counter-controls {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .counter-btn {
-          width: 24px;
-          height: 28px;
-          border-radius: 6px;
-          border: 1px solid ${DARK.lineStrong};
-          background: ${DARK.bgCard};
-          color: ${DARK.ink};
-          font-size: 14px;
-          font-weight: 700;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-        }
-
-        .counter-btn:active {
-          transform: scale(0.9);
-          background: ${DARK.bgDeep};
-        }
-
-        .counter-value {
-          font-weight: 700;
-          font-size: 18px;
-          color: ${DARK.ink};
-          min-width: 24px;
-          text-align: center;
-        }
-
-        .tile-counters {
-          display: flex;
-          gap: 6px;
-          justify-content: center;
-          min-height: 12px;
-          margin-bottom: 4px;
-        }
-
-        .tile-counter-indicator {
-          display: none;
-          align-items: center;
-          gap: 2px;
-          opacity: 0.85;
-        }
-
-        .tile-counter-indicator.visible {
-          display: flex;
-        }
-
-        .tile-counter-indicator svg {
-          width: 8px;
-          height: 8px;
-          stroke: ${DARK.ink};
-          stroke-width: 2;
-        }
-
-        .claimed .tile-counter-indicator svg {
-          stroke: ${DARK.ink};
-        }
-
-        .tile-counter-number {
-          font-family: 'Inter', sans-serif;
-          font-weight: 700;
-          font-size: 8px;
-          color: ${DARK.ink};
-          line-height: 1;
-        }
-
-        .claimed .tile-counter-number {
-          color: ${DARK.ink};
-        }
-
-        .toast {
-          position: fixed;
-          bottom: 100px;
-          left: 50%;
-          transform: translateX(-50%) translateY(20px);
-          background: ${DARK.bgCard};
-          color: ${DARK.ink};
-          padding: 10px 18px;
-          border-radius: 8px;
-          border: 1px solid ${DARK.cellBorder};
-          font-size: 12px;
-          font-weight: 500;
-          opacity: 0;
-          pointer-events: none;
-          transition: all 0.3s ease;
-          z-index: 9999;
-        }
-
-        .toast.show {
-          opacity: 1;
-          transform: translateX(-50%) translateY(0);
-        }
-      ` }} />
-
-      <div className="grid-container">
-        <div className="grid-top">
-          <div className="grid-column">
-            {renderPlayerTile(2, 'rotate-left')}
-            {renderPlayerTile(3, 'rotate-left')}
-          </div>
-          <div className="grid-column">
-            {renderPlayerTile(4, 'rotate-right')}
-            {renderPlayerTile(5, 'rotate-right')}
-          </div>
-        </div>
-
-        <div className="grid-bottom-row">
-          {renderPlayerTile(1)}
-        </div>
-      </div>
-
-      <div className={`bottom-nav ${navCollapsed ? 'collapsed' : ''}`} onClick={handleNavClick}>
-        <div className="nav-item" onClick={openDiceModal}>
-          <div className="nav-icon">
-            <div className="dice-icon">
-              <div className="dice-dot"></div>
-              <div className="dice-dot"></div>
-              <div className="dice-dot"></div>
-              <div className="dice-dot"></div>
-              <div className="dice-dot"></div>
-            </div>
-          </div>
-          <div className="nav-label">Dice</div>
-        </div>
-        <div className="nav-item" onClick={openCountersModal}>
-          <div className="nav-icon">
-            <div className="star-icon">
-              <div className="star"></div>
-            </div>
-          </div>
-          <div className="nav-label">Counters</div>
-        </div>
-        <Link href={`/singleview?podId=${podId}&gameId=${gameId}`} style={{ textDecoration: 'none' }}>
-          <div className="nav-item">
-            <div className="nav-icon">
-              <div className="list-icon">
-                <span></span>
-                <span></span>
-                <span></span>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: styles }} />
+      <div className="app">
+        <div className="grid-container-5p">
+          {/* Top section: 2 columns side-by-side, each with 2 stacked sideways cells */}
+          <div className="grid-top-5p">
+            {/* Col 1: P2 + P3, both rotated 90° */}
+            <div className="grid-col-5p">
+              <div className="grid-cell-5p">
+                {players[2].claimed ? (
+                  <SidewaysCell
+                    player={players[2]}
+                    rotation={90}
+                    onTapLeft={() => handleLifeChange(2, -1)}
+                    onTapRight={() => handleLifeChange(2, 1)}
+                  />
+                ) : (
+                  <SidewaysEmptyCell
+                    seatLabel="Seat 2"
+                    rotation={90}
+                    onClaimSeat={() => openJoinModal(2)}
+                  />
+                )}
+              </div>
+              <div className="grid-cell-5p">
+                {players[3].claimed ? (
+                  <SidewaysCell
+                    player={players[3]}
+                    rotation={90}
+                    onTapLeft={() => handleLifeChange(3, -1)}
+                    onTapRight={() => handleLifeChange(3, 1)}
+                  />
+                ) : (
+                  <SidewaysEmptyCell
+                    seatLabel="Seat 3"
+                    rotation={90}
+                    onClaimSeat={() => openJoinModal(3)}
+                  />
+                )}
               </div>
             </div>
-            <div className="nav-label">Single View</div>
+            {/* Col 2: P4 + P5, both rotated -90° */}
+            <div className="grid-col-5p">
+              <div className="grid-cell-5p">
+                {players[4].claimed ? (
+                  <SidewaysCell
+                    player={players[4]}
+                    rotation={-90}
+                    onTapLeft={() => handleLifeChange(4, -1)}
+                    onTapRight={() => handleLifeChange(4, 1)}
+                  />
+                ) : (
+                  <SidewaysEmptyCell
+                    seatLabel="Seat 4"
+                    rotation={-90}
+                    onClaimSeat={() => openJoinModal(4)}
+                  />
+                )}
+              </div>
+              <div className="grid-cell-5p">
+                {players[5].claimed ? (
+                  <SidewaysCell
+                    player={players[5]}
+                    rotation={-90}
+                    onTapLeft={() => handleLifeChange(5, -1)}
+                    onTapRight={() => handleLifeChange(5, 1)}
+                  />
+                ) : (
+                  <SidewaysEmptyCell
+                    seatLabel="Seat 5"
+                    rotation={-90}
+                    onClaimSeat={() => openJoinModal(5)}
+                  />
+                )}
+              </div>
+            </div>
           </div>
-        </Link>
+          {/* Bottom: P1 (You), normal orientation, full width */}
+          <div className="grid-bottom-5p">
+            <div className="grid-bottom-cell">
+              <NormalCell
+                player={{ ...players[1], isYou: true }}
+                onTapLeft={() => handleLifeChange(1, -1)}
+                onTapRight={() => handleLifeChange(1, 1)}
+                lifeSize={72}
+              />
+            </div>
+          </div>
+        </div>
+
+        <GameNav
+          onDiceClick={() => setDiceModalOpen(true)}
+          onCountersClick={() => setCountersModalOpen(true)}
+          podId={podId}
+          gameId={gameId}
+        />
       </div>
 
       {diceModalOpen && (
-        <div className="modal-overlay active" onClick={closeDiceModal}>
-          <div className="dice-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={closeDiceModal}>✕</button>
-            <div className="modal-title">Dice Roller</div>
+        <div
+          className="modal-overlay active"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setDiceModalOpen(false);
+            }
+          }}
+        >
+          <div className="dice-modal">
+            <button
+              className="modal-close"
+              onClick={() => setDiceModalOpen(false)}
+            >
+              ✕
+            </button>
+            <ModalTitle kicker="Roll" title="Dice Roller"/>
             <div className="tab-group">
-              <button
-                className={`tab ${diceTab === 'd6' ? 'active' : ''}`}
-                onClick={() => {
-                  setDiceTab('d6');
-                  setDiceResult('—');
-                  setRollingText('');
-                }}
-              >
-                D6
-              </button>
-              <button
-                className={`tab ${diceTab === 'd20' ? 'active' : ''}`}
-                onClick={() => {
-                  setDiceTab('d20');
-                  setDiceResult('—');
-                  setRollingText('');
-                }}
-              >
-                D20
-              </button>
-              <button
-                className={`tab ${diceTab === 'coin' ? 'active' : ''}`}
-                onClick={() => {
-                  setDiceTab('coin');
-                  setDiceResult('—');
-                  setRollingText('');
-                }}
-              >
-                Coin
-              </button>
+              {['d6', 'd20', 'coin'].map(tab => (
+                <button
+                  key={tab}
+                  className={`tab ${diceTab === tab ? 'active' : ''}`}
+                  onClick={() => {
+                    setDiceTab(tab);
+                    setDiceResult('—');
+                    setRollingText('');
+                  }}
+                >
+                  {tab === 'coin' ? 'Coin' : tab.toUpperCase()}
+                </button>
+              ))}
             </div>
             <div className="result-display">{diceResult}</div>
             <div className="rolling-text">{rollingText}</div>
-            <button className="roll-button" onClick={rollDice} disabled={rolling}>
+            <button className="roll-button" onClick={handleDiceRoll}>
               Roll
             </button>
           </div>
@@ -1762,184 +919,93 @@ function PageContent() {
       )}
 
       {countersModalOpen && (
-        <div className="counters-overlay active" onClick={closeCountersModal}>
-          <div
-            className={`counters-popup-wrapper ${countersFacingDirection}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="counters-modal">
-              <div className="counters-header">
-                <div className="counters-title">Counters</div>
-                <button className="modal-close" onClick={closeCountersModal}>✕</button>
+        <div
+          className="counters-overlay active"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setCountersModalOpen(false);
+            }
+          }}
+        >
+          <div className="counters-modal">
+            <button
+              className="modal-close"
+              onClick={() => setCountersModalOpen(false)}
+            >
+              ✕
+            </button>
+            <div style={{ marginBottom: 18 }}>
+              <ModalTitle kicker="Adjust" title="Counters"/>
+            </div>
+
+            <div className="player-selector">
+              {[1, 2, 3, 4, 5].map(num => {
+                const p = players[num];
+                return (
+                  <button
+                    key={num}
+                    className={`player-selector-btn ${selectedCounterPlayer === num ? 'active' : ''}`}
+                    onClick={() => setSelectedCounterPlayer(num)}
+                  >
+                    {p.name.charAt(0).toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${DARK.lineStrong}`, textAlign: 'center' }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: DARK.copper, marginBottom: 4, letterSpacing: '0.02em' }}>
+                {players[selectedCounterPlayer].commander || '—'}
               </div>
-
-              <div className="player-selector">
-                {[1, 2, 3, 4, 5].map(num => {
-                  const p = players[num];
-                  let bgColor = DARK.bgDeep;
-                  let borderColor = DARK.lineStrong;
-                  let textColor = DARK.ink2;
-
-                  if (p.claimed && p.assignedColor && manaColorStyles[p.assignedColor]) {
-                    const style = manaColorStyles[p.assignedColor];
-                    const m = style.grad[1];
-                    bgColor = `rgb(${m[0]},${m[1]},${m[2]})`;
-                    borderColor = `rgb(${style.border[0]},${style.border[1]},${style.border[2]})`;
-                    textColor = DARK.ink;
-                  }
-
-                  return (
-                    <button
-                      key={num}
-                      className={`player-selector-btn ${selectedCounterPlayer === num ? 'active' : ''}`}
-                      onClick={() => selectCounterPlayer(num)}
-                      style={{ background: bgColor, borderColor, color: textColor }}
-                    >
-                      {p.name.charAt(0).toUpperCase()}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="selected-player-info">
-                <div className="selected-commander">
-                  {players[selectedCounterPlayer].commander || '—'}
-                </div>
-                <div className="selected-player-name">
-                  {players[selectedCounterPlayer].claimed
-                    ? players[selectedCounterPlayer].name
-                    : `Player ${selectedCounterPlayer}`}
-                </div>
-              </div>
-
-              <div className="counter-row">
-                <div className="counter-label">
-                  <div className="counter-icon">
-                    <svg viewBox="0 0 23 23" fill="none">
-                      <path d="M11.3 15.8455C16.8228 15.8455 21.3 12.5894 21.3 8.57278C21.3 4.55616 16.8228 1.30005 11.3 1.30005C5.77714 1.30005 1.29999 4.55616 1.29999 8.57278C1.29999 12.5894 5.77714 15.8455 11.3 15.8455Z" />
-                      <path d="M7.54999 6.75453L3.79999 3.11816M15.05 6.75453L18.8 3.11816M11.3 15.8454V21.3M6.29999 19.4818H16.3" />
-                    </svg>
-                  </div>
-                  <div className="counter-name">Poison</div>
-                </div>
-                <div className="counter-controls">
-                  <button
-                    className="counter-btn"
-                    onClick={() => updateCounters(selectedCounterPlayer, 'poison', -1)}
-                  >
-                    −
-                  </button>
-                  <div className="counter-value">{counters[selectedCounterPlayer].poison}</div>
-                  <button
-                    className="counter-btn"
-                    onClick={() => updateCounters(selectedCounterPlayer, 'poison', 1)}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div className="counter-row">
-                <div className="counter-label">
-                  <div className="counter-icon">
-                    <svg viewBox="0 0 23 23" fill="none">
-                      <path d="M1.30002 21.3L2.96668 5.74449L7.13335 12.4112L11.3 1.30005L15.4667 12.4112L19.6334 5.74449L21.3 21.3H1.30002Z" />
-                      <path d="M1.30002 21.3H21.3" />
-                    </svg>
-                  </div>
-                  <div className="counter-name">Experience</div>
-                </div>
-                <div className="counter-controls">
-                  <button
-                    className="counter-btn"
-                    onClick={() => updateCounters(selectedCounterPlayer, 'experience', -1)}
-                  >
-                    −
-                  </button>
-                  <div className="counter-value">{counters[selectedCounterPlayer].experience}</div>
-                  <button
-                    className="counter-btn"
-                    onClick={() => updateCounters(selectedCounterPlayer, 'experience', 1)}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div className="counter-row">
-                <div className="counter-label">
-                  <div className="counter-icon">
-                    <svg viewBox="0 0 23 23" fill="none">
-                      <path d="M13.8 1.30005L1.30005 12.7286H11.3L8.80005 21.3L21.3 9.87148H11.3L13.8 1.30005Z" />
-                    </svg>
-                  </div>
-                  <div className="counter-name">Energy</div>
-                </div>
-                <div className="counter-controls">
-                  <button
-                    className="counter-btn"
-                    onClick={() => updateCounters(selectedCounterPlayer, 'energy', -1)}
-                  >
-                    −
-                  </button>
-                  <div className="counter-value">{counters[selectedCounterPlayer].energy}</div>
-                  <button
-                    className="counter-btn"
-                    onClick={() => updateCounters(selectedCounterPlayer, 'energy', 1)}
-                  >
-                    +
-                  </button>
-                </div>
+              <div style={{ fontWeight: 400, fontSize: 12, color: DARK.ink3 }}>
+                {players[selectedCounterPlayer].claimed
+                  ? players[selectedCounterPlayer].name
+                  : `Player ${selectedCounterPlayer}`}
               </div>
             </div>
 
-            <button
-              className="counters-flip-btn"
-              onClick={() => {
-                setCountersFacingDirection(
-                  countersFacingDirection === 'facing-left' ? 'facing-right' : 'facing-left'
-                );
-              }}
-            >
-              <svg viewBox="0 0 20 20" fill="none">
-                <path
-                  d="M14 2L18 6L14 10"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M18 6H7C4.24 6 2 8.24 2 11V11"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M6 18L2 14L6 10"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M2 14H13C15.76 14 18 11.76 18 9V9"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+            {(['poison', 'experience', 'energy'] as const).map(type => (
+              <div key={type} className="counter-row">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="counter-icon">
+                    {type === 'poison' ? (
+                      <Icon name="skull" size={24} stroke={COUNTER_VOCAB[type].tone}/>
+                    ) : type === 'experience' ? (
+                      <Icon name="star" size={24} stroke={COUNTER_VOCAB[type].tone}/>
+                    ) : (
+                      <Icon name="bolt" size={24} stroke={COUNTER_VOCAB[type].tone}/>
+                    )}
+                  </div>
+                  <div className="counter-name">
+                    {type === 'experience' ? 'Experience' : type.charAt(0).toUpperCase() + type.slice(1)}
+                  </div>
+                </div>
+                <div className="counter-controls">
+                  <button className="counter-btn" onClick={() => handleCounterChange(type, 'minus')}>
+                    −
+                  </button>
+                  <div className="counter-value">
+                    {counters[selectedCounterPlayer][type]}
+                  </div>
+                  <button className="counter-btn" onClick={() => handleCounterChange(type, 'plus')}>
+                    +
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {joinModalOpen && joinSlot && (
-        <div className="join-modal active" onClick={closeJoinModal}>
-          <div className="join-modal-card" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={closeJoinModal}>✕</button>
+      {joinModalOpen && (
+        <div className="join-modal active">
+          <div className="join-modal-card">
+            <button
+              className="modal-close"
+              onClick={() => setJoinModalOpen(false)}
+            >
+              ✕
+            </button>
             <div className="join-modal-title">Join Slot {joinSlot}</div>
             <div className="join-modal-subtitle">Scan to claim this player slot</div>
             <div style={{ width: 150, height: 150, margin: '0 auto', padding: 10, background: DARK.bgDeep, borderRadius: 12, border: `1px solid ${DARK.cellBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1952,24 +1018,28 @@ function PageContent() {
             <div className="join-slot-code" onClick={copyPodCode} style={{ cursor: 'pointer' }}>
               <span>{podShortCode ? `${podShortCode.slice(0, 3)}—${podShortCode.slice(3)}` : '------'}</span>
             </div>
-            <div style={{ marginTop: 8, fontSize: 10, color: DARK.ink3, textAlign: 'center' }}>
+            <div style={{ marginTop: 8, fontSize: 11, color: DARK.ink3, textAlign: 'center' }}>
               Tap the code to copy
             </div>
           </div>
         </div>
       )}
 
-      <div className={`toast ${showToast ? 'show' : ''}`}>
-        {toastMessage}
-      </div>
-    </div>
+      {toast && (
+        <div className="toast show">
+          {toast}
+        </div>
+      )}
+    </>
   );
 }
 
 export default function GridView5P() {
   return (
     <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: DARK.ink3 }}>Loading...</div>}>
-      <PageContent />
+      <ScreenBg>
+        <PageContent />
+      </ScreenBg>
     </Suspense>
   );
 }
