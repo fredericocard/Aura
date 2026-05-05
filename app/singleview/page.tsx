@@ -122,28 +122,31 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: any) {
 }
 
 // ─── Style helpers ──────────────────────────────────────────────────────────
-function kicker(size = 10) {
+function kicker(size = 10): any {
   return {
     fontSize: size, fontWeight: 700, letterSpacing: '0.22em',
-    textTransform: 'uppercase', color: 'var(--ink-3)',
+    textTransform: 'uppercase', color: '#8A7E6F',
+    fontFamily: 'var(--font-ui)',
   };
 }
 function iconBtn() {
   return {
     width: 36, height: 36, borderRadius: 999,
-    background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
+    background: '#150E08',
+    border: '1px solid rgba(226,184,88,0.18)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', padding: 0,
+    boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
   };
 }
 
 // ─── Avatar ─────────────────────────────────────────────────────────────────
-function CommAvatar({ src, size = 36, ring = 'var(--line-strong)', dim = false }: any) {
+function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = false }: any) {
   return (
     <div style={{
       width: size, height: size, borderRadius: 999, flexShrink: 0,
-      background: 'var(--parchment-deep)',
-      boxShadow: `0 0 0 1.5px ${ring}, 0 0 0 4px var(--parchment)`,
+      background: '#050302',
+      boxShadow: `0 0 0 1.5px ${ring}, 0 0 0 4px #0A0604`,
       overflow: 'hidden', position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
@@ -153,13 +156,27 @@ function CommAvatar({ src, size = 36, ring = 'var(--line-strong)', dim = false }
           opacity: dim ? 0.5 : 1, filter: dim ? 'grayscale(0.4)' : 'none',
         }}/>
       ) : (
-        <Icon name="user" size={size * 0.5} stroke="var(--ink-4)" width={1.5}/>
+        <Icon name="user" size={size * 0.5} stroke="#5C5043" width={1.5}/>
       )}
     </div>
   );
 }
 
-// ─── Backdrop — softened commander art ──────────────────────────────────────
+// ─── Digital Mat Mesh ───────────────────────────────────────────────────────
+// Halftone dot-matrix pattern — warm copper tones, like a printed trading card.
+function DigitalMatMesh() {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
+      backgroundImage: `radial-gradient(circle, rgba(180,130,60,0.45) 0.5px, transparent 0.5px)`,
+      backgroundSize: '3px 3px',
+      opacity: 0.12,
+      mixBlendMode: 'multiply',
+    }}/>
+  );
+}
+
+// ─── Backdrop — commander art + mesh + veil ────────────────────────────────
 function SVBackdrop({ src }: any) {
   return (
     <>
@@ -167,14 +184,26 @@ function SVBackdrop({ src }: any) {
         position: 'absolute', inset: 0, width: '100%', height: '100%',
         objectFit: 'cover',
       }}/>
+
+      {/* Digital mat mesh overlay */}
+      <DigitalMatMesh/>
+
+      {/* Dark gradient veil */}
       <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(10,6,4,0.25) 0%, rgba(10,6,4,0.55) 40%, var(--parchment) 100%)',
+        position: 'absolute', inset: 0, zIndex: 2,
+        background: 'linear-gradient(180deg, rgba(10,6,4,0.30) 0%, rgba(10,6,4,0.60) 35%, #0A0604 85%)',
       }}/>
+
+      {/* Copper warm glow at top */}
       <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: 'radial-gradient(circle at 50% 28%, rgba(176,107,44,0.10), transparent 55%)',
-        pointerEvents: 'none',
+        position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
+        backgroundImage: 'radial-gradient(ellipse 80% 40% at 50% 15%, rgba(201,155,47,0.18), transparent 60%)',
+      }}/>
+
+      {/* Inner border glow */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2,
+        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(201,155,47,0.12)',
       }}/>
     </>
   );
@@ -245,9 +274,18 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
           })}
         </g>
 
-        {/* Base ring */}
+        {/* Copper gradient ring */}
+        <defs>
+          <linearGradient id="dial-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#E2B858"/>
+            <stop offset="22%" stopColor="#C99B2F"/>
+            <stop offset="50%" stopColor="#8C5A28"/>
+            <stop offset="78%" stopColor="#C99B2F"/>
+            <stop offset="100%" stopColor="#E2B858"/>
+          </linearGradient>
+        </defs>
         <circle cx={cx} cy={cx} r={radius}
-          fill="none" stroke="var(--line-strong)" strokeWidth="2"/>
+          fill="none" stroke="url(#dial-ring-grad)" strokeWidth="2.5" strokeOpacity="0.6"/>
 
         {/* Commander damage segments */}
         {segments.map((seg: any, i: number) => (
@@ -257,12 +295,18 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
             strokeDasharray={`${c * seg.frac} ${c}`}
             strokeLinecap="butt"
             transform={`rotate(-90 ${cx} ${cx})`}
-            opacity={0.92}/>
+            opacity={0.92}
+            style={{ filter: `drop-shadow(0 0 4px ${seg.color}60)` }}/>
         ))}
 
         {/* Inner well */}
         <circle cx={cx} cy={cx} r="68"
           fill="var(--parchment-card)" stroke="var(--line)" strokeWidth="1"/>
+
+        {/* Inner decorative ring */}
+        <circle cx={cx} cy={cx} r="65"
+          fill="none" stroke="#E2B858" strokeWidth="0.4" strokeOpacity="0.25"
+          strokeDasharray="1 3"/>
       </svg>
 
       {/* Center content */}
@@ -272,25 +316,22 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
         alignItems: 'center', justifyContent: 'center',
       }}>
         {!dead ? (
-          <>
-
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 75, lineHeight: 1, letterSpacing: '-0.04em',
               color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
+              textShadow: '0 0 30px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
             }}>{life}</div>
-            {null}
-          </>
         ) : (
           <>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 48, lineHeight: 1, color: 'var(--copper)',
+              fontSize: 48, lineHeight: 1, color: '#E2B858',
             }}>×</div>
             <div style={{
               marginTop: 10, fontSize: 11, fontWeight: 700,
               letterSpacing: '0.24em', textTransform: 'uppercase',
-              color: 'var(--copper-deep)',
+              color: '#C99B2F',
             }}>Eliminated</div>
           </>
         )}
@@ -309,32 +350,38 @@ function RoundBtn({ glyph, onTap, onLongStart, onLongEnd }: any) {
       onPointerLeave={onLongEnd}
       style={{
         width: 44, height: 44, borderRadius: 999,
-        background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
+        background: '#150E08',
+        border: '1px solid rgba(226,184,88,0.18)',
         color: 'var(--ink)',
         fontFamily: 'var(--font-display)', fontSize: 26, lineHeight: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', padding: 0,
-        boxShadow: 'var(--shadow-rest)',
+        boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
       }}
     >{glyph}</button>
   );
 }
 
-// ─── Counter chip ───────────────────────────────────────────────────────────
+// ─── Counter chip (KeepsakeCard dark) ───────────────────────────────────────
 function CounterChip({ kind, value, label, dense = false }: any) {
-  const v = COUNTER_VOCAB[kind] || { label: kind, tone: 'var(--ink)', soft: 'var(--parchment-deep)', glyph: 'flame' };
+  const v = COUNTER_VOCAB[kind] || { label: kind, tone: '#8A7E6F', soft: '#F0E8D8', glyph: 'flame' };
   return (
     <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: dense ? '4px 8px' : '6px 12px',
+      display: 'inline-flex', alignItems: 'center', gap: dense ? 5 : 6,
+      height: dense ? 22 : 'auto',
+      padding: dense ? '0 9px' : '6px 12px',
       borderRadius: 999,
-      background: v.soft, border: `1px solid ${v.tone}55`, color: v.tone,
+      background: `${v.tone}22`,
+      border: `1px solid ${v.tone}44`,
+      color: v.soft,
       fontSize: dense ? 11 : 12, fontWeight: 700, letterSpacing: '0.02em',
+      fontFamily: 'var(--font-ui)',
     }}>
-      <Icon name={v.glyph} size={dense ? 12 : 14} stroke={v.tone}/>
+      <Icon name={v.glyph} size={dense ? 12 : 14} stroke={v.soft} width={1.9}/>
       <span style={{
         fontFamily: 'var(--font-display)', fontWeight: 400,
         fontSize: dense ? 13 : 15, lineHeight: 1, letterSpacing: '-0.01em',
+        fontVariantNumeric: 'tabular-nums',
       }}>{value}</span>
       {label !== false && <span style={{
         fontSize: dense ? 9 : 10, fontWeight: 700,
@@ -357,24 +404,28 @@ function CounterOrbit({ items = [] }: any) {
   );
 }
 
-// ─── Opponent row ───────────────────────────────────────────────────────────
+// ─── Opponent row (KeepsakeCard dark) ────────────────────────────────────────
 function OpponentRow({ p, onTap }: any) {
   return (
     <button onClick={() => onTap(p)} style={{
       width: '100%', padding: '8px 10px',
-      background: 'var(--parchment-card)',
-      border: '1px solid var(--line-strong)',
+      background: '#150E08',
+      border: '1px solid rgba(226,184,88,0.18)',
       borderRadius: 14,
       display: 'flex', alignItems: 'center', gap: 10,
       cursor: 'pointer', textAlign: 'left',
     }}>
       <CommAvatar src={p.art} size={32}
-        ring={p.dead ? 'var(--ink-4)' : 'var(--copper)'} dim={p.dead}/>
+        ring={p.dead ? '#5C5043' : '#E2B858'} dim={p.dead}/>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={kicker(9)}>{p.name}</div>
+        <div style={{
+          fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+          letterSpacing: '0.22em', textTransform: 'uppercase',
+          color: '#8A7E6F',
+        }}>{p.name}</div>
         <div style={{
           fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
-          color: p.dead ? 'var(--ink-3)' : 'var(--ink)',
+          color: p.dead ? '#8A7E6F' : 'var(--ink)',
           letterSpacing: '-0.01em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{p.commander}</div>
@@ -385,9 +436,9 @@ function OpponentRow({ p, onTap }: any) {
           return (
             <div key={i} title={v.label || c.kind} style={{
               width: 22, height: 22, borderRadius: 6,
-              background: v.soft || 'var(--parchment-deep)',
-              border: `1px solid ${(v.tone || 'var(--line-strong)')}55`,
-              color: v.tone || 'var(--ink)',
+              background: `${v.tone}22`,
+              border: `1px solid ${(v.tone || 'rgba(226,184,88,0.18)')}55`,
+              color: v.soft || 'var(--ink)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 9, fontWeight: 800, fontFamily: 'var(--font-display)',
             }}>{c.value}</div>
@@ -396,7 +447,7 @@ function OpponentRow({ p, onTap }: any) {
         <div style={{
           fontFamily: 'var(--font-display)',
           fontSize: 22, lineHeight: 1, letterSpacing: '-0.02em',
-          color: p.dead ? 'var(--ink-4)' : 'var(--ink)',
+          color: p.dead ? '#5C5043' : 'var(--ink)',
           fontVariantNumeric: 'tabular-nums',
           minWidth: 30, textAlign: 'right',
         }}>{p.dead ? '—' : p.life}</div>
@@ -405,7 +456,7 @@ function OpponentRow({ p, onTap }: any) {
   );
 }
 
-// ─── Bottom nav ─────────────────────────────────────────────────────────────
+// ─── Bottom nav (KeepsakeCard dark) ─────────────────────────────────────────
 function GameNav({ active = 'single', onNav }: any) {
   const items = [
     { id: 'grid',   icon: 'grid',       label: 'Grid' },
@@ -418,11 +469,13 @@ function GameNav({ active = 'single', onNav }: any) {
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0,
       padding: '10px 16px 32px', zIndex: 8,
-      background: 'linear-gradient(180deg, rgba(10,6,4,0) 0%, rgba(10,6,4,0.85) 30%, var(--parchment) 100%)',
+      background: 'linear-gradient(180deg, rgba(10,6,4,0) 0%, rgba(10,6,4,0.92) 30%, #0A0604 100%)',
     }}>
       <div style={{
-        background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
-        borderRadius: 999, boxShadow: 'var(--shadow-rest)',
+        background: '#150E08',
+        border: '1px solid rgba(226,184,88,0.18)',
+        borderRadius: 999,
+        boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
         padding: 6, display: 'flex', justifyContent: 'space-between',
       }}>
         {items.map(it => {
@@ -431,15 +484,16 @@ function GameNav({ active = 'single', onNav }: any) {
             <button key={it.id} onClick={() => onNav?.(it.id)} style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
               padding: '6px 0', border: 'none',
-              background: on ? 'var(--forest)' : 'transparent',
-              color: on ? 'var(--parchment)' : 'var(--ink-2)',
+              background: on ? '#3F9F4D' : 'transparent',
+              color: on ? '#F0E8D8' : '#8A7E6F',
               borderRadius: 999,
+              fontFamily: 'var(--font-ui)',
               fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
               textTransform: 'uppercase', gap: 2,
               cursor: 'pointer',
             }}>
               <Icon name={it.icon} size={16}
-                stroke={on ? 'var(--parchment)' : 'var(--ink-2)'}/>
+                stroke={on ? '#F0E8D8' : '#8A7E6F'}/>
               <span>{it.label}</span>
             </button>
           );
@@ -517,16 +571,121 @@ function MiniRoundBtn({ glyph, onClick }: any) {
   return (
     <button onClick={onClick} style={{
       width: 36, height: 36, borderRadius: 999,
-      background: 'var(--parchment-card)', border: '1px solid var(--line-strong)',
+      background: '#150E08', border: '1px solid rgba(226,184,88,0.18)',
       color: 'var(--ink)', fontFamily: 'var(--font-display)',
       fontSize: 22, lineHeight: 1,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      cursor: 'pointer', padding: 0, boxShadow: 'var(--shadow-rest)',
+      cursor: 'pointer', padding: 0,
+      boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
     }}>{glyph}</button>
   );
 }
 
-// ─── Dice bottom sheet ──────────────────────────────────────────────────────
+// ─── Compass Rose (watermark for bottom sheets) ────────────────────────────
+function CompassRose({ color = '#E2B858', opacity = 0.22, size = 240 }: any) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 320 320" style={{
+      position: 'absolute', top: '50%', left: '50%',
+      transform: 'translate(-50%, -50%)',
+      opacity, pointerEvents: 'none',
+    }}>
+      <g stroke={color} strokeWidth="0.8" fill="none">
+        {Array.from({ length: 24 }).map((_, i) => {
+          const a = (i / 24) * Math.PI * 2;
+          const r1 = 40, r2 = 150;
+          const cx = 160, cy = 160;
+          return <line key={i}
+            x1={cx + Math.cos(a) * r1} y1={cy + Math.sin(a) * r1}
+            x2={cx + Math.cos(a) * r2} y2={cy + Math.sin(a) * r2}/>;
+        })}
+        <circle cx="160" cy="160" r="40"/>
+        <circle cx="160" cy="160" r="60" strokeDasharray="1 3"/>
+        <circle cx="160" cy="160" r="100" strokeDasharray="1 4"/>
+        <circle cx="160" cy="160" r="150"/>
+      </g>
+    </svg>
+  );
+}
+
+// ─── ModalTitle (KeepsakeCard style) ────────────────────────────────────────
+function ModalTitle({ kickerText, title }: any) {
+  return (
+    <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+        letterSpacing: '0.32em', textTransform: 'uppercase',
+        color: '#E2B858',
+      }}>
+        <span style={{ width: 18, height: 1, background: '#E2B858', opacity: 0.5 }}/>
+        <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
+        <span>{kickerText}</span>
+        <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
+        <span style={{ width: 18, height: 1, background: '#E2B858', opacity: 0.5 }}/>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-display)', fontSize: 26, lineHeight: 1.05,
+        color: 'var(--ink)', marginTop: 4, letterSpacing: '-0.01em',
+      }}>{title}</div>
+    </div>
+  );
+}
+
+// ─── Bottom Sheet Shell (KeepsakeCard style) ────────────────────────────────
+function BottomSheet({ children, onClose }: any) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0, zIndex: 28,
+        background: 'rgba(5,3,2,0.72)',
+        backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+      }}/>
+
+      {/* Copper glow behind sheet */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: '50%',
+        transform: 'translateX(-50%)',
+        width: 300, height: 300,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(226,184,88,0.10) 0%, transparent 65%)',
+        pointerEvents: 'none', zIndex: 29,
+      }}/>
+
+      {/* Sheet body */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
+        borderTop: '2px solid transparent',
+        borderImage: 'linear-gradient(90deg, #8C5A28 0%, #E2B858 25%, #C99B2F 50%, #E2B858 75%, #8C5A28 100%) 1',
+        borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'relative',
+          background: '#1C140C',
+          padding: '14px 18px 32px',
+          boxShadow: '0 -20px 40px -10px rgba(0,0,0,0.50)',
+        }}>
+          {/* Compass rose watermark */}
+          <CompassRose size={280} opacity={0.06} color="#E2B858"/>
+
+          {/* Drag handle */}
+          <div style={{
+            position: 'relative', zIndex: 1,
+            width: 40, height: 4, borderRadius: 999,
+            background: 'rgba(226,184,88,0.18)', margin: '0 auto 14px',
+          }}/>
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Dice bottom sheet (KeepsakeCard) ───────────────────────────────────────
 function DiceSheet({ onClose, opponents = [] }: any) {
   const [results, setResults] = useState({ d6: null, d20: null, coin: null, player: null });
   const [lastRolled, setLastRolled] = useState<string | null>(null);
@@ -545,264 +704,264 @@ function DiceSheet({ onClose, opponents = [] }: any) {
   };
 
   const dice = [
-    { key: 'd6',     label: 'D6',            tone: 'var(--forest)' },
-    { key: 'd20',    label: 'D20',           tone: 'var(--copper)' },
-    { key: 'coin',   label: 'Coin',          tone: 'var(--ink)' },
-    { key: 'player', label: 'Random Player', tone: '#7E4E8A' },
+    { key: 'd6',     label: 'D6',            icon: 'dice' },
+    { key: 'd20',    label: 'D20',           icon: 'dice' },
+    { key: 'coin',   label: 'Coin',          icon: 'dice' },
+    { key: 'player', label: 'Random Player', icon: 'dice' },
   ];
 
   return (
-    <>
-      <div onClick={onClose} style={{
-        position: 'absolute', inset: 0, zIndex: 28,
-        background: 'rgba(0,0,0,0.40)',
-      }}/>
+    <BottomSheet onClose={onClose}>
+      <ModalTitle kickerText="Roll" title="Dice & Random"/>
+
       <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
-        background: 'var(--parchment)',
-        borderTop: '1px solid var(--line-strong)',
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: '14px 18px 32px',
-        boxShadow: '0 -20px 40px -10px rgba(0,0,0,0.50)',
+        display: 'grid', gridTemplateColumns: '1fr 1fr',
+        gap: 10, marginTop: 4,
       }}>
-        <div style={{
-          width: 40, height: 4, borderRadius: 999,
-          background: 'var(--line-strong)', margin: '0 auto 14px',
-        }}/>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div>
-            <div style={kicker(10)}>Your</div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 22,
-              color: 'var(--ink)', letterSpacing: '-0.01em',
-              lineHeight: 1.15, marginTop: 2,
-            }}>Dice</div>
-          </div>
-          <button onClick={onClose} style={{
-            padding: '6px 12px', borderRadius: 999,
-            background: 'transparent', border: '1px solid var(--line-strong)',
-            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            cursor: 'pointer',
-          }}>Close</button>
-        </div>
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: 10, marginTop: 14,
-        }}>
-          {dice.map((d) => {
-            const isLast = lastRolled === d.key;
-            const val = (results as any)[d.key];
-            return (
-              <button key={d.key} onClick={() => roll(d.key)} style={{
-                background: 'var(--parchment-card)',
-                border: isLast ? `1.5px solid ${d.tone}` : '1px solid var(--line-strong)',
-                borderRadius: 16, padding: '14px 12px',
-                display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                gap: 4, cursor: 'pointer',
-                boxShadow: isLast ? `0 0 0 3px ${d.tone}1a` : 'none',
+        {dice.map((d) => {
+          const isLast = lastRolled === d.key;
+          const val = (results as any)[d.key];
+          const accent = isLast ? '#E2B858' : '#8A7E6F';
+          const bgFill = isLast
+            ? 'radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)'
+            : '#1A120A';
+          return (
+            <button key={d.key} onClick={() => roll(d.key)} style={{
+              position: 'relative',
+              background: bgFill,
+              border: `1px solid ${isLast ? 'rgba(226,184,88,0.53)' : 'rgba(226,184,88,0.22)'}`,
+              borderRadius: 16,
+              padding: '16px 14px 12px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              cursor: 'pointer', textAlign: 'center',
+              boxShadow: isLast
+                ? '0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)'
+                : 'inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+                letterSpacing: '0.22em', textTransform: 'uppercase',
+                color: accent,
               }}>
-                <span style={kicker(10)}>{d.label}</span>
-                <span style={{
-                  fontFamily: 'var(--font-display)', fontSize: 28,
-                  lineHeight: 1, letterSpacing: '-0.02em', color: d.tone,
-                }}>{val ?? '—'}</span>
-                <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>
-                  {val ? (isLast ? 'Just rolled' : 'Previous roll') : 'Tap to roll'}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                <Icon name={d.icon} size={11} stroke={accent} width={1.6}/>
+                <span>{d.label}</span>
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 30, lineHeight: 1,
+                color: 'var(--ink)',
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-0.02em', marginTop: 2,
+                textShadow: isLast ? '0 0 12px rgba(226,184,88,0.25)' : 'none',
+              }}>{val ?? '—'}</div>
+              <div style={{
+                fontFamily: 'var(--font-ui)', fontSize: 9,
+                color: '#5C5043',
+                letterSpacing: '0.04em', marginTop: 2,
+              }}>{val ? (isLast ? 'Last roll' : 'Previous') : 'Tap to roll'}</div>
+            </button>
+          );
+        })}
       </div>
-    </>
+    </BottomSheet>
   );
 }
 
-// ─── Counter bottom sheet ──────────────────────────────────────────────────
+// ─── Counter Row (KeepsakeCard) ─────────────────────────────────────────────
+function CounterRow({ counter, count, isFirst, onAdjust }: any) {
+  const iconSize = 44;
+  const fillPct = counter.lethal ? Math.min(100, (count / counter.lethal) * 100) : 0;
+
+  return (
+    <div style={{
+      position: 'relative',
+      padding: '14px 4px',
+      borderTop: isFirst ? 'none' : `1px dashed ${counter.tone}55`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          position: 'relative',
+          width: iconSize, height: iconSize, borderRadius: 999,
+          background: `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
+          border: `1.5px solid ${counter.tone}BB`,
+          color: counter.tone,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
+          flexShrink: 0,
+        }}>
+          <Icon name={counter.glyph} size={20} stroke={counter.tone} width={1.8}/>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+            letterSpacing: '0.22em', textTransform: 'uppercase',
+            color: counter.tone,
+          }}>{counter.label}{counter.lethal ? ` · lethal ${counter.lethal}` : ''}</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 1 }}>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1,
+              color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '-0.02em',
+            }}>{count}</div>
+            {counter.lethal && (
+              <div style={{
+                fontFamily: 'var(--font-ui)', fontSize: 11,
+                color: 'var(--ink-3)', fontVariantNumeric: 'tabular-nums',
+              }}>/ {counter.lethal}</div>
+            )}
+          </div>
+          {counter.lethal && (
+            <div style={{
+              marginTop: 6, height: 3, borderRadius: 999,
+              background: `${counter.tone}33`,
+              overflow: 'hidden', maxWidth: 120,
+            }}>
+              <div style={{
+                width: `${fillPct}%`, height: '100%',
+                background: counter.tone, borderRadius: 999,
+                boxShadow: `0 0 6px ${counter.tone}66`,
+              }}/>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <button onClick={() => onAdjust(counter.key, -1)} style={{
+            width: 38, height: 38, borderRadius: 999,
+            background: `${counter.tone}25`,
+            color: counter.tone,
+            border: `1.5px solid ${counter.tone}AA`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', padding: 0,
+            boxShadow: `0 0 8px -2px ${counter.tone}30`,
+            opacity: count === 0 ? 0.3 : 1,
+          }}><Icon name="minus" size={16} stroke={counter.tone} width={2.2}/></button>
+          <button onClick={() => onAdjust(counter.key, 1)} style={{
+            width: 38, height: 38, borderRadius: 999,
+            background: counter.tone,
+            color: '#fff',
+            border: `1.5px solid ${counter.tone}AA`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', padding: 0,
+            boxShadow: `0 2px 8px -2px ${counter.tone}66, inset 0 1px 0 rgba(255,255,255,0.25)`,
+          }}><Icon name="plus" size={16} stroke="#fff" width={2.2}/></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Counter bottom sheet (KeepsakeCard) ───────────────────────────────────
 function CounterSheet({ onClose, counters, onAdjust }: any) {
-  const counterTypes = Object.entries(COUNTER_VOCAB).map(([key, v]: any) => ({
-    key, ...v, value: counters[key] || 0,
-  }));
+  const COUNTERS = [
+    { key: 'poison',     label: 'Poison',     glyph: 'skull', tone: '#4F8A4D', lethal: 10 },
+    { key: 'energy',     label: 'Energy',     glyph: 'bolt',  tone: '#C99B2F', lethal: null },
+    { key: 'experience', label: 'Experience', glyph: 'star',  tone: '#7E4E8A', lethal: null },
+  ];
 
   return (
-    <>
-      <div onClick={onClose} style={{
-        position: 'absolute', inset: 0, zIndex: 28,
-        background: 'rgba(0,0,0,0.40)',
-      }}/>
+    <BottomSheet onClose={onClose}>
+      <ModalTitle kickerText="Your" title="Counters"/>
+
       <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
-        background: 'var(--parchment)',
-        borderTop: '1px solid var(--line-strong)',
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: '14px 18px 32px',
-        boxShadow: '0 -20px 40px -10px rgba(0,0,0,0.50)',
+        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
       }}>
-        <div style={{
-          width: 40, height: 4, borderRadius: 999,
-          background: 'var(--line-strong)', margin: '0 auto 14px',
-        }}/>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div>
-            <div style={kicker(10)}>You</div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 22,
-              color: 'var(--ink)', letterSpacing: '-0.01em',
-              lineHeight: 1.15, marginTop: 2,
-            }}>Counters</div>
-          </div>
-          <button onClick={onClose} style={{
-            padding: '6px 12px', borderRadius: 999,
-            background: 'transparent', border: '1px solid var(--line-strong)',
-            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            cursor: 'pointer',
-          }}>Close</button>
-        </div>
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: 10, marginTop: 14,
-        }}>
-          {counterTypes.map((ct: any) => {
-            const active = ct.value > 0;
-            return (
-              <div key={ct.key} style={{
-                background: active ? ct.soft : 'var(--parchment-card)',
-                border: active ? `1.5px solid ${ct.tone}` : '1px solid var(--line-strong)',
-                borderRadius: 16, padding: '12px',
-                display: 'flex', flexDirection: 'column', gap: 8,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon name={ct.glyph} size={16} stroke={ct.tone}/>
-                  <span style={kicker(10)}>{ct.label}</span>
-                </div>
-                <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 28,
-                  lineHeight: 1, letterSpacing: '-0.02em', color: active ? ct.tone : 'var(--ink-3)',
-                }}>{ct.value}</div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => onAdjust(ct.key, -1)} style={{
-                    flex: 1, height: 32, borderRadius: 10,
-                    background: 'var(--parchment)', border: '1px solid var(--line-strong)',
-                    fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', padding: 0,
-                    opacity: ct.value === 0 ? 0.3 : 1,
-                  }}>−</button>
-                  <button onClick={() => onAdjust(ct.key, 1)} style={{
-                    flex: 1, height: 32, borderRadius: 10,
-                    background: 'var(--parchment)', border: '1px solid var(--line-strong)',
-                    fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', padding: 0,
-                  }}>+</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <div style={{ flex: 1, height: 1, background: 'rgba(226,184,88,0.18)' }}/>
+        <span style={{
+          fontFamily: 'var(--font-ui)', fontSize: 8, fontWeight: 700,
+          letterSpacing: '0.28em', textTransform: 'uppercase',
+          color: '#8A7E6F',
+        }}>Track</span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(226,184,88,0.18)' }}/>
       </div>
-    </>
+
+      <div>
+        {COUNTERS.map((c, i) => (
+          <CounterRow key={c.key} counter={c}
+            count={counters[c.key] || 0}
+            isFirst={i === 0}
+            onAdjust={onAdjust}/>
+        ))}
+      </div>
+    </BottomSheet>
   );
 }
 
-// ─── Commander damage bottom sheet ─────────────────────────────────────────
+// ─── Commander damage bottom sheet (KeepsakeCard) ──────────────────────────
 function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
+  const CMDR_HEAT_COLORS = ['#E8A54B', '#D4783C', '#B8432E', '#8C2318', '#5E1610'];
+
   return (
-    <>
-      <div onClick={onClose} style={{
-        position: 'absolute', inset: 0, zIndex: 28,
-        background: 'rgba(0,0,0,0.40)',
-      }}/>
-      <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
-        background: 'var(--parchment)',
-        borderTop: '1px solid var(--line-strong)',
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: '14px 18px 32px',
-        boxShadow: '0 -20px 40px -10px rgba(0,0,0,0.50)',
-      }}>
-        <div style={{
-          width: 40, height: 4, borderRadius: 999,
-          background: 'var(--line-strong)', margin: '0 auto 14px',
-        }}/>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div>
-            <div style={kicker(10)}>Damage from</div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 22,
-              color: 'var(--ink)', letterSpacing: '-0.01em',
-              lineHeight: 1.15, marginTop: 2,
-            }}>Opponents to you</div>
-          </div>
-          <button onClick={onClose} style={{
-            padding: '6px 12px', borderRadius: 999,
-            background: 'transparent', border: '1px solid var(--line-strong)',
-            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            cursor: 'pointer',
-          }}>Close</button>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
-          {opponents.map((opp: any) => {
-            const dmg = cmdrDmg[opp.id] || 0;
-            const frac = Math.min(dmg / 21, 1);
-            return (
-              <div key={opp.id} style={{
-                background: 'var(--parchment-card)',
-                border: dmg > 0 ? '1.5px solid var(--copper)' : '1px solid var(--line-strong)',
-                borderRadius: 16, padding: '12px 14px',
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                <CommAvatar src={opp.art} size={36} ring="var(--copper)"/>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={kicker(9)}>{opp.name}</div>
-                  <div style={{
-                    fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
-                    color: 'var(--ink)', letterSpacing: '-0.01em',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{opp.commander}</div>
-                  <div style={{
-                    marginTop: 6, height: 4, borderRadius: 999,
-                    background: 'var(--line)',
-                  }}>
-                    <div style={{
-                      height: '100%', borderRadius: 999,
-                      background: frac >= 1 ? '#9E2B2B' : 'var(--copper)',
-                      width: `${frac * 100}%`,
-                      transition: 'width 0.2s ease',
-                    }}/>
-                  </div>
-                </div>
+    <BottomSheet onClose={onClose}>
+      <ModalTitle kickerText="Damage from" title="Commanders"/>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {opponents.map((opp: any) => {
+          const dmg = cmdrDmg[opp.id] || 0;
+          const frac = Math.min(dmg / 21, 1);
+          const heatIdx = Math.min(CMDR_HEAT_COLORS.length - 1, Math.floor(frac * CMDR_HEAT_COLORS.length));
+          const accent = dmg > 0 ? CMDR_HEAT_COLORS[heatIdx] : '#8A7E6F';
+          return (
+            <div key={opp.id} style={{
+              background: '#150E08',
+              border: dmg > 0 ? `1.5px solid ${accent}66` : '1px solid rgba(226,184,88,0.18)',
+              borderRadius: 16, padding: '12px 14px',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <CommAvatar src={opp.art} size={36} ring={dmg > 0 ? accent : 'rgba(226,184,88,0.18)'}/>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1,
-                  letterSpacing: '-0.02em', color: dmg > 0 ? 'var(--copper-deep)' : 'var(--ink-3)',
-                  fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'center',
-                }}>{dmg}<span style={{ fontSize: 12, color: 'var(--ink-4)' }}>/21</span></div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <button onClick={() => onAdjust(opp.id, 1)} style={{
-                    width: 32, height: 32, borderRadius: 10,
-                    background: 'var(--parchment)', border: '1px solid var(--line-strong)',
-                    fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', padding: 0,
-                  }}>+</button>
-                  <button onClick={() => onAdjust(opp.id, -1)} style={{
-                    width: 32, height: 32, borderRadius: 10,
-                    background: 'var(--parchment)', border: '1px solid var(--line-strong)',
-                    fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', padding: 0,
-                    opacity: dmg === 0 ? 0.3 : 1,
-                  }}>−</button>
+                  fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+                  letterSpacing: '0.22em', textTransform: 'uppercase',
+                  color: '#8A7E6F',
+                }}>{opp.name}</div>
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
+                  color: 'var(--ink)', letterSpacing: '-0.01em',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{opp.commander}</div>
+                <div style={{
+                  marginTop: 6, height: 4, borderRadius: 999,
+                  background: 'rgba(226,184,88,0.10)',
+                }}>
+                  <div style={{
+                    height: '100%', borderRadius: 999,
+                    background: frac >= 1 ? '#9E2B2B' : accent,
+                    width: `${frac * 100}%`,
+                    boxShadow: dmg > 0 ? `0 0 6px ${accent}44` : 'none',
+                  }}/>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              <div style={{
+                fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1,
+                letterSpacing: '-0.02em', color: dmg > 0 ? accent : '#8A7E6F',
+                fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'center',
+              }}>{dmg}<span style={{ fontSize: 12, color: '#5C5043' }}>/21</span></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <button onClick={() => onAdjust(opp.id, 1)} style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: '#0A0604', border: '1px solid rgba(226,184,88,0.18)',
+                  fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', padding: 0,
+                }}>+</button>
+                <button onClick={() => onAdjust(opp.id, -1)} style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: '#0A0604', border: '1px solid rgba(226,184,88,0.18)',
+                  fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', padding: 0,
+                  opacity: dmg === 0 ? 0.3 : 1,
+                }}>−</button>
+              </div>
+            </div>
+          );
+        })}
       </div>
-    </>
+    </BottomSheet>
   );
 }
 
@@ -815,7 +974,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 40,
-      background: 'rgba(0,0,0,0.45)',
+      background: 'rgba(5,3,2,0.72)',
       backdropFilter: 'blur(2px)',
       display: 'flex', flexDirection: 'column',
       animation: 'overlayFadeIn 0.25s ease-out',
@@ -833,8 +992,8 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
       {showSelector && (
         <div style={{
           margin: '10px 14px 0',
-          background: 'var(--parchment-card)',
-          border: '1px solid var(--line-strong)',
+          background: '#150E08',
+          border: '1px solid rgba(226,184,88,0.18)',
           borderRadius: 12, padding: '6px 8px',
           display: 'flex', justifyContent: 'space-between', gap: 6,
         }}>
@@ -844,14 +1003,14 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
               <button key={i} onClick={() => onSelectPlayer?.(m)} style={{
                 flex: 1, display: 'flex', alignItems: 'center', gap: 6,
                 padding: '4px 6px', borderRadius: 8, border: 'none',
-                background: isActive ? 'rgba(176,107,44,0.12)' : 'transparent',
+                background: isActive ? 'rgba(226,184,88,0.12)' : 'transparent',
                 cursor: 'pointer',
-                outline: isActive ? '1.5px solid var(--copper)' : 'none',
+                outline: isActive ? '1.5px solid #E2B858' : 'none',
               }}>
-                <CommAvatar src={m.art} size={18} ring={isActive ? 'var(--copper)' : 'var(--line-strong)'} dim={m.dead}/>
+                <CommAvatar src={m.art} size={18} ring={isActive ? '#E2B858' : 'rgba(226,184,88,0.18)'} dim={m.dead}/>
                 <div style={{
                   fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1,
-                  color: m.dead ? 'var(--ink-4)' : 'var(--ink)',
+                  color: m.dead ? '#5C5043' : 'var(--ink)',
                   fontVariantNumeric: 'tabular-nums',
                 }}>{m.dead ? '—' : m.life}</div>
               </button>
@@ -862,8 +1021,8 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
 
       <div style={{
         margin: '14px 14px',
-        background: 'var(--parchment-card)',
-        border: '1px solid var(--line-strong)',
+        background: '#150E08',
+        border: '1px solid rgba(226,184,88,0.18)',
         borderRadius: 24,
         boxShadow: '0 30px 60px -20px rgba(0,0,0,0.60)',
         padding: 14, flex: 1, position: 'relative', overflow: 'hidden',
@@ -873,7 +1032,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CommAvatar src={p.art} size={42} ring={isEmpty ? 'var(--line-strong)' : 'var(--copper)'}/>
+            <CommAvatar src={p.art} size={42} ring={isEmpty ? 'rgba(226,184,88,0.18)' : '#E2B858'}/>
             <div style={{ minWidth: 0 }}>
               <div style={kicker(9)}>{p.name}</div>
               {!isEmpty && p.commander && (
@@ -886,11 +1045,11 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
           </div>
           <button onClick={onClose} style={{
             width: 28, height: 28, borderRadius: 999,
-            background: 'transparent', border: '1px solid var(--line-strong)',
+            background: 'transparent', border: '1px solid rgba(226,184,88,0.18)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', padding: 0,
           }}>
-            <Icon name="x" size={14} stroke="var(--ink-2)"/>
+            <Icon name="x" size={14} stroke="#C8BCA8"/>
           </button>
         </div>
 
@@ -900,22 +1059,22 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '6px 10px',
-              background: 'var(--parchment)', border: '1px solid var(--line)',
+              background: '#0A0604', border: '1px solid rgba(226,184,88,0.10)',
               borderRadius: 10,
             }}>
               <div style={{
                 fontSize: 11, fontWeight: 600,
-                color: 'var(--ink-2)', letterSpacing: '0.04em',
+                color: '#C8BCA8', letterSpacing: '0.04em',
               }}>{p.typeLine || 'Legendary Creature'}</div>
               <ManaDots colors={p.colors} size={7}/>
             </div>
 
             {p.rulesText && (
               <div style={{
-                background: 'var(--parchment)', border: '1px solid var(--line)',
+                background: '#0A0604', border: '1px solid rgba(226,184,88,0.10)',
                 borderRadius: 12, padding: '10px 12px',
                 fontSize: 12, lineHeight: 1.45,
-                color: 'var(--ink-2)', fontStyle: 'italic',
+                color: '#C8BCA8', fontStyle: 'italic',
               }}>
                 {p.keywords && (
                   <span style={{ fontStyle: 'normal', fontWeight: 700, color: 'var(--ink)' }}>
@@ -927,7 +1086,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
                   <span style={{
                     display: 'block', marginTop: 6, fontStyle: 'normal',
                     fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase',
-                    color: 'var(--ink-3)', fontWeight: 700,
+                    color: '#8A7E6F', fontWeight: 700,
                   }}>Power · Toughness — {p.pt}</span>
                 )}
               </div>
@@ -966,33 +1125,33 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
         }}>
           <div style={{
-            background: 'var(--parchment)', border: '1px solid var(--line)',
+            background: '#0A0604', border: '1px solid rgba(226,184,88,0.10)',
             borderRadius: 12, padding: '8px 12px',
           }}>
             <div style={{
               fontSize: 9, fontWeight: 700, letterSpacing: '0.2em',
-              textTransform: 'uppercase', color: 'var(--copper-deep)',
+              textTransform: 'uppercase', color: '#D4883E',
             }}>Dmg to you</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontSize: 38, lineHeight: 1,
-              letterSpacing: '-0.03em', color: 'var(--copper-deep)', marginTop: 2,
+              letterSpacing: '-0.03em', color: '#D4883E', marginTop: 2,
               fontVariantNumeric: 'tabular-nums',
-            }}>{p.cmdrDmg ?? 0}<span style={{ fontSize: 16, color: 'var(--ink-3)' }}> /21</span></div>
+            }}>{p.cmdrDmg ?? 0}<span style={{ fontSize: 16, color: '#8A7E6F' }}> /21</span></div>
           </div>
           <div style={{
-            background: 'var(--forest-soft)',
-            border: '1px solid var(--forest-line)',
+            background: 'rgba(63,159,77,0.10)',
+            border: '1px solid rgba(63,159,77,0.25)',
             borderRadius: 12, padding: '8px 12px',
           }}>
             <div style={{
               fontSize: 9, fontWeight: 700, letterSpacing: '0.2em',
-              textTransform: 'uppercase', color: 'var(--forest)',
+              textTransform: 'uppercase', color: '#3F9F4D',
             }}>Dmg from you</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontSize: 38, lineHeight: 1,
-              letterSpacing: '-0.03em', color: 'var(--forest-deep)', marginTop: 2,
+              letterSpacing: '-0.03em', color: '#2F7A3A', marginTop: 2,
               fontVariantNumeric: 'tabular-nums',
-            }}>{p.cmdrDmgFromYou ?? 0}<span style={{ fontSize: 16, color: 'var(--ink-3)' }}> /21</span></div>
+            }}>{p.cmdrDmgFromYou ?? 0}<span style={{ fontSize: 16, color: '#8A7E6F' }}> /21</span></div>
           </div>
         </div>
       </div>
@@ -1007,15 +1166,15 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 50,
-      background: 'rgba(0,0,0,0.45)',
+      background: 'rgba(5,3,2,0.72)',
       backdropFilter: 'blur(2px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       animation: 'overlayFadeIn 0.25s ease-out',
     }}>
       <div style={{
         width: 'calc(100% - 48px)', maxWidth: 340,
-        background: 'var(--parchment)',
-        border: '1px solid var(--line-strong)',
+        background: '#1C140C',
+        border: '1px solid rgba(226,184,88,0.18)',
         borderRadius: 24,
         boxShadow: '0 30px 60px -20px rgba(0,0,0,0.60)',
         padding: 20,
@@ -1032,8 +1191,8 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
           </div>
           <button onClick={onClose} style={{
             padding: '6px 12px', borderRadius: 999,
-            background: 'transparent', border: '1px solid var(--line-strong)',
-            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
+            background: 'transparent', border: '1px solid rgba(226,184,88,0.18)',
+            fontSize: 11, fontWeight: 700, color: '#C8BCA8',
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: 'pointer',
           }}>Close</button>
@@ -1042,7 +1201,7 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
         {!confirmingAbandon ? (
           <button onClick={() => setConfirmingAbandon(true)} style={{
             width: '100%', cursor: 'pointer',
-            background: '#1A1410',
+            background: '#150E08',
             color: '#9E2B2B',
             border: '1px solid rgba(158,43,43,0.2)',
             borderRadius: 20,
@@ -1053,14 +1212,14 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{
-              textAlign: 'center', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.4,
+              textAlign: 'center', fontSize: 13, color: '#C8BCA8', lineHeight: 1.4,
               marginBottom: 4,
             }}>
               Are you sure? This action cannot be undone.
             </div>
             <button onClick={onAbandon} style={{
               width: '100%', cursor: 'pointer',
-              background: '#1A1410',
+              background: '#150E08',
               color: '#9E2B2B',
               border: '1px solid rgba(158,43,43,0.2)',
               borderRadius: 20,
@@ -1070,9 +1229,9 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
             }}>Confirm Abandon</button>
             <button onClick={() => setConfirmingAbandon(false)} style={{
               width: '100%', cursor: 'pointer',
-              background: '#1A1410',
-              color: 'var(--ink-2)',
-              border: '1px solid var(--line-strong)',
+              background: '#150E08',
+              color: '#C8BCA8',
+              border: '1px solid rgba(226,184,88,0.18)',
               borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
