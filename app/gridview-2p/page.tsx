@@ -559,7 +559,7 @@ function ModalCompass({ size = 300, opacity = 0.10 }: { size?: number; opacity?:
   );
 }
 
-function ModalCard({ width = 320, onClose, children }: { width?: number; onClose: () => void; children: React.ReactNode }) {
+function ModalCard({ width = 320, onClose, children, showCompass = true }: { width?: number; onClose: () => void; children: React.ReactNode; showCompass?: boolean }) {
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
@@ -574,7 +574,7 @@ function ModalCard({ width = 320, onClose, children }: { width?: number; onClose
         borderRadius: 23,
         overflow: 'hidden',
       }}>
-        <ModalCompass/>
+        {showCompass && <ModalCompass/>}
         <button onClick={onClose} style={{
           position: 'absolute', top: 10, left: 10, zIndex: 2,
           width: 36, height: 36, borderRadius: 999,
@@ -924,7 +924,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={326} onClose={onClose}>
+      <ModalCard width={326} onClose={onClose} showCompass={false}>
         <ModalTitle kicker="Adjust" title="Counters"/>
         <div style={{ marginBottom: 18 }}>
           <PlayerAvatarRow players={players} selectedNum={selectedNum}
@@ -978,7 +978,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={332} onClose={onClose}>
+      <ModalCard width={332} onClose={onClose} showCompass={false}>
         <ModalTitle kicker="Track" title="Commander Damage"/>
         <div style={{ marginBottom: 10 }}>
           <PlayerAvatarRow players={players} selectedNum={fromNum} onSelect={setFromNum}
