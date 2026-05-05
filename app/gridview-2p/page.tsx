@@ -367,9 +367,9 @@ function GameNav({ active = 'grid', onDiceClick, onCountersClick, podId, gameId 
   ];
   return (
     <div style={{
-      position: 'absolute', left: 0, right: 0, bottom: 0,
-      padding: '10px 16px 32px', zIndex: 8,
-      background: DARK.navBg,
+      flexShrink: 0,
+      padding: '10px 16px 24px',
+      background: DARK.bg,
     }}>
       <div style={{
         background: DARK.navPill,
