@@ -117,6 +117,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: any) {
     flame:           <path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 1 2 3 2 3-3z"/>,
     settings:        <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
     warning:         <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
+    layers:          <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -164,32 +165,144 @@ function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = fals
 
 // ─── Digital Mat Mesh ───────────────────────────────────────────────────────
 // Technical grid with thin lines and small + crosses at each intersection.
-function DigitalMatMesh() {
-  const gap = 9;
-  const half = gap / 2;
-  const arm = 1.2;
-  return (
-    <svg style={{
-      position: 'absolute', inset: 0, width: '100%', height: '100%',
-      pointerEvents: 'none', zIndex: 1, opacity: 0.45,
-    }}>
-      <defs>
-        <pattern id="sv-grid-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
-          {/* Grid lines */}
-          <line x1={half} y1="0" x2={half} y2={gap} stroke="rgba(180,155,100,0.25)" strokeWidth="0.3"/>
-          <line x1="0" y1={half} x2={gap} y2={half} stroke="rgba(180,155,100,0.25)" strokeWidth="0.3"/>
-          {/* Cross at center */}
-          <line x1={half - arm} y1={half} x2={half + arm} y2={half} stroke="rgba(180,155,100,0.6)" strokeWidth="0.5"/>
-          <line x1={half} y1={half - arm} x2={half} y2={half + arm} stroke="rgba(180,155,100,0.6)" strokeWidth="0.5"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#sv-grid-mesh)"/>
-    </svg>
-  );
+// ─── Pattern definitions ────────────────────────────────────────────────────
+const PATTERN_LIST = [
+  { key: 'grid-cross', label: 'Grid + Cross' },
+  { key: 'halftone',   label: 'Halftone Dots' },
+  { key: 'diagonal',   label: 'Diagonal Lines' },
+  { key: 'hex',        label: 'Hexagonal' },
+  { key: 'concentric', label: 'Concentric' },
+  { key: 'diamond',    label: 'Diamond Lattice' },
+  { key: 'none',       label: 'No Pattern' },
+] as const;
+
+function DigitalMatMesh({ patternIdx = 0 }: { patternIdx?: number }) {
+  const key = PATTERN_LIST[patternIdx]?.key ?? 'grid-cross';
+  if (key === 'none') return null;
+
+  const svgStyle: React.CSSProperties = {
+    position: 'absolute', inset: 0, width: '100%', height: '100%',
+    pointerEvents: 'none', zIndex: 1, opacity: 0.45,
+  };
+  const c1 = 'rgba(180,155,100,0.25)';
+  const c2 = 'rgba(180,155,100,0.6)';
+
+  if (key === 'grid-cross') {
+    const gap = 9, half = gap / 2, arm = 1.2;
+    return (
+      <svg style={svgStyle}>
+        <defs>
+          <pattern id="sv-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
+            <line x1={half} y1="0" x2={half} y2={gap} stroke={c1} strokeWidth="0.3"/>
+            <line x1="0" y1={half} x2={gap} y2={half} stroke={c1} strokeWidth="0.3"/>
+            <line x1={half - arm} y1={half} x2={half + arm} y2={half} stroke={c2} strokeWidth="0.5"/>
+            <line x1={half} y1={half - arm} x2={half} y2={half + arm} stroke={c2} strokeWidth="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
+      </svg>
+    );
+  }
+
+  if (key === 'halftone') {
+    const gap = 10;
+    return (
+      <svg style={svgStyle}>
+        <defs>
+          <pattern id="sv-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
+            <circle cx={gap / 2} cy={gap / 2} r="1" fill={c2}/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
+      </svg>
+    );
+  }
+
+  if (key === 'diagonal') {
+    const gap = 8;
+    return (
+      <svg style={svgStyle}>
+        <defs>
+          <pattern id="sv-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
+            <line x1="0" y1={gap} x2={gap} y2="0" stroke={c1} strokeWidth="0.4"/>
+            <line x1={-gap / 4} y1={gap / 4} x2={gap / 4} y2={-gap / 4} stroke={c1} strokeWidth="0.4"/>
+            <line x1={gap * 3 / 4} y1={gap + gap / 4} x2={gap + gap / 4} y2={gap * 3 / 4} stroke={c1} strokeWidth="0.4"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
+      </svg>
+    );
+  }
+
+  if (key === 'hex') {
+    // Honeycomb / hex grid
+    const w = 16, h = w * Math.sqrt(3) / 2;
+    const r = w / 3.2;
+    const hex = (cx: number, cy: number) => {
+      const pts = Array.from({ length: 6 }, (_, i) => {
+        const a = (Math.PI / 3) * i - Math.PI / 6;
+        return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
+      }).join(' ');
+      return <polygon key={`${cx}-${cy}`} points={pts} fill="none" stroke={c1} strokeWidth="0.4"/>;
+    };
+    return (
+      <svg style={svgStyle}>
+        <defs>
+          <pattern id="sv-mesh" width={w} height={h * 2} patternUnits="userSpaceOnUse">
+            {hex(w / 2, h / 2)}
+            {hex(0, h + h / 2)}
+            {hex(w, h + h / 2)}
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
+      </svg>
+    );
+  }
+
+  if (key === 'concentric') {
+    // Repeating concentric circles
+    const gap = 18;
+    return (
+      <svg style={svgStyle}>
+        <defs>
+          <pattern id="sv-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
+            <circle cx={gap / 2} cy={gap / 2} r="3" fill="none" stroke={c1} strokeWidth="0.3"/>
+            <circle cx={gap / 2} cy={gap / 2} r="6" fill="none" stroke={c1} strokeWidth="0.25"/>
+            <circle cx={gap / 2} cy={gap / 2} r="0.6" fill={c2}/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
+      </svg>
+    );
+  }
+
+  if (key === 'diamond') {
+    // Diamond / argyle lattice
+    const gap = 12, half = gap / 2;
+    return (
+      <svg style={svgStyle}>
+        <defs>
+          <pattern id="sv-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
+            <line x1={half} y1="0" x2={gap} y2={half} stroke={c1} strokeWidth="0.35"/>
+            <line x1={gap} y1={half} x2={half} y2={gap} stroke={c1} strokeWidth="0.35"/>
+            <line x1={half} y1="0" x2="0" y2={half} stroke={c1} strokeWidth="0.35"/>
+            <line x1="0" y1={half} x2={half} y2={gap} stroke={c1} strokeWidth="0.35"/>
+            <circle cx={half} cy="0" r="0.5" fill={c2}/>
+            <circle cx={half} cy={gap} r="0.5" fill={c2}/>
+            <circle cx="0" cy={half} r="0.5" fill={c2}/>
+            <circle cx={gap} cy={half} r="0.5" fill={c2}/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
+      </svg>
+    );
+  }
+
+  return null;
 }
 
 // ─── Backdrop — commander art + mesh + veil ────────────────────────────────
-function SVBackdrop({ src }: any) {
+function SVBackdrop({ src, patternIdx = 0 }: { src: string; patternIdx?: number }) {
   return (
     <>
       <img src={src} alt="" style={{
@@ -198,7 +311,7 @@ function SVBackdrop({ src }: any) {
       }}/>
 
       {/* Digital mat mesh overlay */}
-      <DigitalMatMesh/>
+      <DigitalMatMesh patternIdx={patternIdx}/>
 
       {/* Dark gradient veil */}
       <div style={{
@@ -221,13 +334,33 @@ function SVBackdrop({ src }: any) {
   );
 }
 
-// ─── Header — settings only ─────────────────────────────────────────────────
-function SVHeader({ onSettings }: any) {
+// ─── Header — settings + pattern toggle ─────────────────────────────────────
+function SVHeader({ onSettings, onPattern, patternLabel }: {
+  onSettings: () => void;
+  onPattern: () => void;
+  patternLabel: string;
+}) {
   return (
     <div style={{
-      position: 'absolute', top: 0, right: 0, zIndex: 10,
+      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
       padding: '52px 14px 0',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
     }}>
+      {/* Pattern cycle button */}
+      <button style={{
+        ...iconBtn(),
+        display: 'flex', alignItems: 'center', gap: 6,
+        paddingRight: 10,
+      }} onClick={onPattern}>
+        <Icon name="layers" size={16} stroke="#8A7E6F"/>
+        <span style={{
+          fontFamily: "'Instrument Sans', system-ui, sans-serif",
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+          textTransform: 'uppercase' as const, color: '#8A7E6F',
+        }}>{patternLabel}</span>
+      </button>
+
+      {/* Settings button */}
       <button style={iconBtn()} onClick={onSettings}>
         <Icon name="settings" size={18} stroke="var(--ink)"/>
       </button>
@@ -1406,6 +1539,7 @@ function PageContent() {
   const [showCmdrDmg, setShowCmdrDmg] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showEliminated, setShowEliminated] = useState(false);
+  const [patternIdx, setPatternIdx] = useState(0);
   const [expandedOpponent, setExpandedOpponent] = useState<string | null>(null);
   const [cmdrDmg, setCmdrDmg] = useState<Record<string, number>>({});
   const [eliminationReason, setEliminationReason] = useState<'life' | 'cmdr' | null>(null);
@@ -1760,8 +1894,12 @@ function PageContent() {
       touchAction: 'none',
       fontFamily: 'var(--font-ui)',
     }}>
-      <SVBackdrop src={myArt}/>
-      <SVHeader onSettings={() => setShowSettings(true)}/>
+      <SVBackdrop src={myArt} patternIdx={patternIdx}/>
+      <SVHeader
+        onSettings={() => setShowSettings(true)}
+        onPattern={() => setPatternIdx(i => (i + 1) % PATTERN_LIST.length)}
+        patternLabel={PATTERN_LIST[patternIdx].label}
+      />
 
       {/* Life dial + buttons */}
       <div style={{
