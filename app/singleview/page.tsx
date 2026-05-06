@@ -224,20 +224,20 @@ function DigitalMatMesh({ patternIdx = 0 }: { patternIdx?: number }) {
       <svg style={svgStyle}>
         <defs>
           <pattern id="sv-mesh" width="20" height="34.64" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="34.64" x2="10" y2="0" stroke="rgba(180,155,100,0.6)" strokeWidth="0.6"/>
-            <line x1="10" y1="0" x2="20" y2="34.64" stroke="rgba(180,155,100,0.6)" strokeWidth="0.6"/>
-            <line x1="0" y1="17.32" x2="20" y2="17.32" stroke="rgba(180,155,100,0.6)" strokeWidth="0.6"/>
-            <line x1="20" y1="0" x2="10" y2="17.32" stroke="rgba(180,155,100,0.6)" strokeWidth="0.6"/>
-            <line x1="10" y1="17.32" x2="20" y2="34.64" stroke="rgba(180,155,100,0.6)" strokeWidth="0.6"/>
-            <line x1="0" y1="0" x2="10" y2="17.32" stroke="rgba(180,155,100,0.6)" strokeWidth="0.6"/>
-            <line x1="10" y1="17.32" x2="0" y2="34.64" stroke="rgba(180,155,100,0.6)" strokeWidth="0.6"/>
-            <circle cx="10" cy="0" r="0.8" fill="rgba(180,155,100,0.8)"/>
-            <circle cx="0" cy="17.32" r="0.8" fill="rgba(180,155,100,0.8)"/>
-            <circle cx="20" cy="17.32" r="0.8" fill="rgba(180,155,100,0.8)"/>
-            <circle cx="10" cy="34.64" r="0.8" fill="rgba(180,155,100,0.8)"/>
+            <line x1="0" y1="34.64" x2="10" y2="0" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
+            <line x1="10" y1="0" x2="20" y2="34.64" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
+            <line x1="0" y1="17.32" x2="20" y2="17.32" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
+            <line x1="20" y1="0" x2="10" y2="17.32" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
+            <line x1="10" y1="17.32" x2="20" y2="34.64" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
+            <line x1="0" y1="0" x2="10" y2="17.32" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
+            <line x1="10" y1="17.32" x2="0" y2="34.64" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
+            <circle cx="10" cy="0" r="1" fill="rgba(180,155,100,0.9)"/>
+            <circle cx="0" cy="17.32" r="1" fill="rgba(180,155,100,0.9)"/>
+            <circle cx="20" cy="17.32" r="1" fill="rgba(180,155,100,0.9)"/>
+            <circle cx="10" cy="34.64" r="1" fill="rgba(180,155,100,0.9)"/>
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#sv-mesh)" opacity="0.55"/>
+        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
       </svg>
     );
   }
@@ -247,16 +247,16 @@ function DigitalMatMesh({ patternIdx = 0 }: { patternIdx?: number }) {
       <svg style={svgStyle}>
         <defs>
           <pattern id="sv-mesh" width="40" height="20" patternUnits="userSpaceOnUse">
-            <polygon points="20,0 40,10 20,10" fill="rgba(200,165,80,0.12)"/>
-            <polygon points="20,0 0,10 20,10" fill="rgba(200,165,80,0.07)"/>
-            <polygon points="20,20 40,10 20,10" fill="rgba(80,60,30,0.09)"/>
-            <polygon points="20,20 0,10 20,10" fill="rgba(120,95,50,0.08)"/>
-            <line x1="20" y1="0" x2="40" y2="10" stroke="rgba(226,184,88,0.35)" strokeWidth="0.6"/>
-            <line x1="20" y1="0" x2="0" y2="10" stroke="rgba(226,184,88,0.25)" strokeWidth="0.5"/>
-            <line x1="0" y1="10" x2="20" y2="20" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <line x1="40" y1="10" x2="20" y2="20" stroke="rgba(180,155,100,0.15)" strokeWidth="0.4"/>
-            <line x1="20" y1="0" x2="20" y2="20" stroke="rgba(226,184,88,0.22)" strokeWidth="0.35"/>
-            <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(180,155,100,0.15)" strokeWidth="0.35"/>
+            <polygon points="20,0 40,10 20,10" fill="rgba(200,165,80,0.22)"/>
+            <polygon points="20,0 0,10 20,10" fill="rgba(200,165,80,0.14)"/>
+            <polygon points="20,20 40,10 20,10" fill="rgba(80,60,30,0.18)"/>
+            <polygon points="20,20 0,10 20,10" fill="rgba(120,95,50,0.16)"/>
+            <line x1="20" y1="0" x2="40" y2="10" stroke="rgba(226,184,88,0.6)" strokeWidth="1.2"/>
+            <line x1="20" y1="0" x2="0" y2="10" stroke="rgba(226,184,88,0.45)" strokeWidth="1.0"/>
+            <line x1="0" y1="10" x2="20" y2="20" stroke="rgba(180,155,100,0.3)" strokeWidth="0.8"/>
+            <line x1="40" y1="10" x2="20" y2="20" stroke="rgba(180,155,100,0.25)" strokeWidth="0.8"/>
+            <line x1="20" y1="0" x2="20" y2="20" stroke="rgba(226,184,88,0.4)" strokeWidth="0.7"/>
+            <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(180,155,100,0.3)" strokeWidth="0.7"/>
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
@@ -269,23 +269,23 @@ function DigitalMatMesh({ patternIdx = 0 }: { patternIdx?: number }) {
       <svg style={svgStyle}>
         <defs>
           <pattern id="sv-mesh" width="80" height="70" patternUnits="userSpaceOnUse">
-            <polygon points="0,0 40,5 25,30" fill="rgba(200,155,60,0.08)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="40,5 80,0 55,25" fill="rgba(180,140,50,0.12)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="0,0 25,30 0,35" fill="rgba(160,125,45,0.06)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="40,5 25,30 55,25" fill="rgba(226,184,88,0.10)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="55,25 80,0 80,35" fill="rgba(170,130,50,0.07)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="25,30 55,25 40,50" fill="rgba(140,110,40,0.05)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="0,35 25,30 15,55" fill="rgba(200,160,65,0.11)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="25,30 40,50 15,55" fill="rgba(180,145,55,0.09)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="55,25 80,35 65,55" fill="rgba(226,184,88,0.13)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="55,25 40,50 65,55" fill="rgba(160,130,50,0.06)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="0,35 15,55 0,70" fill="rgba(190,150,55,0.10)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="15,55 40,50 35,70" fill="rgba(226,184,88,0.08)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="15,55 0,70 35,70" fill="rgba(150,120,45,0.12)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="40,50 65,55 50,70" fill="rgba(200,160,60,0.11)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="40,50 35,70 50,70" fill="rgba(170,135,50,0.07)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="65,55 80,35 80,70" fill="rgba(160,125,45,0.05)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
-            <polygon points="65,55 80,70 50,70" fill="rgba(226,184,88,0.09)" stroke="rgba(180,155,100,0.18)" strokeWidth="0.4"/>
+            <polygon points="0,0 40,5 25,30" fill="rgba(200,155,60,0.16)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="40,5 80,0 55,25" fill="rgba(180,140,50,0.22)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="0,0 25,30 0,35" fill="rgba(160,125,45,0.12)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="40,5 25,30 55,25" fill="rgba(226,184,88,0.20)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="55,25 80,0 80,35" fill="rgba(170,130,50,0.14)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="25,30 55,25 40,50" fill="rgba(140,110,40,0.10)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="0,35 25,30 15,55" fill="rgba(200,160,65,0.20)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="25,30 40,50 15,55" fill="rgba(180,145,55,0.17)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="55,25 80,35 65,55" fill="rgba(226,184,88,0.24)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="55,25 40,50 65,55" fill="rgba(160,130,50,0.12)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="0,35 15,55 0,70" fill="rgba(190,150,55,0.18)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="15,55 40,50 35,70" fill="rgba(226,184,88,0.15)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="15,55 0,70 35,70" fill="rgba(150,120,45,0.22)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="40,50 65,55 50,70" fill="rgba(200,160,60,0.20)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="40,50 35,70 50,70" fill="rgba(170,135,50,0.14)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="65,55 80,35 80,70" fill="rgba(160,125,45,0.10)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
+            <polygon points="65,55 80,70 50,70" fill="rgba(226,184,88,0.17)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
@@ -329,33 +329,13 @@ function SVBackdrop({ src, patternIdx = 0 }: { src: string; patternIdx?: number 
   );
 }
 
-// ─── Header — settings + pattern toggle ─────────────────────────────────────
-function SVHeader({ onSettings, onPattern, patternLabel }: {
-  onSettings: () => void;
-  onPattern: () => void;
-  patternLabel: string;
-}) {
+// ─── Header — settings only ─────────────────────────────────────────────────
+function SVHeader({ onSettings }: { onSettings: () => void }) {
   return (
     <div style={{
-      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+      position: 'absolute', top: 0, right: 0, zIndex: 10,
       padding: '52px 14px 0',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
     }}>
-      {/* Pattern cycle button */}
-      <button style={{
-        ...iconBtn(),
-        display: 'flex', alignItems: 'center', gap: 6,
-        paddingRight: 10,
-      }} onClick={onPattern}>
-        <Icon name="layers" size={16} stroke="#8A7E6F"/>
-        <span style={{
-          fontFamily: "'Instrument Sans', system-ui, sans-serif",
-          fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-          textTransform: 'uppercase' as const, color: '#8A7E6F',
-        }}>{patternLabel}</span>
-      </button>
-
-      {/* Settings button */}
       <button style={iconBtn()} onClick={onSettings}>
         <Icon name="settings" size={18} stroke="var(--ink)"/>
       </button>
@@ -1294,7 +1274,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
 }
 
 // ─── Settings overlay ──────────────────────────────────────────────────────
-function SettingsOverlay({ onClose, onAbandon }: any) {
+function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange }: any) {
   const [confirmingAbandon, setConfirmingAbandon] = useState(false);
 
   return (
@@ -1330,6 +1310,43 @@ function SettingsOverlay({ onClose, onAbandon }: any) {
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: 'pointer',
           }}>Close</button>
+        </div>
+
+        {/* Pattern selector */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ ...kicker(9), marginBottom: 8 }}>Background Pattern</div>
+          <div style={{ position: 'relative' }}>
+            <select
+              value={patternIdx}
+              onChange={(e) => onPatternChange(Number(e.target.value))}
+              style={{
+                width: '100%',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                background: '#150E08',
+                color: '#F0E8D8',
+                border: '1px solid rgba(226,184,88,0.18)',
+                borderRadius: 14,
+                padding: '12px 40px 12px 16px',
+                fontSize: 14, fontWeight: 600,
+                fontFamily: "'Instrument Sans', system-ui, sans-serif",
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              {PATTERN_LIST.map((p, i) => (
+                <option key={p.key} value={i} style={{ background: '#150E08', color: '#F0E8D8' }}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <div style={{
+              position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+              pointerEvents: 'none', color: '#8A7E6F',
+            }}>
+              <Icon name="chevron-left" size={14} stroke="#8A7E6F" width={2}/>
+            </div>
+          </div>
         </div>
 
         {!confirmingAbandon ? (
@@ -1890,11 +1907,7 @@ function PageContent() {
       fontFamily: 'var(--font-ui)',
     }}>
       <SVBackdrop src={myArt} patternIdx={patternIdx}/>
-      <SVHeader
-        onSettings={() => setShowSettings(true)}
-        onPattern={() => setPatternIdx(i => (i + 1) % PATTERN_LIST.length)}
-        patternLabel={PATTERN_LIST[patternIdx].label}
-      />
+      <SVHeader onSettings={() => setShowSettings(true)}/>
 
       {/* Life dial + buttons */}
       <div style={{
@@ -2007,7 +2020,9 @@ function PageContent() {
       {showSettings && (
         <SettingsOverlay
           onClose={() => setShowSettings(false)}
-          onAbandon={() => { setShowSettings(false); handleAbandon(); }}/>
+          onAbandon={() => { setShowSettings(false); handleAbandon(); }}
+          patternIdx={patternIdx}
+          onPatternChange={setPatternIdx}/>
       )}
 
       {/* Eliminated popup */}
