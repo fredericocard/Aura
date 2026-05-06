@@ -411,11 +411,6 @@ function winRateFromAura(aura: number): WinPresence {
   if (aura <= 35) return 'under';
   return 'balanced';
 }
-function winRateFromAura(aura: number): WinPresence {
-  if (aura >= 65) return 'over';
-  if (aura <= 35) return 'under';
-  return 'balanced';
-}
 
 // ── Page content ───────────────────────────────────────────────────────────
 function PageContent() {
