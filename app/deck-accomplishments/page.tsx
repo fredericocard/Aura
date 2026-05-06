@@ -405,4 +405,540 @@ function ScreenHeader({ title, onBack, trailing }: { title: string; onBack?: () 
   );
 }
 
-// ── Win-presence derivation from aura score ────────────────────
+// ── Win-presence derivation from aura score ────────────────────────────────
+function winRateFromAura(aura: number): WinPresence {
+  if (aura >= 65) return 'over';
+  if (aura <= 35) return 'under';
+  return 'balanced';
+}
+function winRateFromAura(aura: number): WinPresence {
+  if (aura >= 65) return 'over';
+  if (aura <= 35) return 'under';
+  return 'balanced';
+}
+
+// ── Page content ───────────────────────────────────────────────────────────
+function PageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const deckId = searchParams.get('deckId') ?? searchParams.get('id') ?? '';
+
+  const [profile, setProfile] = useState<CommanderProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showBracket, setShowBracket] = useState(false);
+  const [selectedBracket, setSelectedBracket] = useState(2);
+  const [showBracketConfirm, setShowBracketConfirm] = useState(false);
+  const [savingBracket, setSavingBracket] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!deckId) { setError('No deck specified'); setLoading(false); return; }
+    getCommanderProfile(deckId)
+      .then(p => {
+        setProfile(p);
+        setSelectedBracket(p.currentBracket);
+      })
+      .catch((e: any) => setError(e?.message ?? 'Failed to load profile'))
+      .finally(() => setLoading(false));
+  }, [deckId]);
+
+  const c = useMemo(() => {
+    if (!profile) return null;
+    const find = (id: string) => profile.badges.find(b => b.badge === id)?.earnedCount ?? 0;
+    const counts: Record<CategoryId, number> = {
+      brilliance: find('brilliance'),
+      flavor:     find('flavor'),
+      rivalry:    find('rivalry'),
+      allegiance: find('allegiance'),
+      fun:        find('fun'),
+    };
+    return {
+      id: profile.deckId,
+      name: profile.commanderName,
+      art: profile.commanderArtUrl,
+      colors: profile.colorIdentity ? profile.colorIdentity.split('').filter(c => 'WUBRGC'.includes(c)) : [],
+      bracket: profile.currentBracket,
+      aura: Math.round(profile.auraScore),
+      gamesPlayed: profile.totalGames,
+      winRate: winRateFromAura(profile.auraScore),
+      counts,
+    };
+  }, [profile]);
+
+  const handleBracketSave = () => {
+    if (!profile) return;
+    if (selectedBracket === profile.currentBracket) {
+      setShowBracket(false);
+      return;
+    }
+    setShowBracketConfirm(true);
+  };
+
+  const handleBracketConfirm = async () => {
+    if (!profile) return;
+    setSavingBracket(true);
+    const { supabase } = await import('@/lib/supabase');
+    const { error: e } = await supabase
+      .from('decks')
+      .update({ bracket: selectedBracket, aura_score: 50 })
+      .eq('id', profile.deckId);
+    if (!e) {
+      setProfile({ ...profile, currentBracket: selectedBracket, auraScore: 50 });
+      setShowBracketConfirm(false);
+      setShowBracket(false);
+    }
+    setSavingBracket(false);
+  };
+
+  const handleDelete = async () => {
+    if (!profile) return;
+    setDeleting(true);
+    const { error: e } = await deleteCommander(profile.deckId);
+    if (!e) {
+      router.push('/decks');
+    } else {
+      setDeleting(false);
+    }
+  };
+
+  const styles = `
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Young+Serif&display=swap');
+
+    :root {
+      --parchment: #F5EFE2;
+      --parchment-card: #FAF5EA;
+      --parchment-deep: #EDE4D0;
+      --ink: #2B2118;
+      --ink-2: #5C5043;
+      --ink-3: #8A7E6F;
+      --ink-4: #B8AE9E;
+      --forest: #2F5D3A;
+      --forest-deep: #22472B;
+      --forest-soft: #E5ECE3;
+      --copper: #B06B2C;
+      --copper-deep: #8A5320;
+      --copper-soft: #F3E3D1;
+      --line: rgba(43,33,24,.08);
+      --line-strong: rgba(43,33,24,.14);
+      --cat-brilliance: #C99B2F;
+      --cat-brilliance-soft: #F6ECD2;
+      --cat-flavor: #7E4E8A;
+      --cat-flavor-soft: #EADDEE;
+      --cat-rivalry: #9E2B2B;
+      --cat-rivalry-soft: #F1D4CF;
+      --cat-allegiance: #2F7A74;
+      --cat-allegiance-soft: #D6E6E3;
+      --cat-fun: #E07B4A;
+      --cat-fun-soft: #F9DFCD;
+      --font-ui: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+      --font-display: 'Young Serif', ui-serif, Georgia, serif;
+      --r-card: 20px;
+      --shadow-rest: 0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12);
+      --shadow-active: 0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22);
+      --ease: cubic-bezier(.22,.61,.36,1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; font-family: var(--font-ui); background: var(--parchment); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+    .ph-root {
+      width: 100%; height: 100%; max-width: 430px; margin: 0 auto;
+      display: flex; flex-direction: column;
+      background: var(--parchment);
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(47,93,58,0.07), transparent 40%),
+        radial-gradient(circle at 90% 100%, rgba(201,155,47,0.05), transparent 35%);
+      position: relative; overflow: hidden;
+    }
+
+    .ph-stamp { font-family: var(--font-ui); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+
+    @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  `;
+
+  if (loading) {
+    return (
+      <>
+        <style dangerouslySetInnerHTML={{ __html: styles }} />
+        <div className="ph-root">
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 14 }}>
+            Loading commander…
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (error || !c) {
+    return (
+      <>
+        <style dangerouslySetInnerHTML={{ __html: styles }} />
+        <div className="ph-root">
+          <ScreenHeader title="Commander" onBack={() => router.push('/decks')}/>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 14, padding: 24, textAlign: 'center' }}>
+            {error || 'Commander not found'}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const tier = tierFor(c.aura);
+  const totalBadges = Object.values(c.counts).reduce((s: number, n: number) => s + n, 0);
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: styles }} />
+      <div className="ph-root">
+        <ScreenHeader title="Commander" onBack={() => router.push('/decks')} trailing={
+          <button onClick={() => setShowDelete(true)} title="More actions" style={{
+            width: 40, height: 40, borderRadius: 999, border: 'none',
+            background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--ink-2)', cursor: 'pointer',
+          }}>
+            <Icon name="dots" size={22} stroke="currentColor"/>
+          </button>
+        }/>
+
+        <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 16px 16px' }}>
+          <div style={{
+            borderRadius: 'var(--r-card)', overflow: 'hidden',
+            background: 'var(--ink)', boxShadow: 'var(--shadow-active)',
+            position: 'relative', border: '1px solid var(--line-strong)',
+            flexShrink: 0,
+          }}>
+            {c.art ? (
+              <img src={c.art} alt="" style={{
+                width: '100%', height: 200, objectFit: 'cover',
+                objectPosition: '50% 22%', display: 'block',
+              }}/>
+            ) : (
+              <div style={{
+                width: '100%', height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'repeating-linear-gradient(45deg, #2B2118 0 8px, #221a13 8px 16px)',
+                color: 'var(--ink-3)', fontSize: 12,
+              }}>commander art</div>
+            )}
+
+            {c.aura > 0 && (
+              <div style={{
+                position: 'absolute', right: 14, bottom: 70,
+                filter: 'drop-shadow(0 4px 10px rgba(43,33,24,0.4))',
+                zIndex: 1,
+              }}>
+                <AuraScore score={c.aura} size="lg" color="var(--copper)"/>
+              </div>
+            )}
+
+            <div style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0,
+              padding: '70px 16px 14px',
+              background: 'linear-gradient(180deg, transparent 0%, rgba(10,6,4,0.5) 45%, rgba(10,6,4,0.94) 100%)',
+              color: 'var(--parchment)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <ManaPips colors={c.colors} size={9}/>
+                {c.bracket && <BracketPip n={c.bracket}/>}
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-display)', fontWeight: 400,
+                fontSize: 22, letterSpacing: '-0.01em',
+                lineHeight: 1.1, color: 'var(--parchment)',
+              }}>{c.name}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
+                <span className="ph-stamp" style={{ fontSize: 10, color: 'var(--copper)', letterSpacing: '0.16em' }}>{tier.label}</span>
+                <span style={{
+                  fontFamily: 'var(--font-display)', fontStyle: 'italic',
+                  fontSize: 12, color: 'rgba(245,239,226,0.78)',
+                }}>— {tier.tagline.toLowerCase()}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--parchment-card)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--r-card)',
+            padding: '12px 14px 14px',
+            boxShadow: 'var(--shadow-rest)',
+            flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Personality</span>
+              <span style={{
+                fontFamily: 'var(--font-display)', fontStyle: 'italic',
+                fontSize: 12, color: 'var(--ink-3)',
+              }}>The Mastermind</span>
+            </div>
+            <DistributionBar counts={c.counts}/>
+          </div>
+
+          <div style={{
+            background: 'var(--parchment-card)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--r-card)',
+            padding: '12px 12px 14px',
+            boxShadow: 'var(--shadow-rest)',
+            flexShrink: 0,
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+              padding: '0 4px', marginBottom: 10,
+            }}>
+              <span className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Trait Badges</span>
+              <span style={{
+                fontFamily: 'var(--font-ui)',
+                fontSize: 11, color: 'var(--ink-3)',
+                fontVariantNumeric: 'tabular-nums', fontWeight: 600,
+              }}>{totalBadges} badge{totalBadges === 1 ? '' : 's'} · {c.gamesPlayed} game{c.gamesPlayed === 1 ? '' : 's'}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {CATEGORIES.map(cat => (
+                <BadgeTile key={cat.id} catId={cat.id} count={c.counts[cat.id] || 0}/>
+              ))}
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--parchment-card)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--r-card)',
+            padding: '8px 14px 10px',
+            boxShadow: 'var(--shadow-rest)',
+            flexShrink: 0,
+          }}>
+            <span className="ph-stamp" style={{
+              fontSize: 10, color: 'var(--ink-3)',
+              display: 'block', marginBottom: 4,
+            }}>Win presence</span>
+            <WinRateMeter state={c.winRate}/>
+          </div>
+
+          <div style={{
+            marginTop: 'auto',
+            display: 'flex', gap: 8,
+            flexShrink: 0,
+          }}>
+            <button onClick={() => { setSelectedBracket(c.bracket || 2); setShowBracket(true); }} style={{
+              flex: 1, cursor: 'pointer',
+              background: 'var(--parchment-card)',
+              border: '1px solid var(--line-strong)',
+              borderLeft: '4px solid var(--copper)',
+              borderRadius: 'var(--r-card)',
+              padding: '10px 12px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              fontFamily: 'var(--font-ui)',
+              boxShadow: 'var(--shadow-rest)',
+              textAlign: 'left', minWidth: 0,
+            }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: 'var(--copper-soft)',
+                border: '1px solid var(--copper)',
+                color: 'var(--copper-deep)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 400,
+                flexShrink: 0,
+              }}>{c.bracket || '—'}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Change bracket</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Currently bracket {c.bracket || '—'}
+                </div>
+              </div>
+            </button>
+
+            <button onClick={() => setShowDelete(true)} title="Remove from library" style={{
+              width: 48, flexShrink: 0, cursor: 'pointer',
+              background: 'transparent',
+              border: '1px dashed var(--line-strong)',
+              borderRadius: 'var(--r-card)',
+              color: 'var(--cat-rivalry)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="trash" size={18} stroke="currentColor" width={1.8}/>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showBracket && (
+        <div onClick={() => setShowBracket(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          fontFamily: 'var(--font-ui)',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 430,
+            background: 'var(--parchment)',
+            borderRadius: '24px 24px 0 0',
+            padding: '14px 16px 28px',
+            boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
+            maxHeight: '90%', overflow: 'auto',
+            borderTop: '1px solid var(--line-strong)',
+            animation: 'slideUp 240ms var(--ease)',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 14px' }}/>
+            <div style={{ textAlign: 'center', marginBottom: 14 }}>
+              <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Power level</div>
+              <div style={{
+                fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 26,
+                color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
+              }}>Choose a bracket</div>
+              <div style={{
+                fontSize: 13, color: 'var(--ink-2)',
+                marginTop: 4, padding: '0 12px',
+              }}>How this commander reads at the table. Set honestly so the pod knows what to bring.</div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {BRACKETS.map(b => (
+                <BracketTile key={b.value} n={b.value} label={b.label} description={b.desc}
+                  selected={selectedBracket === b.value}
+                  onSelect={() => setSelectedBracket(b.value)}/>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button onClick={() => setShowBracket(false)} style={{
+                flex: 1, cursor: 'pointer',
+                background: 'transparent',
+                border: '1px solid var(--line-strong)',
+                borderRadius: 'var(--r-card)',
+                padding: '14px 16px',
+                color: 'var(--ink)',
+                fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 15,
+              }}>Cancel</button>
+              <button onClick={handleBracketSave} disabled={savingBracket} style={{
+                flex: 1.4, cursor: savingBracket ? 'default' : 'pointer',
+                background: savingBracket ? 'var(--ink-3)' : 'var(--forest)',
+                border: 'none',
+                borderRadius: 'var(--r-card)',
+                padding: '14px 16px',
+                color: 'var(--parchment)',
+                fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 15,
+                boxShadow: 'var(--shadow-rest)',
+              }}>{savingBracket ? 'Saving…' : 'Save bracket'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBracketConfirm && (
+        <div onClick={() => !savingBracket && setShowBracketConfirm(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 110,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--font-ui)',
+          padding: 20,
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 340,
+            background: 'var(--parchment)',
+            borderRadius: 20,
+            padding: '24px 22px 20px',
+            boxShadow: '0 30px 60px -16px rgba(43,33,24,0.35)',
+            border: '1px solid var(--line-strong)',
+          }}>
+            <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--copper)' }}>Confirm switch</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22,
+              color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2, lineHeight: 1.2,
+            }}>Move to bracket {selectedBracket}?</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 8, lineHeight: 1.4 }}>
+              Switching brackets will reset your Aura to <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>50</strong>. Past games stay on the record, but the score starts fresh at the new power level.
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button onClick={() => setShowBracketConfirm(false)} disabled={savingBracket} style={{
+                flex: 1, cursor: savingBracket ? 'default' : 'pointer',
+                background: 'transparent',
+                border: '1px solid var(--line-strong)',
+                borderRadius: 'var(--r-card)',
+                padding: '12px 14px',
+                color: 'var(--ink)',
+                fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 14,
+              }}>Cancel</button>
+              <button onClick={handleBracketConfirm} disabled={savingBracket} style={{
+                flex: 1, cursor: savingBracket ? 'default' : 'pointer',
+                background: savingBracket ? 'var(--ink-3)' : 'var(--forest)',
+                border: 'none',
+                borderRadius: 'var(--r-card)',
+                padding: '12px 14px',
+                color: 'var(--parchment)',
+                fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 14,
+                boxShadow: 'var(--shadow-rest)',
+              }}>{savingBracket ? 'Saving…' : 'Confirm'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDelete && (
+        <div onClick={() => !deleting && setShowDelete(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--font-ui)',
+          padding: 20,
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 340,
+            background: 'var(--parchment)',
+            borderRadius: 20,
+            padding: '24px 22px 20px',
+            boxShadow: '0 30px 60px -16px rgba(43,33,24,0.35)',
+            border: '1px solid var(--line-strong)',
+          }}>
+            <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--cat-rivalry)' }}>Remove commander</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22,
+              color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2, lineHeight: 1.2,
+            }}>Delete {c.name}?</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 8, lineHeight: 1.4 }}>
+              This deck will be removed from your library along with its Aura, badges, and history. You can re-add the commander later, but earned data won&apos;t come back.
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button onClick={() => setShowDelete(false)} disabled={deleting} style={{
+                flex: 1, cursor: deleting ? 'default' : 'pointer',
+                background: 'transparent',
+                border: '1px solid var(--line-strong)',
+                borderRadius: 'var(--r-card)',
+                padding: '12px 14px',
+                color: 'var(--ink)',
+                fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 14,
+              }}>Cancel</button>
+              <button onClick={handleDelete} disabled={deleting} style={{
+                flex: 1, cursor: deleting ? 'default' : 'pointer',
+                background: deleting ? 'var(--ink-3)' : 'var(--cat-rivalry)',
+                border: 'none',
+                borderRadius: 'var(--r-card)',
+                padding: '12px 14px',
+                color: 'var(--parchment)',
+                fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 14,
+                boxShadow: 'var(--shadow-rest)',
+              }}>{deleting ? 'Deleting…' : 'Delete deck'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E6F', fontSize: 14 }}>
+        Loading…
+      </div>
+    }>
+      <PageContent />
+    </Suspense>
+  );
+}
