@@ -2,13 +2,61 @@
 
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getCommanderProfile, type CommanderProfile } from '@/lib/commander-profile';
-import { updateBracket, deleteCommander, BRACKETS } from '@/lib/commanders';
+import { deleteCommander, BRACKETS } from '@/lib/commanders';
 
-// ── Tokens ──────────────────────────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────────────────────────
 type CategoryId = 'brilliance' | 'flavor' | 'rivalry' | 'allegiance' | 'fun';
 type WinPresence = 'under' | 'balanced' | 'over';
 
+interface CommanderProfile {
+  deckId: string;
+  commanderName: string;
+  commanderArtUrl: string | null;
+  colorIdentity: string | null;
+  currentBracket: number;
+  auraScore: number;
+  badges: { badge: string; earnedCount: number }[];
+  totalBadgesEarned: number;
+  totalGames: number;
+}
+
+// ── Lightweight profile loader (avoids the brittle getCommanderProfile call) ─
+async function loadProfile(deckId: string): Promise<CommanderProfile> {
+  const { supabase } = await import('@/lib/supabase');
+  const { data: deck, error: deckErr } = await supabase
+    .from('decks')
+    .select('id, commander_name, commander_art_url, color_identity, bracket, aura_score, badge_brilliance, badge_flavor, badge_rivalry, badge_allegiance, badge_fun')
+    .eq('id', deckId)
+    .single() as { data: any; error: any };
+  if (deckErr || !deck) throw new Error(deckErr?.message || 'Deck not found');
+
+  const { count } = await supabase
+    .from('game_players')
+    .select('id', { count: 'exact', head: true })
+    .eq('deck_id', deckId);
+
+  const badges = [
+    { badge: 'brilliance', earnedCount: Number(deck.badge_brilliance ?? 0) },
+    { badge: 'flavor',     earnedCount: Number(deck.badge_flavor     ?? 0) },
+    { badge: 'rivalry',    earnedCount: Number(deck.badge_rivalry    ?? 0) },
+    { badge: 'allegiance', earnedCount: Number(deck.badge_allegiance ?? 0) },
+    { badge: 'fun',        earnedCount: Number(deck.badge_fun        ?? 0) },
+  ];
+
+  return {
+    deckId,
+    commanderName: deck.commander_name,
+    commanderArtUrl: deck.commander_art_url,
+    colorIdentity: deck.color_identity,
+    currentBracket: Number(deck.bracket ?? 2),
+    auraScore: Number(deck.aura_score ?? 50),
+    badges,
+    totalBadgesEarned: badges.reduce((s, b) => s + b.earnedCount, 0),
+    totalGames: count ?? 0,
+  };
+}
+
+// ── Tokens ──────────────────────────────────────────────────────────────────
 const AURA_TIERS = [
   { min: 80, max: 100, label: 'Mythic',    tagline: 'Legendary status' },
   { min: 60, max: 79,  label: 'Beloved',   tagline: 'Regular at the table' },
@@ -37,20 +85,20 @@ const MANA_COLORS: Record<string, { fill: string; stroke: string }> = {
   C: { fill: '#C9BFA8', stroke: 'rgba(43,33,24,0.4)' },
 };
 
-// ── Inline icons ───────────────────────────────────────────────────────────
+// ── Inline icons ────────────────────────────────────────────────────────────
 function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name: string; size?: number; stroke?: string; width?: number }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: width, strokeLinecap: 'round', strokeLinejoin: 'round' } as React.SVGAttributes<SVGSVGElement>;
   const paths: Record<string, React.ReactNode> = {
     'chevron-left': <polyline points="15 18 9 12 15 6"/>,
-    check:    <polyline points="20 6 9 17 4 12"/>,
-    trash:    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>,
-    dots:     <><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></>,
-    lock:     <><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
+    check: <polyline points="20 6 9 17 4 12"/>,
+    trash: <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>,
+    dots:  <><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></>,
+    lock:  <><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
 
-// ── BadgeGlyph (PNG-mask, tints with color) ────────────────────────────────
+// ── BadgeGlyph (PNG mask, tints with color) ─────────────────────────────────
 function BadgeGlyph({ name, size = 28, color = 'currentColor' }: { name: string; size?: number; color?: string }) {
   const url = `/assets/glyphs/${name}.png`;
   return (
@@ -67,7 +115,7 @@ function BadgeGlyph({ name, size = 28, color = 'currentColor' }: { name: string;
   );
 }
 
-// ── AuraMark — brand glyph ─────────────────────────────────────────────────
+// ── AuraMark — brand glyph ──────────────────────────────────────────────────
 function AuraMark({ size = 22, color = 'var(--forest)' }: { size?: number; color?: string }) {
   const id = `aura-mark-clip-${size}`;
   return (
@@ -82,7 +130,7 @@ function AuraMark({ size = 22, color = 'var(--forest)' }: { size?: number; color
   );
 }
 
-// ── AuraScore — ceremonial seal ────────────────────────────────────────────
+// ── AuraScore — ceremonial seal ─────────────────────────────────────────────
 function AuraScore({ score, size = 'lg', color = 'var(--copper)' }: { score: number; size?: 'lg' | 'xl'; color?: string }) {
   const w = size === 'xl' ? 116 : 88;
   const fs = size === 'xl' ? 50 : 38;
@@ -146,12 +194,11 @@ function BracketPip({ n }: { n: number }) {
   );
 }
 
-// ── DistributionBar ────────────────────────────────────────────────────────
+// ── DistributionBar ─────────────────────────────────────────────────────────
 function DistributionBar({ counts, height = 12 }: { counts: Record<CategoryId, number>; height?: number }) {
   const total = Object.values(counts).reduce((s: number, n: number) => s + (n || 0), 0);
   const allCats = CATEGORIES.map(c => ({ ...c, count: counts[c.id] || 0 }));
   const segments = allCats.filter(s => s.count > 0).sort((a, b) => b.count - a.count);
-  // Columns mirror the bar order: earned categories sorted by count desc, then locked.
   const orderedCols = [
     ...segments,
     ...allCats.filter(s => s.count === 0),
@@ -210,7 +257,7 @@ function DistributionBar({ counts, height = 12 }: { counts: Record<CategoryId, n
   );
 }
 
-// ── WinRateMeter ───────────────────────────────────────────────────────────
+// ── WinRateMeter ────────────────────────────────────────────────────────────
 function WinRateMeter({ state = 'balanced' }: { state?: WinPresence }) {
   const stops: { id: WinPresence; label: string }[] = [
     { id: 'under',    label: 'Under-represented' },
@@ -257,7 +304,7 @@ function WinRateMeter({ state = 'balanced' }: { state?: WinPresence }) {
   );
 }
 
-// ── LockedBadge + BadgeTile ────────────────────────────────────────────────
+// ── LockedBadge + BadgeTile ─────────────────────────────────────────────────
 function LockedBadge({ size = 56 }: { size?: number }) {
   return (
     <div style={{
@@ -319,7 +366,7 @@ function BadgeTile({ catId, count = 0 }: { catId: CategoryId; count?: number }) 
   );
 }
 
-// ── BracketTile (for the change-bracket popup) ─────────────────────────────
+// ── BracketTile ─────────────────────────────────────────────────────────────
 function BracketTile({ n, label, description, selected, onSelect }: { n: number; label: string; description: string; selected: boolean; onSelect: () => void }) {
   return (
     <button onClick={onSelect} style={{
@@ -371,7 +418,7 @@ function BracketTile({ n, label, description, selected, onSelect }: { n: number;
   );
 }
 
-// ── ScreenHeader ───────────────────────────────────────────────────────────
+// ── ScreenHeader ────────────────────────────────────────────────────────────
 function ScreenHeader({ title, onBack, trailing }: { title: string; onBack?: () => void; trailing?: React.ReactNode }) {
   return (
     <div style={{
@@ -405,14 +452,14 @@ function ScreenHeader({ title, onBack, trailing }: { title: string; onBack?: () 
   );
 }
 
-// ── Win-presence derivation from aura score ────────────────────────────────
+// ── Win-presence derivation ─────────────────────────────────────────────────
 function winRateFromAura(aura: number): WinPresence {
   if (aura >= 65) return 'over';
   if (aura <= 35) return 'under';
   return 'balanced';
 }
 
-// ── Page content ───────────────────────────────────────────────────────────
+// ── Page content ────────────────────────────────────────────────────────────
 function PageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -430,11 +477,8 @@ function PageContent() {
 
   useEffect(() => {
     if (!deckId) { setError('No deck specified'); setLoading(false); return; }
-    getCommanderProfile(deckId)
-      .then(p => {
-        setProfile(p);
-        setSelectedBracket(p.currentBracket);
-      })
+    loadProfile(deckId)
+      .then(p => { setProfile(p); setSelectedBracket(p.currentBracket); })
       .catch((e: any) => setError(e?.message ?? 'Failed to load profile'))
       .finally(() => setLoading(false));
   }, [deckId]);
@@ -464,10 +508,7 @@ function PageContent() {
 
   const handleBracketSave = () => {
     if (!profile) return;
-    if (selectedBracket === profile.currentBracket) {
-      setShowBracket(false);
-      return;
-    }
+    if (selectedBracket === profile.currentBracket) { setShowBracket(false); return; }
     setShowBracketConfirm(true);
   };
 
@@ -491,11 +532,8 @@ function PageContent() {
     if (!profile) return;
     setDeleting(true);
     const { error: e } = await deleteCommander(profile.deckId);
-    if (!e) {
-      router.push('/decks');
-    } else {
-      setDeleting(false);
-    }
+    if (!e) router.push('/decks');
+    else setDeleting(false);
   };
 
   const styles = `
@@ -598,6 +636,7 @@ function PageContent() {
         }/>
 
         <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 16px 16px' }}>
+          {/* Hero */}
           <div style={{
             borderRadius: 'var(--r-card)', overflow: 'hidden',
             background: 'var(--ink)', boxShadow: 'var(--shadow-active)',
@@ -652,6 +691,7 @@ function PageContent() {
             </div>
           </div>
 
+          {/* Personality */}
           <div style={{
             background: 'var(--parchment-card)',
             border: '1px solid var(--line)',
@@ -670,6 +710,7 @@ function PageContent() {
             <DistributionBar counts={c.counts}/>
           </div>
 
+          {/* Trait Badges */}
           <div style={{
             background: 'var(--parchment-card)',
             border: '1px solid var(--line)',
@@ -696,6 +737,7 @@ function PageContent() {
             </div>
           </div>
 
+          {/* Win presence */}
           <div style={{
             background: 'var(--parchment-card)',
             border: '1px solid var(--line)',
@@ -711,6 +753,7 @@ function PageContent() {
             <WinRateMeter state={c.winRate}/>
           </div>
 
+          {/* Actions */}
           <div style={{
             marginTop: 'auto',
             display: 'flex', gap: 8,
@@ -759,6 +802,7 @@ function PageContent() {
         </div>
       </div>
 
+      {/* Bracket picker */}
       {showBracket && (
         <div onClick={() => setShowBracket(false)} style={{
           position: 'fixed', inset: 0, zIndex: 100,
@@ -823,6 +867,7 @@ function PageContent() {
         </div>
       )}
 
+      {/* Bracket-change confirmation */}
       {showBracketConfirm && (
         <div onClick={() => !savingBracket && setShowBracketConfirm(false)} style={{
           position: 'fixed', inset: 0, zIndex: 110,
@@ -873,6 +918,7 @@ function PageContent() {
         </div>
       )}
 
+      {/* Delete confirmation */}
       {showDelete && (
         <div onClick={() => !deleting && setShowDelete(false)} style={{
           position: 'fixed', inset: 0, zIndex: 100,
