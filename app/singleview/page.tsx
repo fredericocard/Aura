@@ -235,36 +235,6 @@ function SVHeader({ onSettings }: any) {
   );
 }
 
-// ─── Corner brackets (decorative frame around dial) ─────────────────────────
-function CornerBrackets({ size = 220 }: any) {
-  const inset = 0;
-  const len = 18;
-  const sw = 1.5;
-  const color = 'rgba(226,184,88,0.35)';
-  const Bracket = ({ rotate, style }: any) => (
-    <svg width={inset + len + 2} height={inset + len + 2} style={{
-      position: 'absolute', ...style,
-      transform: `rotate(${rotate}deg)`,
-      pointerEvents: 'none',
-    }}>
-      <path d={`M ${inset} ${inset + len} L ${inset} ${inset} L ${inset + len} ${inset}`}
-        stroke={color} strokeWidth={sw} strokeLinecap="round" fill="none"/>
-    </svg>
-  );
-  return (
-    <div style={{
-      position: 'absolute', width: size, height: size,
-      top: '50%', left: '50%',
-      transform: 'translate(-50%, -50%)',
-      pointerEvents: 'none',
-    }}>
-      <Bracket rotate={0}   style={{ top: 0, left: 0 }}/>
-      <Bracket rotate={90}  style={{ top: 0, right: 0 }}/>
-      <Bracket rotate={270} style={{ bottom: 0, left: 0 }}/>
-      <Bracket rotate={180} style={{ bottom: 0, right: 0 }}/>
-    </div>
-  );
-}
 
 // ─── Life dial ──────────────────────────────────────────────────────────────
 const CMDR_DMG_COLORS = ['#E8A54B', '#D4783C', '#B8432E', '#8C2318', '#5E1610'];
@@ -1793,12 +1763,11 @@ function PageContent() {
       <SVBackdrop src={myArt}/>
       <SVHeader onSettings={() => setShowSettings(true)}/>
 
-      {/* Life dial + buttons + corner brackets */}
+      {/* Life dial + buttons */}
       <div style={{
         position: 'relative', zIndex: 4, marginTop: 60,
         display: 'flex', justifyContent: 'center', alignItems: 'center',
       }}>
-        <CornerBrackets size={220}/>
         {!dead && (
           <div style={{ position: 'absolute', left: 24, zIndex: 5 }}>
             <RoundBtn glyph={'−'}
