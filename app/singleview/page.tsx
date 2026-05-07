@@ -435,6 +435,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
               fontSize: 75, lineHeight: 1, letterSpacing: '-0.04em',
               color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
               textShadow: '0 0 30px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
+              paddingTop: 6,
             }}>{life}</div>
         ) : (
           <>
