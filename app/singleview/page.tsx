@@ -422,31 +422,43 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
           fill="none" stroke="#E2B858" strokeWidth="0.4" strokeOpacity="0.25"
           strokeDasharray="1 3"/>
 
-        {/* Life number / eliminated state — centered in SVG for pixel-perfect alignment */}
+      </svg>
+
+      {/* Center content — sized to inner circle (r=68 → 136px), centered in 180px dial */}
+      <div style={{
+        position: 'absolute',
+        top: (sz - 136) / 2,
+        left: (sz - 136) / 2,
+        width: 136,
+        height: 136,
+        borderRadius: '50%',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
         {!dead ? (
-          <text x={cx} y={cx}
-            textAnchor="middle" dominantBaseline="central"
-            fill="var(--ink)"
-            fontFamily="var(--font-display)" fontWeight="400"
-            fontSize="75" letterSpacing="-0.04em"
-            style={{ textShadow: '0 0 30px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)' }}
-          >{life}</text>
+          <div style={{
+            fontFamily: 'var(--font-display)', fontWeight: 400,
+            fontSize: 75, lineHeight: '136px', height: 136,
+            letterSpacing: '-0.04em',
+            color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
+            textShadow: '0 0 30px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
+            textAlign: 'center', width: '100%',
+          }}>{life}</div>
         ) : (
           <>
-            <text x={cx} y={cx - 10}
-              textAnchor="middle" dominantBaseline="central"
-              fill="#E2B858"
-              fontFamily="var(--font-display)" fontWeight="400"
-              fontSize="48">×</text>
-            <text x={cx} y={cx + 22}
-              textAnchor="middle" dominantBaseline="central"
-              fill="#C99B2F"
-              fontFamily="var(--font-ui)" fontWeight="700"
-              fontSize="11" letterSpacing="0.24em"
-              textDecoration="none">ELIMINATED</text>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 48, lineHeight: 1, color: '#E2B858',
+            }}>×</div>
+            <div style={{
+              marginTop: 10, fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.24em', textTransform: 'uppercase',
+              color: '#C99B2F',
+            }}>Eliminated</div>
           </>
         )}
-      </svg>
+      </div>
     </div>
   );
 }
