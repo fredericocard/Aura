@@ -335,9 +335,17 @@ function SVHeader({ onSettings }: { onSettings: () => void }) {
     <div style={{
       position: 'absolute', top: 0, right: 0, zIndex: 10,
       padding: '52px 14px 0',
+      paddingTop: 14,
     }}>
-      <button style={iconBtn()} onClick={onSettings}>
-        <Icon name="settings" size={18} stroke="var(--ink)"/>
+      <button style={{
+        width: 28, height: 28, borderRadius: 8,
+        background: 'transparent',
+        border: 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', padding: 0,
+        opacity: 0.5,
+      }} onClick={onSettings}>
+        <Icon name="settings" size={16} stroke="#8A7E6F" width={1.5}/>
       </button>
     </div>
   );
