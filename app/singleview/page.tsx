@@ -338,14 +338,13 @@ function SVHeader({ onSettings }: { onSettings: () => void }) {
       paddingTop: 14,
     }}>
       <button style={{
-        width: 28, height: 28, borderRadius: 8,
-        background: 'transparent',
-        border: 'none',
+        width: 32, height: 32, borderRadius: 10,
+        background: 'rgba(21,14,8,0.6)',
+        border: '1px solid rgba(226,184,88,0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', padding: 0,
-        opacity: 0.5,
       }} onClick={onSettings}>
-        <Icon name="settings" size={16} stroke="#8A7E6F" width={1.5}/>
+        <Icon name="settings" size={16} stroke="#C8BCA8" width={1.5}/>
       </button>
     </div>
   );
@@ -452,7 +451,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
             color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
             textShadow: '0 0 30px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
             textAlign: 'center', width: '100%',
-            marginTop: 8,
+            marginTop: -8,
           }}>{life}</div>
         ) : (
           <>
