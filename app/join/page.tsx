@@ -1,7 +1,6 @@
 'use client';
 
 import { Suspense, useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { joinPod } from '@/lib/pods';
 
@@ -82,9 +81,9 @@ function PageContent() {
       z-index: 10;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 52px 12px 12px;
-      background: rgba(245,239,226,0.85);
+      gap: 10px;
+      padding: 12px 12px 12px 8px;
+      background: rgba(245,239,226,0.88);
       backdrop-filter: blur(14px) saturate(120%);
       -webkit-backdrop-filter: blur(14px) saturate(120%);
       border-bottom: 1px solid rgba(43,33,24,0.08);
@@ -111,9 +110,12 @@ function PageContent() {
     .header-title {
       flex: 1;
       font-weight: 700;
-      font-size: 20px;
+      font-size: 19px;
       letter-spacing: -0.01em;
       color: #2B2118;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     /* ── Content ── */
@@ -280,12 +282,12 @@ function PageContent() {
       <div className="app">
         {/* Header */}
         <div className="header">
-          <Link href="/landing" className="header-back">
+          <button onClick={() => router.back()} className="header-back">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
-          </Link>
-          <div className="header-title">Join a pod</div>
+          </button>
+          <h1 className="header-title" style={{ margin: 0 }}>Join a pod</h1>
         </div>
 
         {/* Content */}
@@ -324,7 +326,6 @@ function PageContent() {
             value={codeChars.join('')}
             onChange={(e) => handleCodeInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleJoin(); }}
-            autoFocus
             style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
             maxLength={6}
             autoCapitalize="characters"
