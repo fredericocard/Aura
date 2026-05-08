@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { getUserCommanderSummaries, type CommanderSummary } from '@/lib/commander-profile';
 import { supabase } from '@/lib/supabase';
@@ -504,84 +504,136 @@ function SheetRow({ icon, iconColor, iconBg, iconBorder, title, sub, titleColor 
   );
 }
 
+
+/* ──────────────────────────────────────────────────────────────────
+   useSheetDrag — swipe-down-to-dismiss (matches decks pattern)
+   ────────────────────────────────────────────────────────────── */
+function useSheetDrag(onDismiss: () => void) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const currentY = useRef(0);
+  const dragging = useRef(false);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+    currentY.current = 0;
+    dragging.current = true;
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragging.current) return;
+    const dy = e.touches[0].clientY - startY.current;
+    currentY.current = Math.max(0, dy);
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${currentY.current}px)`;
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    dragging.current = false;
+    if (sheetRef.current) sheetRef.current.style.transition = 'transform 0.25s cubic-bezier(.22,.61,.36,1)';
+    if (currentY.current > 100) {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(100%)';
+      setTimeout(onDismiss, 250);
+    } else {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(0)';
+    }
+    currentY.current = 0;
+  }, [onDismiss]);
+
+  return { sheetRef, onTouchStart, onTouchMove, onTouchEnd };
+}
+
 function SettingsSheet({ onClose, onAccount, onLogout }: {
   onClose: () => void; onAccount: () => void; onLogout: () => void;
 }) {
+  const drag = useSheetDrag(onClose);
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 80,
-      background: 'rgba(43,33,24,0.42)',
-      backdropFilter: 'blur(6px)',
-      WebkitBackdropFilter: 'blur(6px)',
-      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+      position: 'fixed', inset: 0, zIndex: 100,
+      background: 'rgba(43,33,24,0.55)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      fontFamily: T.fontUI,
     }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        background: T.parchmentCard,
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        boxShadow: '0 -10px 40px -8px rgba(43,33,24,0.32)',
-        paddingBottom: 28,
+      <div ref={drag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
+        width: '100%', maxWidth: 430, maxHeight: '88%',
+        background: T.parchment,
+        borderRadius: '24px 24px 0 0',
+        padding: '14px 16px 0',
+        boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
         display: 'flex', flexDirection: 'column',
-        animation: 'sheet-up 280ms cubic-bezier(.22,.61,.36,1)',
+        borderTop: `1px solid ${T.lineStrong}`,
+        animation: 'popIn 240ms cubic-bezier(.22,.61,.36,1)',
       }}>
-        {/* Grabber */}
-        <div style={{
-          width: 36, height: 4, borderRadius: 999,
-          background: 'rgba(43,33,24,0.18)',
-          margin: '10px auto 6px',
-        }}/>
-        {/* Title row */}
-        <div style={{
-          padding: '8px 22px 14px',
-          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-        }}>
+        {/* Drag handle + header */}
+        <div
+          onTouchStart={drag.onTouchStart}
+          onTouchMove={drag.onTouchMove}
+          onTouchEnd={drag.onTouchEnd}
+          style={{ cursor: 'grab', touchAction: 'none' }}
+        >
+          <div style={{ width: 40, height: 4, borderRadius: 999, background: T.ink4, margin: '0 auto 6px' }}/>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '8px 0 14px' }}>
+            <div>
+              <div style={{
+                fontFamily: T.fontUI, fontWeight: 700,
+                fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+                color: T.ink3,
+              }}>Your account</div>
+              <div style={{
+                fontFamily: T.fontDisplay, fontWeight: 400, fontSize: 26,
+                color: T.ink, letterSpacing: '-0.01em', marginTop: 2,
+              }}>Settings</div>
+            </div>
+            <button onClick={onClose} style={{
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: T.fontUI, fontSize: 13, fontWeight: 600,
+              color: T.ink3, padding: 0,
+            }}>Done</button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+            <SheetRow
+              icon="user"
+              iconColor={T.ink2}
+              iconBg={T.parchmentDeep}
+              iconBorder={T.lineStrong}
+              title="Account"
+              sub="Name, email, profile picture"
+              onClick={onAccount}
+              chevron
+            />
+          </div>
+
+          <div style={{ paddingTop: 8, borderTop: `1px solid ${T.line}` }}>
+            <button onClick={onLogout} style={{
+              width: '100%', padding: '14px 14px',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              borderRadius: 12, textAlign: 'center',
+              fontFamily: T.fontUI, fontSize: 15, fontWeight: 600,
+              color: T.rivalry,
+            }}>Log out</button>
+          </div>
+
           <div style={{
-            fontFamily: T.fontUI, fontWeight: 700, fontSize: 14,
-            letterSpacing: '0.14em', textTransform: 'uppercase' as const,
-            color: T.ink2,
-          }}>Settings</div>
-          <button onClick={onClose} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            fontFamily: T.fontUI, fontSize: 13, fontWeight: 600,
-            color: T.ink3, padding: 0,
-          }}>Done</button>
-        </div>
-        {/* Rows */}
-        <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <SheetRow
-            icon="user"
-            iconColor={T.ink2}
-            iconBg={T.parchmentDeep}
-            iconBorder={T.lineStrong}
-            title="Account"
-            sub="Name, email, profile picture"
-            onClick={onAccount}
-            chevron
-          />
-        </div>
-        {/* Log out — plain text, separated */}
-        <div style={{ padding: '6px 14px 0', marginTop: 4, borderTop: `1px solid ${T.line}` }}>
-          <button onClick={onLogout} style={{
-            width: '100%', padding: '14px 14px',
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            borderRadius: 12, textAlign: 'center',
-            fontFamily: T.fontUI, fontSize: 15, fontWeight: 600,
-            color: T.rivalry,
-          }}>Log out</button>
-        </div>
-        {/* Footer mark */}
-        <div style={{
-          marginTop: 18, paddingTop: 14,
-          borderTop: `1px solid ${T.line}`,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        }}>
-          <AuraMark size={16} color={T.ink3}/>
-          <div style={{
-            fontFamily: T.fontUI, fontSize: 10, fontWeight: 600,
-            letterSpacing: '0.22em', textTransform: 'uppercase' as const,
-            color: T.ink3,
-          }}>Aura · v1.0</div>
+            marginTop: 18, paddingTop: 14,
+            borderTop: `1px solid ${T.line}`,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+          }}>
+            <AuraMark size={16} color={T.ink3}/>
+            <div style={{
+              fontFamily: T.fontUI, fontSize: 10, fontWeight: 600,
+              letterSpacing: '0.22em', textTransform: 'uppercase' as const,
+              color: T.ink3,
+            }}>Aura · v1.0</div>
+          </div>
         </div>
       </div>
+
+      <style>{`@keyframes popIn { from { transform: translateY(20px); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }`}</style>
     </div>
   );
 }
