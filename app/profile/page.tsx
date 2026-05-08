@@ -195,13 +195,13 @@ function ProfileTopBar({ onSettings, name, initial, joined, gameCount }: {
 
       {/* Aura wordmark row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Link href="/landing" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <AuraMark size={20} color={T.gold}/>
           <span style={{
             fontFamily: T.fontDisplay, fontWeight: 400,
             fontSize: 18, color: T.gold, letterSpacing: '-0.01em', lineHeight: 1,
           }}>Aura</span>
-        </div>
+        </Link>
         <button onClick={onSettings} aria-label="Settings" style={{
           width: 36, height: 36, borderRadius: 999, border: 'none',
           background: 'rgba(255,255,255,0.06)', color: T.ink4,
