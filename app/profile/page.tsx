@@ -156,13 +156,13 @@ function ProfileTopBar({ onSettings }: { onSettings: () => void }) {
       padding: '6px 16px 12px',
       flexShrink: 0,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Link href="/landing" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
         <AuraMark size={22} color={T.forest}/>
         <div style={{
           fontFamily: T.fontDisplay, fontWeight: 400,
           fontSize: 22, color: T.ink, letterSpacing: '-0.01em', lineHeight: 1,
         }}>Aura</div>
-      </div>
+      </Link>
       <button onClick={onSettings} aria-label="Settings" style={{
         width: 40, height: 40, borderRadius: 999, border: 'none',
         background: 'transparent', color: T.ink2,
