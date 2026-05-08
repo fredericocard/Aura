@@ -762,7 +762,7 @@ function PageContent() {
               display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
               padding: '0 4px', marginBottom: 10,
             }}>
-              <span className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Trait Badges</span>
+              <span className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>{tier.label} for</span>
               <span style={{
                 fontFamily: 'var(--font-ui)',
                 fontSize: 11, color: 'var(--ink-3)',
