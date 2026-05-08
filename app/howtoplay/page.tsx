@@ -1487,6 +1487,18 @@ button.btn-secondary {
   color: var(--parchment) !important;
   border: 1px solid rgba(245,239,226,0.20) !important;
 }
+
+
+/* ── Defensive overrides for the deployed page ── */
+html, body { margin: 0; padding: 0; overflow-x: hidden; background: var(--parchment); }
+.ph-root { width: 100%; max-width: 100vw; overflow-x: hidden; }
+
+/* Pull the cover torn edge 1px DOWN into the chapter (parchment) so the brown subpixel doesn't leak */
+.divider-torn-cover { margin-top: -15px !important; margin-bottom: -1px !important; }
+
+/* Pull the signoff torn edge 1px UP toward the chapter so the brown teeth blend into the signoff brown below without a gap */
+section.signoff > .divider-torn { margin-top: -14px !important; margin-bottom: -1px !important; }
+section.signoff > .divider-torn .torn-edge { transform: translateY(1px); }
 `;
 
 export default function HowToPlay() {
