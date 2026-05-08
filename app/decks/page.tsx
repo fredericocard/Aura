@@ -406,13 +406,29 @@ export default function Page() {
   const [registering, setRegistering] = useState(false);
   const [sortBy, setSortBy] = useState<'aura' | 'badges' | 'recent'>('aura');
   const [totalGames, setTotalGames] = useState(0);
+  const [deckGameCounts, setDeckGameCounts] = useState<Record<string, number>>({});
 
-  // Load decks from Supabase
+  // Load decks from Supabase, then fetch per-deck game counts
   useEffect(() => {
     if (!isLoggedIn) { setLoadingDecks(false); return; }
-    getMyCommanders().then(({ data }) => {
+    getMyCommanders().then(async ({ data }) => {
       setDecks(data);
       setLoadingDecks(false);
+      // Fetch game counts per deck
+      if (data.length > 0) {
+        const { supabase: sb } = await import('../../lib/supabase');
+        const deckIds = data.map(d => d.id);
+        const { data: rows } = await sb
+          .from('game_players')
+          .select('deck_id, games!inner(state)')
+          .in('deck_id', deckIds)
+          .eq('games.state', 'completed') as { data: any[]; error: any };
+        const counts: Record<string, number> = {};
+        for (const row of (rows ?? [])) {
+          counts[row.deck_id] = (counts[row.deck_id] || 0) + 1;
+        }
+        setDeckGameCounts(counts);
+      }
     });
   }, [isLoggedIn]);
 
@@ -514,7 +530,7 @@ export default function Page() {
     colors: d.color_identity ? d.color_identity.split('').filter(c => 'WUBRGC'.includes(c)) : [],
     bracket: d.bracket,
     aura: Math.round(d.aura_score || 50),
-    gamesPlayed: 0,
+    gamesPlayed: deckGameCounts[d.id] || 0,
     topBadge: undefined,
   });
 
