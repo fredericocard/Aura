@@ -652,54 +652,6 @@ function MonthDivider({ label, count }: any) {
     </div>
   );
 }
-
-
-// ── Compact dropdown item (used inside the commander dropdown) ───────────────
-function DropdownItem({ label, caption, art, isAll, selected, onSelect }: any) {
-  return (
-    <button onClick={onSelect} style={{
-      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-      padding: '8px 10px',
-      background: selected ? 'var(--forest-soft)' : 'transparent',
-      border: 'none', borderRadius: 10,
-      cursor: 'pointer', textAlign: 'left',
-    }}>
-      {isAll ? (
-        <div style={{
-          width: 30, height: 36, borderRadius: 6, flexShrink: 0,
-          background: 'var(--parchment-deep)',
-          border: '1px dashed var(--line-strong)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--fg-subtle)',
-          fontFamily: 'var(--font-display)', fontSize: 14,
-        }}>∞</div>
-      ) : (
-        <div style={{
-          width: 30, height: 36, borderRadius: 6, overflow: 'hidden', flexShrink: 0,
-          background: 'var(--parchment-deep)', boxShadow: 'inset 0 0 0 1px var(--line-strong)',
-        }}>
-          <img src={art} alt="" style={{ width: '100%', height: '100%',
-            objectFit: 'cover', objectPosition: '50% 20%' }}/>
-        </div>
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
-          fontSize: 14, color: 'var(--ink)', letterSpacing: '-0.01em',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
-        <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--fg-subtle)',
-          letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1 }}>{caption}</div>
-      </div>
-      {selected && (
-        <div style={{
-          color: 'var(--forest)', flexShrink: 0,
-        }}>
-          <Icon name="check" size={16} width={2.4}/>
-        </div>
-      )}
-    </button>
-  );
-}
-
 // ── Swipe-to-dismiss hook (matches decks page) ──────────────────────────────
 function useSheetDrag(onDismiss: () => void) {
   const sheetRef = useRef<HTMLDivElement>(null);
