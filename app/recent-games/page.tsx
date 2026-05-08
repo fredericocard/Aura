@@ -764,7 +764,7 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: a
       fontFamily: 'var(--font-ui)',
     }}>
       <div ref={drag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 430, height: '88%',
+        width: '100%', maxWidth: 430, maxHeight: '88%',
         background: 'var(--parchment)',
         borderRadius: '24px 24px 0 0',
         padding: '14px 16px 0',
@@ -1233,4 +1233,5 @@ export default function Page() {
       <RecentGamesPageInner/>
     </Suspense>
   );
+}
 }
