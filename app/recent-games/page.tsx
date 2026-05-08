@@ -578,44 +578,57 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
   );
 }
 
-// ── Bottom navigation ────────────────────────────────────────────────────────
-function BottomNav({ active = 'recent', onNavigate }: any) {
-  const items = [
-    { id: 'profile', label: 'Profile' },
-    { id: 'decks',   label: 'Decks' },
-    { id: 'recent',  label: 'Recent' },
+// ── Bottom navigation (matches profile/decks pages) ──────────────────────────
+function BottomNav({ active = 'recent' }: { active?: 'profile' | 'decks' | 'recent' }) {
+  const items: { id: 'profile' | 'decks' | 'recent'; label: string; href: string; icon?: string }[] = [
+    { id: 'profile', label: 'Profile', href: '/profile', icon: 'profile' },
+    { id: 'decks',   label: 'Decks',   href: '/decks' },
+    { id: 'recent',  label: 'Recent',  href: '/recent-games', icon: 'layers' },
   ];
+
+  const navIcon = (name: string, color: string) => {
+    const p: any = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' };
+    if (name === 'profile') return <svg {...p}><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>;
+    if (name === 'layers')  return <svg {...p}><path d="M3 6h18M3 12h18M3 18h12"/></svg>;
+    return null;
+  };
+
   return (
     <div style={{
-      position: 'absolute', left: 0, right: 0, bottom: 0,
-      paddingBottom: 22,
-      background: 'rgba(245,239,226,0.92)',
+      position: 'fixed', left: 0, right: 0, bottom: 0,
+      borderTop: '1px solid rgba(43,33,24,0.14)',
+      background: 'rgba(250,245,234,0.92)',
       backdropFilter: 'blur(14px) saturate(120%)',
       WebkitBackdropFilter: 'blur(14px) saturate(120%)',
-      borderTop: '1px solid var(--line)',
-      zIndex: 12,
+      display: 'flex',
+      padding: '8px 8px calc(22px + env(safe-area-inset-bottom, 0px))',
+      fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif",
+      zIndex: 50,
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 12px 6px' }}>
-        {items.map((it: any) => {
-          const isActive = it.id === active;
-          return (
-            <button key={it.id} onClick={() => onNavigate?.(it.id)} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: '6px 12px',
-              color: isActive ? 'var(--forest)' : 'var(--fg-subtle)',
-            }}>
-              <Icon name={it.id} size={22} width={isActive ? 2 : 1.6}/>
-              <span style={{ fontSize: 10.5, fontWeight: isActive ? 700 : 500,
-                letterSpacing: '0.04em' }}>{it.label}</span>
-              {isActive && (
-                <div style={{ width: 4, height: 4, borderRadius: 999,
-                  background: 'var(--forest)', marginTop: -2 }}/>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {items.map((item) => {
+        const isActive = item.id === active;
+        const color = isActive ? '#2F5D3A' : '#8A7E6F';
+        return (
+          <a key={item.id} href={item.href} style={{
+            flex: 1,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            padding: '6px 0',
+            color,
+            textDecoration: 'none',
+          }}>
+            {item.id === 'decks' ? (
+              <AuraMark size={22} color={color}/>
+            ) : item.icon ? (
+              navIcon(item.icon, color)
+            ) : null}
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase' as const,
+              color,
+            }}>{item.label}</span>
+          </a>
+        );
+      })}
     </div>
   );
 }
@@ -808,7 +821,7 @@ function RecentGamesScreen({
   onOpenMemoryCard,
   onNavigate,
 }: any) {
-  const [expandedId, setExpandedId] = useState(games[0]?.id || null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState({ commanderId: null, sort: 'recent' });
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -840,9 +853,9 @@ function RecentGamesScreen({
 
   return (
     <div className="aura-root" style={{
-      position: 'relative', width: '100%', height: '100%', minHeight: 700,
+      position: 'relative', width: '100%', minHeight: '100vh',
       background: 'var(--parchment)',
-      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
     }}>
       <TopBar
         title="Recent Games"
