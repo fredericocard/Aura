@@ -1,8 +1,32 @@
 'use client';
 
-import { Suspense, useState, useRef, useEffect } from 'react';
+import { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { joinPod } from '@/lib/pods';
+
+/* ── BarcodeDetector type shim (native API, not in TS lib) ──────────────── */
+interface DetectedBarcode { rawValue: string; }
+declare class BarcodeDetector {
+  constructor(opts: { formats: string[] });
+  detect(source: ImageBitmapSource): Promise<DetectedBarcode[]>;
+  static getSupportedFormats?: () => Promise<string[]>;
+}
+
+/* ── Extract 6-char pod code from any QR value ──────────────────────────── */
+function extractCode(raw: string): string | null {
+  // URL like …/join?code=ABC123
+  try {
+    const u = new URL(raw);
+    const c = u.searchParams.get('code');
+    if (c && /^[A-Z0-9]{6}$/i.test(c.trim())) return c.trim().toUpperCase();
+  } catch { /* not a URL */ }
+  // Plain 6-char alphanumeric
+  const trimmed = raw.trim().toUpperCase();
+  if (/^[A-Z0-9]{6}$/.test(trimmed)) return trimmed;
+  // Embedded in longer string
+  const m = trimmed.match(/\b([A-Z0-9]{6})\b/);
+  return m ? m[1] : null;
+}
 
 function PageContent() {
   const router = useRouter();
@@ -11,6 +35,14 @@ function PageContent() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Camera state
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanTimerRef = useRef<number | null>(null);
+  const [camStatus, setCamStatus] = useState<'idle' | 'requesting' | 'active' | 'denied' | 'unavailable'>('idle');
+  const [scannedCode, setScannedCode] = useState<string | null>(null);
 
   // Pre-fill from ?code= query param
   useEffect(() => {
@@ -22,11 +54,111 @@ function PageContent() {
     }
   }, [searchParams]);
 
+  /* ── Camera lifecycle ─────────────────────────────────────────────────── */
+  const stopCamera = useCallback(() => {
+    if (scanTimerRef.current) { clearInterval(scanTimerRef.current); scanTimerRef.current = null; }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+  }, []);
+
+  // Start camera on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function startCamera() {
+      // Check API availability
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCamStatus('unavailable');
+        return;
+      }
+
+      setCamStatus('requesting');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        setCamStatus('active');
+
+        // Start scanning loop
+        startScanning();
+      } catch (err: any) {
+        if (cancelled) return;
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setCamStatus('denied');
+        } else {
+          setCamStatus('unavailable');
+        }
+      }
+    }
+
+    startCamera();
+    return () => { cancelled = true; stopCamera(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ── QR scanning loop ─────────────────────────────────────────────────── */
+  const startScanning = useCallback(() => {
+    // Try native BarcodeDetector first
+    let detector: BarcodeDetector | null = null;
+    try {
+      if (typeof BarcodeDetector !== 'undefined') {
+        detector = new BarcodeDetector({ formats: ['qr_code'] });
+      }
+    } catch { /* not available */ }
+
+    const scan = async () => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas || video.readyState < 2) return;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      try {
+        if (detector) {
+          const barcodes = await detector.detect(canvas);
+          for (const bc of barcodes) {
+            const code = extractCode(bc.rawValue);
+            if (code) { handleScannedCode(code); return; }
+          }
+        }
+      } catch { /* detector failed, keep trying */ }
+    };
+
+    scanTimerRef.current = window.setInterval(scan, 350);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleScannedCode(code: string) {
+    if (scannedCode) return; // already got one
+    setScannedCode(code);
+    const chars = code.split('');
+    while (chars.length < 6) chars.push('');
+    setCodeChars(chars);
+    // Stop scanning once we have a code
+    if (scanTimerRef.current) { clearInterval(scanTimerRef.current); scanTimerRef.current = null; }
+  }
+
   function handleCodeInput(value: string) {
     const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     const chars = clean.split('');
     while (chars.length < 6) chars.push('');
     setCodeChars(chars);
+    setScannedCode(null); // Allow re-scanning if user edits
   }
 
   async function handleJoin() {
@@ -42,7 +174,7 @@ function PageContent() {
       return;
     }
 
-    // Navigate to a waiting/gridview page
+    stopCamera();
     router.push(`/singleview?podId=${pod.id}`);
   }
 
@@ -136,11 +268,20 @@ function PageContent() {
       margin-top: 8px;
     }
 
+    .scanner-viewport video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     /* Frame corners */
     .corner {
       position: absolute;
       width: 40px;
       height: 40px;
+      z-index: 2;
     }
 
     .corner-tl { top: 18px; left: 18px; border-top: 3px solid #B06B2C; border-left: 3px solid #B06B2C; border-top-left-radius: 12px; }
@@ -158,22 +299,12 @@ function PageContent() {
       background: linear-gradient(90deg, transparent, #B06B2C, transparent);
       box-shadow: 0 0 12px rgba(176,107,44,0.6);
       animation: scanPulse 2.5s ease-in-out infinite;
+      z-index: 2;
     }
 
     @keyframes scanPulse {
       0%, 100% { top: 35%; opacity: 0.4; }
       50% { top: 60%; opacity: 1; }
-    }
-
-    /* Camera grid */
-    .camera-grid {
-      position: absolute;
-      inset: 30px;
-      background-image:
-        linear-gradient(rgba(245,239,226,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(245,239,226,0.04) 1px, transparent 1px);
-      background-size: 24px 24px;
-      opacity: 0.6;
     }
 
     .scanner-label {
@@ -187,7 +318,50 @@ function PageContent() {
       font-weight: 700;
       letter-spacing: 0.18em;
       text-transform: uppercase;
+      z-index: 2;
     }
+
+    .scanner-status {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      z-index: 1;
+      color: rgba(245,239,226,0.6);
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .scanner-status-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: rgba(245,239,226,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Success flash */
+    .scanner-success {
+      position: absolute;
+      inset: 0;
+      background: rgba(47,93,58,0.35);
+      border: 3px solid #2F5D3A;
+      border-radius: 24px;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: flashIn 0.3s ease;
+    }
+
+    @keyframes flashIn { from { opacity: 0; } to { opacity: 1; } }
 
     /* ── Or Enter Code Divider ── */
     .or-divider {
@@ -294,13 +468,82 @@ function PageContent() {
         <div className="content">
           {/* Scanner Viewport */}
           <div className="scanner-viewport">
-            <div className="corner corner-tl" />
-            <div className="corner corner-tr" />
-            <div className="corner corner-bl" />
-            <div className="corner corner-br" />
-            <div className="scan-line" />
-            <div className="camera-grid" />
-            <div className="scanner-label">Point camera at QR code</div>
+            {/* Live camera feed */}
+            <video ref={videoRef} playsInline muted />
+            {/* Hidden canvas for QR detection */}
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+            {/* Overlays on top of camera */}
+            {camStatus === 'active' && !scannedCode && (
+              <>
+                <div className="corner corner-tl" />
+                <div className="corner corner-tr" />
+                <div className="corner corner-bl" />
+                <div className="corner corner-br" />
+                <div className="scan-line" />
+                <div className="scanner-label">Point camera at QR code</div>
+              </>
+            )}
+
+            {/* Success flash when code detected */}
+            {scannedCode && (
+              <div className="scanner-success">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#F5EFE2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+            )}
+
+            {/* Status messages when camera isn't active */}
+            {camStatus === 'idle' && (
+              <div className="scanner-status">
+                <div className="scanner-status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </div>
+                Starting camera…
+              </div>
+            )}
+
+            {camStatus === 'requesting' && (
+              <div className="scanner-status">
+                <div className="scanner-status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </div>
+                Allow camera access to scan
+              </div>
+            )}
+
+            {camStatus === 'denied' && (
+              <div className="scanner-status">
+                <div className="scanner-status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                    <path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2v9"/>
+                  </svg>
+                </div>
+                Camera access denied<br/>
+                <span style={{ fontSize: 11, opacity: 0.7 }}>Use the code input below instead</span>
+              </div>
+            )}
+
+            {camStatus === 'unavailable' && (
+              <div className="scanner-status">
+                <div className="scanner-status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </div>
+                Camera not available<br/>
+                <span style={{ fontSize: 11, opacity: 0.7 }}>Enter the pod code manually</span>
+              </div>
+            )}
           </div>
 
           {/* Or Enter Code */}
