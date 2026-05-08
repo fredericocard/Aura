@@ -1,7 +1,7 @@
 'use client';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useId, Suspense } from 'react';
+import React, { useState, useEffect, useId, useRef, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getGameLog } from '@/lib/game-log';
@@ -646,8 +646,90 @@ function MonthDivider({ label, count }: any) {
   );
 }
 
+
+// ── Compact dropdown item (used inside the commander dropdown) ───────────────
+function DropdownItem({ label, caption, art, isAll, selected, onSelect }: any) {
+  return (
+    <button onClick={onSelect} style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 10px',
+      background: selected ? 'var(--forest-soft)' : 'transparent',
+      border: 'none', borderRadius: 10,
+      cursor: 'pointer', textAlign: 'left',
+    }}>
+      {isAll ? (
+        <div style={{
+          width: 30, height: 36, borderRadius: 6, flexShrink: 0,
+          background: 'var(--parchment-deep)',
+          border: '1px dashed var(--line-strong)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--fg-subtle)',
+          fontFamily: 'var(--font-display)', fontSize: 14,
+        }}>∞</div>
+      ) : (
+        <div style={{
+          width: 30, height: 36, borderRadius: 6, overflow: 'hidden', flexShrink: 0,
+          background: 'var(--parchment-deep)', boxShadow: 'inset 0 0 0 1px var(--line-strong)',
+        }}>
+          <img src={art} alt="" style={{ width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: '50% 20%' }}/>
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
+          fontSize: 14, color: 'var(--ink)', letterSpacing: '-0.01em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+        <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--fg-subtle)',
+          letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1 }}>{caption}</div>
+      </div>
+      {selected && (
+        <div style={{
+          color: 'var(--forest)', flexShrink: 0,
+        }}>
+          <Icon name="check" size={16} width={2.4}/>
+        </div>
+      )}
+    </button>
+  );
+}
+
 // ── Filter sheet ─────────────────────────────────────────────────────────────
 function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: any) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const dragStartY = useRef<number | null>(null);
+
+  // Close dropdown when sheet closes
+  useEffect(() => {
+    if (!open) {
+      setDropdownOpen(false);
+      setDragY(0);
+    }
+  }, [open]);
+
+  const onTouchStart = (e: any) => {
+    dragStartY.current = e.touches[0].clientY;
+    setDragY(0);
+  };
+  const onTouchMove = (e: any) => {
+    if (dragStartY.current === null) return;
+    const delta = e.touches[0].clientY - dragStartY.current;
+    if (delta > 0) setDragY(delta);
+  };
+  const onTouchEnd = () => {
+    if (dragY > 100) {
+      onClose();
+    }
+    setDragY(0);
+    dragStartY.current = null;
+  };
+
+  const selected = filter.commanderId ? commanders.find((c: any) => c.id === filter.commanderId) : null;
+  const selectedLabel = selected ? selected.short : 'All commanders';
+  const selectedCaption = selected
+    ? `${selected.plays} ${selected.plays === 1 ? 'game' : 'games'}`
+    : 'Show every game';
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100,
       pointerEvents: open ? 'auto' : 'none' }}>
@@ -664,12 +746,18 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: a
         background: 'var(--parchment-card)',
         borderTopLeftRadius: 24, borderTopRightRadius: 24,
         boxShadow: '0 -12px 40px -8px rgba(43,33,24,0.25)',
-        transform: open ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 240ms var(--ease)',
+        transform: open ? `translateY(${dragY}px)` : 'translateY(100%)',
+        transition: dragY > 0 ? 'none' : 'transform 240ms var(--ease)',
         maxHeight: '80%',
         display: 'flex', flexDirection: 'column',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+        {/* Drag handle area — touch events for swipe-down-to-close */}
+        <div
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', cursor: 'grab', touchAction: 'none' }}
+        >
           <div style={{ width: 36, height: 4, borderRadius: 999, background: 'var(--line-strong)' }}/>
         </div>
 
@@ -689,24 +777,82 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: a
             textTransform: 'uppercase', color: 'var(--fg-subtle)', marginBottom: 8 }}>
             Commander
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
-            <CommanderRow
-              label="All commanders"
-              caption="Show every game"
-              isAll
-              selected={!filter.commanderId}
-              onSelect={() => onChange({ ...filter, commanderId: null })}
-            />
-            {commanders.map((c: any) => (
-              <CommanderRow
-                key={c.id}
-                label={c.short}
-                caption={`${c.plays} ${c.plays === 1 ? 'game' : 'games'}`}
-                art={c.art}
-                selected={filter.commanderId === c.id}
-                onSelect={() => onChange({ ...filter, commanderId: c.id })}
-              />
-            ))}
+
+          {/* Commander dropdown (compact, scrollable) */}
+          <div style={{ position: 'relative', marginBottom: 22 }}>
+            <button
+              onClick={() => setDropdownOpen(o => !o)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '10px 12px',
+                background: 'var(--parchment)',
+                border: `1px solid ${dropdownOpen ? 'var(--forest-line)' : 'var(--line-strong)'}`,
+                borderRadius: 14, cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              {selected ? (
+                <div style={{
+                  width: 36, height: 44, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
+                  background: 'var(--parchment-deep)', boxShadow: 'inset 0 0 0 1px var(--line-strong)',
+                }}>
+                  <img src={selected.art} alt="" style={{ width: '100%', height: '100%',
+                    objectFit: 'cover', objectPosition: '50% 20%' }}/>
+                </div>
+              ) : (
+                <div style={{
+                  width: 36, height: 44, borderRadius: 8, flexShrink: 0,
+                  background: 'var(--parchment-deep)',
+                  border: '1px dashed var(--line-strong)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--fg-subtle)',
+                  fontFamily: 'var(--font-display)', fontSize: 16,
+                }}>∞</div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
+                  fontSize: 16, color: 'var(--ink)', letterSpacing: '-0.01em',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLabel}</div>
+                <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--fg-subtle)',
+                  letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 }}>{selectedCaption}</div>
+              </div>
+              <div style={{
+                color: 'var(--fg-subtle)', flexShrink: 0,
+                transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 200ms var(--ease)',
+              }}>
+                <Icon name="chevron-down" size={18}/>
+              </div>
+            </button>
+
+            {dropdownOpen && (
+              <div style={{
+                position: 'absolute', left: 0, right: 0, top: 'calc(100% + 6px)', zIndex: 5,
+                background: 'var(--parchment-card)',
+                border: '1px solid var(--line-strong)',
+                borderRadius: 14,
+                boxShadow: '0 10px 28px -10px rgba(43,33,24,0.30)',
+                maxHeight: 280, overflowY: 'auto',
+                padding: 6,
+              }}>
+                <DropdownItem
+                  label="All commanders"
+                  caption="Show every game"
+                  isAll
+                  selected={!filter.commanderId}
+                  onSelect={() => { onChange({ ...filter, commanderId: null }); setDropdownOpen(false); }}
+                />
+                {commanders.map((c: any) => (
+                  <DropdownItem
+                    key={c.id}
+                    label={c.short}
+                    caption={`${c.plays} ${c.plays === 1 ? 'game' : 'games'}`}
+                    art={c.art}
+                    selected={filter.commanderId === c.id}
+                    onSelect={() => { onChange({ ...filter, commanderId: c.id }); setDropdownOpen(false); }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
