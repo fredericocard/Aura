@@ -34,7 +34,7 @@ const HOWTO_HTML = `<section class="cover cover-dark">
   </div>
 </section>
 <div class="divider-torn divider-torn-cover">
-  <svg class="torn-edge" width="200" height="14" viewBox="0 0 200 22" preserveAspectRatio="none" aria-hidden="true">
+  <svg class="torn-edge" width="200" height="22" viewBox="0 0 200 22" preserveAspectRatio="none" aria-hidden="true">
     <path d="M 0 22 L 0.0 2.0 L 8.3 9.7 L 16.7 2.2 L 25.0 8.2 L 33.3 3.1 L 41.7 7.8 L 50.0 3.9 L 58.3 6.7 L 66.7 3.0 L 75.0 8.2 L 83.3 4.9 L 91.7 9.3 L 100.0 2.5 L 108.3 10.0 L 116.7 4.4 L 125.0 7.8 L 133.3 4.8 L 141.7 7.7 L 150.0 3.9 L 158.3 7.3 L 166.7 4.3 L 175.0 8.2 L 183.3 4.0 L 191.7 7.7 L 200.0 2.4 L 200 22 Z" fill="var(--parchment)"/>
   </svg>
 </div>
@@ -640,7 +640,7 @@ const HOWTO_CSS = `
 /* ========== Page background (sandbox / behind device) ========== */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px 12px; }
+/* sandbox preview body rule removed */
 
 /* ========== iOS device frame ========== */
 .ios-device {
@@ -1451,7 +1451,7 @@ button.btn-secondary {
 .cover.cover-dark .cover-compass g { stroke: var(--gold); opacity: 0.5; }
 
 /* Cover torn edge — sits flush below the cover, teeth point DOWN into the parchment chapters below */
-.divider-torn-cover { margin: -14px -24px 0; padding: 0; line-height: 0; position: relative; z-index: 5; display: block; }
+.divider-torn-cover { margin: -14px -24px -8px; padding: 0; line-height: 0; position: relative; z-index: 5; display: block; } .divider-torn-cover .torn-edge { width: 100% !important; height: 22px !important; display: block !important; }
 .divider-torn-cover .torn-edge { width: 100%; height: 14px; display: block; }
 
 /* Cover Aura mark — recolor the logo strokes for dark bg (target svg in cover-inner) */
