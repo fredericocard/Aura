@@ -614,10 +614,10 @@ function FormField({ label, value, onChange, type = 'text', focused = false, rea
   );
 }
 
-function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, onSave, onDeleteAccount }: {
+function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, onSave, onDeleteAccount, onChangePhoto }: {
   initial: string; nameValue: string; emailValue: string;
   onNameChange: (v: string) => void; onBack: () => void;
-  onSave: () => void; onDeleteAccount: () => void;
+  onSave: () => void; onDeleteAccount: () => void; onChangePhoto: () => void;
 }) {
   return (
     <div style={{
@@ -660,7 +660,7 @@ function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, o
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '4px 0 8px' }}>
           <div style={{ position: 'relative' }}>
             <MonogramAvatar initial={initial} size={96} sigil={null}/>
-            <button aria-label="Change photo" style={{
+            <button onClick={onChangePhoto} aria-label="Change photo" style={{
               position: 'absolute', right: -2, bottom: -2,
               width: 34, height: 34, borderRadius: 999,
               background: T.ink, color: T.parchment,
@@ -672,7 +672,7 @@ function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, o
               <ProfileIcon name="camera" size={16} width={2} stroke={T.parchment}/>
             </button>
           </div>
-          <button style={{
+          <button onClick={onChangePhoto} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             fontFamily: T.fontUI, fontSize: 13, fontWeight: 600,
             color: T.forest, padding: '4px 8px',
@@ -851,6 +851,7 @@ export default function ProfilePage() {
             }
           }}
           onDeleteAccount={() => showToastMsg('Delete Account — Coming Soon')}
+          onChangePhoto={() => showToastMsg('Change Photo — Coming Soon')}
         />
       )}
 
