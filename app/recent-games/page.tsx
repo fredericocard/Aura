@@ -263,24 +263,31 @@ function groupByMonth(games: any[]) {
   return out;
 }
 
-// ── Top app bar ──────────────────────────────────────────────────────────────
-function TopBar({ title, right }: any) {
+// ── Top app bar (matches decks header) ──────────────────────────────────────
+function TopBar({ right }: { right?: React.ReactNode }) {
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 8,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '14px 18px 12px',
-      background: 'rgba(245,239,226,0.88)',
+      background: 'rgba(245,239,226,0.92)',
       backdropFilter: 'blur(14px) saturate(120%)',
       WebkitBackdropFilter: 'blur(14px) saturate(120%)',
       borderBottom: '1px solid var(--line)',
+      padding: '14px 16px 10px',
+      flexShrink: 0,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <AuraMark size={20}/>
-        <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 400,
-          fontSize: 22, letterSpacing: '-0.01em', color: 'var(--ink)' }}>{title}</h1>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>History</div>
+          <h1 style={{
+            margin: '2px 0 0',
+            fontFamily: 'var(--font-display)',
+            fontWeight: 400, fontSize: 32,
+            color: 'var(--ink)', letterSpacing: '-0.02em',
+            lineHeight: 1,
+          }}>Recent Games</h1>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>{right}</div>
       </div>
-      <div style={{ display: 'flex', gap: 6 }}>{right}</div>
     </div>
   );
 }
@@ -1004,14 +1011,13 @@ function RecentGamesScreen({
       display: 'flex', flexDirection: 'column',
     }}>
       <TopBar
-        title="Recent Games"
         right={<FilterButton active={filterCount > 0} count={filterCount}
           onClick={() => setFilterOpen(true)}/>}
       />
 
-      <div style={{ padding: '10px 18px 6px' }}>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.14em',
-          textTransform: 'uppercase', color: 'var(--fg-subtle)' }}>
+      <div style={{ padding: '10px 16px 6px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em',
+          textTransform: 'uppercase', color: 'var(--ink-3)' }}>
           {visible.length} {visible.length === 1 ? 'game' : 'games'}
           {activeCommander && (
             <span style={{ color: 'var(--forest)', marginLeft: 8 }}>· {activeCommander.short}</span>

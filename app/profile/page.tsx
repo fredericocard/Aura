@@ -152,25 +152,34 @@ function MonogramAvatar({ initial, size = 96, ring = true }: {
 function ProfileTopBar({ onSettings }: { onSettings: () => void }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '6px 16px 12px',
+      position: 'sticky', top: 0, zIndex: 10,
+      background: 'rgba(245,239,226,0.92)',
+      backdropFilter: 'blur(14px) saturate(120%)',
+      WebkitBackdropFilter: 'blur(14px) saturate(120%)',
+      borderBottom: `1px solid ${T.line}`,
+      padding: '14px 16px 10px',
       flexShrink: 0,
     }}>
-      <Link href="/landing" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-        <AuraMark size={22} color={T.forest}/>
-        <div style={{
-          fontFamily: T.fontDisplay, fontWeight: 400,
-          fontSize: 22, color: T.ink, letterSpacing: '-0.01em', lineHeight: 1,
-        }}>Aura</div>
-      </Link>
-      <button onClick={onSettings} aria-label="Settings" style={{
-        width: 40, height: 40, borderRadius: 999, border: 'none',
-        background: 'transparent', color: T.ink2,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer',
-      }}>
-        <ProfileIcon name="settings" size={22}/>
-      </button>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.ink3 }}>Account</div>
+          <h1 style={{
+            margin: '2px 0 0',
+            fontFamily: T.fontDisplay,
+            fontWeight: 400, fontSize: 32,
+            color: T.ink, letterSpacing: '-0.02em',
+            lineHeight: 1,
+          }}>Profile</h1>
+        </div>
+        <button onClick={onSettings} aria-label="Settings" style={{
+          width: 40, height: 40, borderRadius: 999, border: 'none',
+          background: 'transparent', color: T.ink2,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+        }}>
+          <ProfileIcon name="settings" size={22}/>
+        </button>
+      </div>
     </div>
   );
 }
