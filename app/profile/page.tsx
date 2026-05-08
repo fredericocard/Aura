@@ -62,6 +62,8 @@ function ProfileIcon({ name, size = 22, stroke = 'currentColor', width = 1.75 }:
     pencil:   <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></>,
     'chevron-right': <polyline points="9 18 15 12 9 6"/>,
     'chevron-left':  <polyline points="15 18 9 12 15 6"/>,
+    profile:  <><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></>,
+    layers:   <><path d="M3 6h18M3 12h18M3 18h12"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -382,70 +384,50 @@ function CommandersSection({ commanders, loading }: { commanders: CommanderSumma
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   BottomNav
+   BottomNav — matches decks page exactly
    ────────────────────────────────────────────────────────────── */
-function BottomNav({ active = 'profile' }: { active?: string }) {
-  const tabs = [
-    { id: 'profile', label: 'Profile', icon: 'user', href: '/profile' },
-    { id: 'decks',   label: 'Decks',   icon: 'decks', href: '/decks' },
-    { id: 'recent',  label: 'Recent',  icon: 'history', href: '/recent-games' },
+function BottomNav({ active = 'profile' }: { active?: 'profile' | 'decks' | 'recent' }) {
+  const items: { id: 'profile' | 'decks' | 'recent'; label: string; href: string; icon?: string }[] = [
+    { id: 'profile', label: 'Profile', href: '/profile', icon: 'profile' },
+    { id: 'decks',   label: 'Decks',   href: '/decks' },
+    { id: 'recent',  label: 'Recent',  href: '/recent-games', icon: 'layers' },
   ];
+
   return (
     <div style={{
-      flexShrink: 0,
-      borderTop: `1px solid ${T.line}`,
-      background: 'rgba(245,239,226,0.92)',
+      borderTop: `1px solid ${T.lineStrong}`,
+      background: 'rgba(250,245,234,0.9)',
       backdropFilter: 'blur(14px) saturate(120%)',
       WebkitBackdropFilter: 'blur(14px) saturate(120%)',
+      display: 'flex',
+      padding: '8px 8px 22px',
+      fontFamily: T.fontUI,
+      flexShrink: 0,
     }}>
-      <div style={{
-        display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
-        padding: '8px 8px 4px',
-      }}>
-        {tabs.map(t => {
-          const isActive = t.id === active;
-          const inner = (
-            <>
-              <ProfileIcon name={t.icon} size={22} width={isActive ? 2 : 1.7} stroke={isActive ? T.forest : T.ink3}/>
-              <div style={{
-                fontFamily: T.fontUI, fontSize: 11,
-                fontWeight: isActive ? 700 : 500,
-                letterSpacing: '0.04em',
-                color: isActive ? T.forest : T.ink3,
-              }}>{t.label}</div>
-              {isActive && (
-                <div style={{
-                  position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
-                  width: 18, height: 2, borderRadius: 2, background: T.forest,
-                }}/>
-              )}
-            </>
-          );
-
-          if (isActive) {
-            return (
-              <div key={t.id} style={{
-                flex: 1, background: 'transparent', border: 'none',
-                padding: '8px 4px 4px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                position: 'relative',
-              }}>{inner}</div>
-            );
-          }
-          return (
-            <Link key={t.id} href={t.href} style={{
-              flex: 1, background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: '8px 4px 4px', textDecoration: 'none',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              position: 'relative',
-            }}>{inner}</Link>
-          );
-        })}
-      </div>
-      {/* Home indicator */}
-      <div style={{ height: 26, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 8 }}>
-        <div style={{ width: 134, height: 5, borderRadius: 999, background: 'rgba(43,33,24,0.65)' }}/>
-      </div>
+      {items.map(item => {
+        const isActive = item.id === active;
+        const color = isActive ? T.forest : T.ink3;
+        return (
+          <Link key={item.id} href={item.href} style={{
+            flex: 1,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            padding: '6px 0',
+            color,
+            textDecoration: 'none',
+          }}>
+            {item.id === 'decks' ? (
+              <AuraMark size={22} color={color}/>
+            ) : item.icon ? (
+              <ProfileIcon name={item.icon} size={22} stroke={color} width={1.75}/>
+            ) : null}
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase' as const,
+              color,
+            }}>{item.label}</span>
+          </Link>
+        );
+      })}
     </div>
   );
 }
