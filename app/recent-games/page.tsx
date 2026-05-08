@@ -105,7 +105,7 @@ const CATEGORIES = [
 ];
 
 // ── Brand mark ───────────────────────────────────────────────────────────────
-function AuraMark({ size = 22, color = 'var(--forest)' }) {
+function AuraMark({ size = 22, color = 'var(--forest)' }: any) {
   const id = useId().replace(/[:]/g, '');
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
@@ -123,7 +123,7 @@ function AuraMark({ size = 22, color = 'var(--forest)' }) {
 // 64×64 viewBox. If you have PNG marks at /assets/glyphs/<name>.png and want
 // to use them instead, pass `glyphBase` to RecentGamesScreen and the component
 // will CSS-mask the PNG so it inherits the category color.
-function BadgeGlyph({ name, size = 28, stroke = 'currentColor', glyphBase }) {
+function BadgeGlyph({ name, size = 28, stroke = 'currentColor', glyphBase }: any) {
   if (glyphBase) {
     return (
       <span aria-hidden="true" style={{
@@ -232,7 +232,7 @@ function BadgeGlyph({ name, size = 28, stroke = 'currentColor', glyphBase }) {
 }
 
 // ── Tiny stroke icons ────────────────────────────────────────────────────────
-function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }) {
+function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: any) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke,
     strokeWidth: width, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
   switch (name) {
@@ -248,23 +248,23 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }) {
 }
 
 // ── Helpers (closures over data-providing props) ─────────────────────────────
-const findById = (list, id) => list.find(x => x.id === id);
-const categoryById = id => findById(CATEGORIES, id);
+const findById = (list: any[], id: string) => list.find((x: any) => x.id === id);
+const categoryById = (id: string) => findById(CATEGORIES, id);
 
-function groupByMonth(games) {
-  const seen = new Map();
-  const out = [];
-  games.forEach(g => {
+function groupByMonth(games: any[]) {
+  const seen = new Map<string, { label: string; items: any[] }>();
+  const out: { label: string; items: any[] }[] = [];
+  games.forEach((g: any) => {
     const month = (g.date || '').split(' ')[0];
     const label = month || 'Other';
-    if (!seen.has(label)) { const o = { label, items: [] }; seen.set(label, o); out.push(o); }
-    seen.get(label).items.push(g);
+    if (!seen.has(label)) { const o = { label, items: [] as any[] }; seen.set(label, o); out.push(o); }
+    seen.get(label)!.items.push(g);
   });
   return out;
 }
 
 // ── Top app bar ──────────────────────────────────────────────────────────────
-function TopBar({ title, right }) {
+function TopBar({ title, right }: any) {
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 8,
@@ -286,7 +286,7 @@ function TopBar({ title, right }) {
 }
 
 // ── Filter pill ──────────────────────────────────────────────────────────────
-function FilterButton({ active, count, onClick }) {
+function FilterButton({ active, count, onClick }: any) {
   return (
     <button onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -312,7 +312,7 @@ function FilterButton({ active, count, onClick }) {
 }
 
 // ── Earned-badge row (expanded view) ─────────────────────────────────────────
-function EarnedRow({ badge, players, glyphBase }) {
+function EarnedRow({ badge, players, glyphBase }: any) {
   const cat = categoryById(badge.id);
   const giver = findById(players, badge.from);
   if (!cat || !giver) return null;
@@ -345,7 +345,7 @@ function EarnedRow({ badge, players, glyphBase }) {
 }
 
 // ── Player seat (expanded view) ──────────────────────────────────────────────
-function TableSeat({ playerId, isYou, isWinner, players }) {
+function TableSeat({ playerId, isYou, isWinner, players }: any) {
   const p = findById(players, playerId);
   if (!p) return null;
   return (
@@ -395,7 +395,7 @@ function TableSeat({ playerId, isYou, isWinner, players }) {
 }
 
 // ── Game row (collapsed + expanded) ──────────────────────────────────────────
-function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commanders, youId, glyphBase }) {
+function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commanders, youId, glyphBase }: any) {
   const cmd = findById(commanders, game.myCommanderId);
   const primary = game.myBadges[0];
   const cat = primary ? categoryById(primary.id) : null;
@@ -579,7 +579,7 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
 }
 
 // ── Bottom navigation ────────────────────────────────────────────────────────
-function BottomNav({ active = 'recent', onNavigate }) {
+function BottomNav({ active = 'recent', onNavigate }: any) {
   const items = [
     { id: 'profile', label: 'Profile' },
     { id: 'decks',   label: 'Decks' },
@@ -621,7 +621,7 @@ function BottomNav({ active = 'recent', onNavigate }) {
 }
 
 // ── Month divider ────────────────────────────────────────────────────────────
-function MonthDivider({ label, count }) {
+function MonthDivider({ label, count }: any) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 4px 10px' }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
@@ -634,7 +634,7 @@ function MonthDivider({ label, count }) {
 }
 
 // ── Filter sheet ─────────────────────────────────────────────────────────────
-function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }) {
+function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: any) {
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 30,
       pointerEvents: open ? 'auto' : 'none' }}>
@@ -750,7 +750,7 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }) {
   );
 }
 
-function CommanderRow({ label, caption, art, isAll, selected, onSelect }) {
+function CommanderRow({ label, caption, art, isAll, selected, onSelect }: any) {
   return (
     <button onClick={onSelect} style={{
       width: '100%', display: 'flex', alignItems: 'center', gap: 12,
@@ -804,10 +804,10 @@ function RecentGamesScreen({
   players      = DEMO_PLAYERS,
   myCommanders = DEMO_COMMANDERS,
   youId        = 'frederico',
-  glyphBase,                // optional: e.g. '/assets/glyphs/' for PNG-masked marks
-  onOpenMemoryCard,         // (game) => void
-  onNavigate,               // (tabId) => void  — for bottom nav
-}) {
+  glyphBase,
+  onOpenMemoryCard,
+  onNavigate,
+}: any) {
   const [expandedId, setExpandedId] = useState(games[0]?.id || null);
   const [filter, setFilter] = useState({ commanderId: null, sort: 'recent' });
   const [filterOpen, setFilterOpen] = useState(false);
