@@ -184,18 +184,18 @@ function IdentityHero({ name, initial, joined, gameCount }: {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 12, padding: '4px 24px 0',
+      gap: 8, padding: '0 24px',
     }}>
-      <MonogramAvatar initial={initial} size={104}/>
-      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+      <MonogramAvatar initial={initial} size={76}/>
+      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
         <div style={{
           fontFamily: T.fontDisplay, fontWeight: 400,
-          fontSize: 30, lineHeight: 1.1, letterSpacing: '-0.01em',
+          fontSize: 22, lineHeight: 1.1, letterSpacing: '-0.01em',
           color: T.ink,
         }}>{name}</div>
         <div style={{
-          fontFamily: T.fontUI, fontSize: 12, fontWeight: 600,
-          letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+          fontFamily: T.fontUI, fontSize: 11, fontWeight: 600,
+          letterSpacing: '0.14em', textTransform: 'uppercase' as const,
           color: T.ink3,
         }}>{joined} · {gameCount} games</div>
       </div>
@@ -208,47 +208,26 @@ function IdentityHero({ name, initial, joined, gameCount }: {
    ────────────────────────────────────────────────────────────── */
 function PodCard() {
   return (
-    <div style={{
-      margin: '0 16px',
-      background: T.parchmentCard,
-      border: `1px solid ${T.line}`,
-      borderRadius: 20,
-      boxShadow: T.shadowRest,
-      overflow: 'hidden',
-    }}>
-      <div style={{ padding: '16px 18px 4px' }}>
-        <div style={{
-          fontFamily: T.fontUI, fontSize: 11, fontWeight: 700,
-          letterSpacing: '0.14em', textTransform: 'uppercase' as const,
-          color: T.ink3,
-        }}>Your pod</div>
-        <div style={{
-          fontFamily: T.fontDisplay, fontWeight: 400,
-          fontSize: 20, color: T.ink, lineHeight: 1.2, marginTop: 4,
-          letterSpacing: '-0.005em',
-        }}>Bring your table together.</div>
-      </div>
-      <div style={{ display: 'flex', gap: 10, padding: '14px 14px 16px' }}>
-        <Link href="/create" style={{
-          flex: 1, border: 'none', cursor: 'pointer', textDecoration: 'none',
-          background: T.forest, color: T.parchment,
-          fontFamily: T.fontUI, fontWeight: 600, fontSize: 14,
-          padding: '12px 14px', borderRadius: 14,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          boxShadow: T.shadowRest,
-        }}>
-          <ProfileIcon name="plus" size={16} width={2.2} stroke={T.parchment}/>
-          Create a pod
-        </Link>
-        <Link href="/join" style={{
-          flex: 1, cursor: 'pointer', textDecoration: 'none',
-          background: T.parchment, color: T.ink,
-          border: `1px solid ${T.lineStrong}`,
-          fontFamily: T.fontUI, fontWeight: 600, fontSize: 14,
-          padding: '12px 14px', borderRadius: 14,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>Join a pod</Link>
-      </div>
+    <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+      <Link href="/create" style={{
+        flex: 1, border: 'none', cursor: 'pointer', textDecoration: 'none',
+        background: T.forest, color: T.parchment,
+        fontFamily: T.fontUI, fontWeight: 600, fontSize: 14,
+        padding: '12px 14px', borderRadius: 14,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        boxShadow: T.shadowRest,
+      }}>
+        <ProfileIcon name="plus" size={16} width={2.2} stroke={T.parchment}/>
+        Create a pod
+      </Link>
+      <Link href="/join" style={{
+        flex: 1, cursor: 'pointer', textDecoration: 'none',
+        background: T.parchmentCard, color: T.ink,
+        border: `1px solid ${T.lineStrong}`,
+        fontFamily: T.fontUI, fontWeight: 600, fontSize: 14,
+        padding: '12px 14px', borderRadius: 14,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>Join a pod</Link>
     </div>
   );
 }
@@ -770,8 +749,8 @@ export default function ProfilePage() {
 
         <div style={{
           flex: 1, overflowY: 'auto',
-          display: 'flex', flexDirection: 'column', gap: 24,
-          paddingTop: 8, paddingBottom: 24,
+          display: 'flex', flexDirection: 'column', gap: 16,
+          paddingTop: 4, paddingBottom: 24,
         }}>
           <IdentityHero
             name={nameInputValue || 'Player'}
