@@ -137,7 +137,7 @@ function BadgeGlyph({ name, size = 28, stroke = 'currentColor', glyphBase }: any
       }}/>
     );
   }
-  const p = { width: size, height: size, viewBox: '0 0 64 64', fill: 'none', stroke,
+  const p: any = { width: size, height: size, viewBox: '0 0 64 64', fill: 'none', stroke,
     strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
   switch (name) {
     case 'brilliance': return (
@@ -233,7 +233,7 @@ function BadgeGlyph({ name, size = 28, stroke = 'currentColor', glyphBase }: any
 
 // ── Tiny stroke icons ────────────────────────────────────────────────────────
 function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: any) {
-  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke,
+  const p: any = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke,
     strokeWidth: width, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
   switch (name) {
     case 'chevron-down':  return <svg {...p}><polyline points="6 9 12 15 18 9"/></svg>;
