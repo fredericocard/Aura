@@ -95,6 +95,8 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     dots:  <><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></>,
     lock:  <><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
     clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+    layers: <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
+    scroll: <><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M19 17V5a2 2 0 0 0-2-2H6"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -828,7 +830,7 @@ function PageContent() {
               }}>Done</button>
             </div>
             {/* Rows */}
-            <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
               {/* Change bracket */}
               <button onClick={() => { setShowMenu(false); setSelectedBracket(c.bracket || 2); setShowBracket(true); }} style={{
                 display: 'flex', alignItems: 'center', gap: 14,
@@ -838,13 +840,14 @@ function PageContent() {
               }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12,
-                  background: 'var(--copper-soft)',
-                  border: '1.5px solid var(--copper)',
-                  color: 'var(--copper-deep)',
+                  background: 'var(--parchment-deep)',
+                  border: '1.5px solid var(--line-strong)',
+                  color: 'var(--ink-2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
-                  fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 400,
-                }}>{c.bracket || '—'}</div>
+                }}>
+                  <Icon name="layers" size={20} stroke="currentColor" width={1.6}/>
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>Change bracket</div>
                   <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>Currently bracket {c.bracket || '—'}</div>
@@ -859,41 +862,29 @@ function PageContent() {
               }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12,
-                  background: 'var(--forest-soft)',
-                  border: '1.5px solid var(--forest)',
-                  color: 'var(--forest-deep)',
+                  background: 'var(--parchment-deep)',
+                  border: '1.5px solid var(--line-strong)',
+                  color: 'var(--ink-2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <Icon name="clock" size={20} stroke="currentColor" width={1.8}/>
+                  <Icon name="scroll" size={20} stroke="currentColor" width={1.6}/>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>Recent games</div>
                   <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>View match history</div>
                 </div>
               </button>
-              {/* Delete deck */}
+            </div>
+            {/* Delete — plain text, separated */}
+            <div style={{ padding: '6px 14px 0', marginTop: 4, borderTop: '1px solid var(--line)' }}>
               <button onClick={() => { setShowMenu(false); setShowDelete(true); }} style={{
-                display: 'flex', alignItems: 'center', gap: 14,
                 width: '100%', padding: '14px 14px',
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                borderRadius: 16, textAlign: 'left',
-              }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  background: 'var(--cat-rivalry-soft)',
-                  border: '1.5px solid var(--cat-rivalry)',
-                  color: 'var(--cat-rivalry)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <Icon name="trash" size={20} stroke="currentColor" width={1.8}/>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--cat-rivalry)', lineHeight: 1.2 }}>Delete deck</div>
-                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>Remove from your library</div>
-                </div>
-              </button>
+                borderRadius: 12, textAlign: 'center',
+                fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600,
+                color: 'var(--cat-rivalry)',
+              }}>Delete deck</button>
             </div>
           </div>
         </div>
