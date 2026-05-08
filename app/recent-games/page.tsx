@@ -903,7 +903,7 @@ function RecentGamesScreen({
         )}
       </div>
 
-      <BottomNav active="recent" onNavigate={onNavigate}/>
+      <BottomNav active="recent"/>
 
       <FilterSheet
         open={filterOpen}
