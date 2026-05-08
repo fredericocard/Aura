@@ -325,10 +325,8 @@ export default function Page() {
       letter-spacing: -0.01em;
       color: #2B2118;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
-
-    .player-tile:active { transform: scale(0.95); }
 
     .player-tile.selected {
       background: #2F5D3A;
