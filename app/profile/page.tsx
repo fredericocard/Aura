@@ -109,10 +109,10 @@ function AuraMark({ size = 22, color = T.forest }: { size?: number; color?: stri
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   MonogramAvatar — serif initial, copper rim, compass ticks, sigil
+   MonogramAvatar — serif initial, copper rim, compass ticks
    ────────────────────────────────────────────────────────────── */
-function MonogramAvatar({ initial, size = 96, sigil = null as string | null, ring = true }: {
-  initial: string; size?: number; sigil?: string | null; ring?: boolean;
+function MonogramAvatar({ initial, size = 96, ring = true }: {
+  initial: string; size?: number; ring?: boolean;
 }) {
   return (
     <div style={{
@@ -142,19 +142,6 @@ function MonogramAvatar({ initial, size = 96, sigil = null as string | null, rin
         fontSize: size * 0.46, color: T.ink, letterSpacing: '-0.02em',
         lineHeight: 1, position: 'relative',
       }}>{initial}</span>
-      {sigil && (
-        <div style={{
-          position: 'absolute', right: -2, bottom: -2,
-          width: size * 0.30, height: size * 0.30, borderRadius: 999,
-          background: T.parchmentCard,
-          border: `1.5px solid ${T.copper}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: T.copper,
-          boxShadow: '0 2px 6px rgba(43,33,24,0.18)',
-        }}>
-          <BadgeGlyph name={sigil} size={size * 0.18} stroke={T.copperDeep}/>
-        </div>
-      )}
     </div>
   );
 }
@@ -191,15 +178,15 @@ function ProfileTopBar({ onSettings }: { onSettings: () => void }) {
 /* ──────────────────────────────────────────────────────────────────
    IdentityHero — avatar + name + meta line
    ────────────────────────────────────────────────────────────── */
-function IdentityHero({ name, initial, joined, gameCount, sigil }: {
-  name: string; initial: string; joined: string; gameCount: number; sigil: string;
+function IdentityHero({ name, initial, joined, gameCount }: {
+  name: string; initial: string; joined: string; gameCount: number;
 }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       gap: 12, padding: '4px 24px 0',
     }}>
-      <MonogramAvatar initial={initial} size={104} sigil={sigil}/>
+      <MonogramAvatar initial={initial} size={104}/>
       <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
         <div style={{
           fontFamily: T.fontDisplay, fontWeight: 400,
@@ -641,7 +628,7 @@ function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, o
         {/* Avatar block */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '4px 0 8px' }}>
           <div style={{ position: 'relative' }}>
-            <MonogramAvatar initial={initial} size={96} sigil={null}/>
+            <MonogramAvatar initial={initial} size={96}/>
             <button onClick={onChangePhoto} aria-label="Change photo" style={{
               position: 'absolute', right: -2, bottom: -2,
               width: 34, height: 34, borderRadius: 999,
@@ -791,7 +778,6 @@ export default function ProfilePage() {
             initial={initial}
             joined={joinDate || 'Joined recently'}
             gameCount={gameCount}
-            sigil="brilliance"
           />
           <PodCard/>
           <CommandersSection commanders={commanders} loading={loadingDecks}/>
