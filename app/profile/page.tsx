@@ -482,27 +482,27 @@ function SettingsSheet({ onClose, onAccount, onLogout }: {
           }}>Done</button>
         </div>
         {/* Rows */}
-        <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <SheetRow
             icon="user"
-            iconColor={T.forest}
-            iconBg={T.forestSoft}
-            iconBorder={T.forestLine}
+            iconColor={T.ink2}
+            iconBg={T.parchmentDeep}
+            iconBorder={T.lineStrong}
             title="Account"
             sub="Name, email, profile picture"
             onClick={onAccount}
             chevron
           />
-          <SheetRow
-            icon="log-out"
-            iconColor={T.rivalry}
-            iconBg={T.rivalrySoft}
-            iconBorder="rgba(158,43,43,0.35)"
-            title="Log out"
-            sub="Sign out of this device"
-            titleColor={T.rivalry}
-            onClick={onLogout}
-          />
+        </div>
+        {/* Log out — plain text, separated */}
+        <div style={{ padding: '6px 14px 0', marginTop: 4, borderTop: `1px solid ${T.line}` }}>
+          <button onClick={onLogout} style={{
+            width: '100%', padding: '14px 14px',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            borderRadius: 12, textAlign: 'center',
+            fontFamily: T.fontUI, fontSize: 15, fontWeight: 600,
+            color: T.rivalry,
+          }}>Log out</button>
         </div>
         {/* Footer mark */}
         <div style={{
