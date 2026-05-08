@@ -1,7 +1,7 @@
 'use client';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useId, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useId, useRef, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getGameLog } from '@/lib/game-log';
@@ -700,36 +700,96 @@ function DropdownItem({ label, caption, art, isAll, selected, onSelect }: any) {
   );
 }
 
-// ── Filter sheet ─────────────────────────────────────────────────────────────
-function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: any) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [dragY, setDragY] = useState(0);
-  const dragStartY = useRef<number | null>(null);
+// ── Swipe-to-dismiss hook (matches decks page) ──────────────────────────────
+function useSheetDrag(onDismiss: () => void) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const currentY = useRef(0);
+  const dragging = useRef(false);
 
-  // Close dropdown when sheet closes
-  useEffect(() => {
-    if (!open) {
-      setDropdownOpen(false);
-      setDragY(0);
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+    currentY.current = 0;
+    dragging.current = true;
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragging.current) return;
+    const dy = e.touches[0].clientY - startY.current;
+    currentY.current = Math.max(0, dy);
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${currentY.current}px)`;
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    dragging.current = false;
+    if (sheetRef.current) sheetRef.current.style.transition = 'transform 0.25s cubic-bezier(.22,.61,.36,1)';
+    if (currentY.current > 100) {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(100%)';
+      setTimeout(onDismiss, 250);
+    } else {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(0)';
     }
+    currentY.current = 0;
+  }, [onDismiss]);
+
+  return { sheetRef, onTouchStart, onTouchMove, onTouchEnd };
+}
+
+// ── Compact dropdown item (used inside the commander dropdown) ───────────────
+function DropdownItem({ label, caption, art, isAll, selected, onSelect }: any) {
+  return (
+    <button onClick={onSelect} style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 10px',
+      background: selected ? 'var(--forest-soft)' : 'transparent',
+      border: 'none', borderRadius: 10,
+      cursor: 'pointer', textAlign: 'left',
+    }}>
+      {isAll ? (
+        <div style={{
+          width: 30, height: 36, borderRadius: 6, flexShrink: 0,
+          background: 'var(--parchment-deep)',
+          border: '1px dashed var(--line-strong)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--fg-subtle)',
+          fontFamily: 'var(--font-display)', fontSize: 14,
+        }}>∞</div>
+      ) : (
+        <div style={{
+          width: 30, height: 36, borderRadius: 6, overflow: 'hidden', flexShrink: 0,
+          background: 'var(--parchment-deep)', boxShadow: 'inset 0 0 0 1px var(--line-strong)',
+        }}>
+          <img src={art} alt="" style={{ width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: '50% 20%' }}/>
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
+          fontSize: 14, color: 'var(--ink)', letterSpacing: '-0.01em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+        <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--fg-subtle)',
+          letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1 }}>{caption}</div>
+      </div>
+      {selected && (
+        <div style={{ color: 'var(--forest)', flexShrink: 0 }}>
+          <Icon name="check" size={16} width={2.4}/>
+        </div>
+      )}
+    </button>
+  );
+}
+
+// ── Filter sheet (matches decks "Add Commander" sheet pattern) ──────────────
+function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: any) {
+  const drag = useSheetDrag(onClose);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) setDropdownOpen(false);
   }, [open]);
 
-  const onTouchStart = (e: any) => {
-    dragStartY.current = e.touches[0].clientY;
-    setDragY(0);
-  };
-  const onTouchMove = (e: any) => {
-    if (dragStartY.current === null) return;
-    const delta = e.touches[0].clientY - dragStartY.current;
-    if (delta > 0) setDragY(delta);
-  };
-  const onTouchEnd = () => {
-    if (dragY > 100) {
-      onClose();
-    }
-    setDragY(0);
-    dragStartY.current = null;
-  };
+  if (!open) return null;
 
   const selected = filter.commanderId ? commanders.find((c: any) => c.id === filter.commanderId) : null;
   const selectedLabel = selected ? selected.short : 'All commanders';
@@ -737,62 +797,73 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: a
     ? `${selected.plays} ${selected.plays === 1 ? 'game' : 'games'}`
     : 'Show every game';
 
+  const sortOptions = [
+    { id: 'recent',    label: 'Most recent' },
+    { id: 'aura-desc', label: 'Aura — high to low' },
+    { id: 'aura-asc',  label: 'Aura — low to high' },
+  ];
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100,
-      pointerEvents: open ? 'auto' : 'none' }}>
-      <div onClick={onClose} style={{
-        position: 'absolute', inset: 0,
-        background: open ? 'rgba(43,33,24,0.4)' : 'transparent',
-        backdropFilter: open ? 'blur(4px)' : 'none',
-        WebkitBackdropFilter: open ? 'blur(4px)' : 'none',
-        transition: 'background 200ms var(--ease)',
-      }}/>
-
-      <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0,
-        background: 'var(--parchment-card)',
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        boxShadow: '0 -12px 40px -8px rgba(43,33,24,0.25)',
-        transform: open ? `translateY(${dragY}px)` : 'translateY(100%)',
-        transition: dragY > 0 ? 'none' : 'transform 240ms var(--ease)',
-        maxHeight: '80%',
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 100,
+      background: 'rgba(43,33,24,0.55)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      fontFamily: 'var(--font-ui)',
+    }}>
+      <div ref={drag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
+        width: '100%', maxWidth: 430, height: '88%',
+        background: 'var(--parchment)',
+        borderRadius: '24px 24px 0 0',
+        padding: '14px 16px 0',
+        boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
         display: 'flex', flexDirection: 'column',
+        borderTop: '1px solid var(--line-strong)',
+        animation: 'popIn 240ms cubic-bezier(.22,.61,.36,1)',
       }}>
-        {/* Drag handle area — touch events for swipe-down-to-close */}
+        {/* Drag handle + header */}
         <div
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-          style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', cursor: 'grab', touchAction: 'none' }}
+          onTouchStart={drag.onTouchStart}
+          onTouchMove={drag.onTouchMove}
+          onTouchEnd={drag.onTouchEnd}
+          style={{ cursor: 'grab', touchAction: 'none' }}
         >
-          <div style={{ width: 36, height: 4, borderRadius: 999, background: 'var(--line-strong)' }}/>
+          <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 6px' }}/>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '8px 0 14px' }}>
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-ui)', fontWeight: 700,
+                fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: 'var(--ink-3)',
+              }}>From your games</div>
+              <div style={{
+                fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 26,
+                color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
+              }}>Filter games</div>
+            </div>
+            <button onClick={onClose} style={{
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
+              color: 'var(--ink-3)', padding: 0,
+            }}>Done</button>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 18px 14px' }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 400,
-            fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Filter games</h2>
-          <button onClick={onClear} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            color: 'var(--fg-muted)', fontSize: 13, fontWeight: 600,
-            letterSpacing: '0.04em', padding: 4,
-          }}>Clear</button>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 18px 12px' }}>
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24 }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
             textTransform: 'uppercase', color: 'var(--fg-subtle)', marginBottom: 8 }}>
             Commander
           </div>
 
-          {/* Commander dropdown (compact, scrollable) */}
+          {/* Commander dropdown */}
           <div style={{ position: 'relative', marginBottom: 22 }}>
             <button
               onClick={() => setDropdownOpen(o => !o)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 12px',
-                background: 'var(--parchment)',
+                background: 'var(--parchment-card)',
                 border: `1px solid ${dropdownOpen ? 'var(--forest-line)' : 'var(--line-strong)'}`,
                 borderRadius: 14, cursor: 'pointer', textAlign: 'left',
               }}
@@ -866,19 +937,15 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: a
             textTransform: 'uppercase', color: 'var(--fg-subtle)', marginBottom: 8 }}>
             Sort by Aura
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {[
-              { id: 'recent',    label: 'Most recent' },
-              { id: 'aura-desc', label: 'Aura — high to low' },
-              { id: 'aura-asc',  label: 'Aura — low to high' },
-            ].map((o: any) => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 22 }}>
+            {sortOptions.map((o: any) => {
               const active = filter.sort === o.id;
               return (
                 <button key={o.id} onClick={() => onChange({ ...filter, sort: o.id })} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '12px 14px',
-                  background: active ? 'var(--forest-soft)' : 'var(--parchment)',
-                  border: `1px solid ${active ? 'var(--forest-line)' : 'var(--line)'}`,
+                  background: active ? 'var(--forest-soft)' : 'var(--parchment-card)',
+                  border: `1px solid ${active ? 'var(--forest-line)' : 'var(--line-strong)'}`,
                   borderRadius: 12, cursor: 'pointer',
                   fontSize: 14, fontWeight: 600,
                   color: active ? 'var(--forest-deep)' : 'var(--ink)',
@@ -898,69 +965,23 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: a
               );
             })}
           </div>
-        </div>
 
-        <div style={{ padding: '12px 18px 22px', borderTop: '1px solid var(--line)',
-          background: 'var(--parchment-card)' }}>
-          <button onClick={onClose} style={{
+          {/* Clear all — secondary action */}
+          <button onClick={onClear} style={{
             width: '100%',
-            background: 'var(--forest)', color: 'var(--parchment)',
-            border: 'none', borderRadius: 14,
-            padding: '14px 16px',
-            fontSize: 15, fontWeight: 600, letterSpacing: '0.02em',
-            cursor: 'pointer', boxShadow: 'var(--shadow-rest)',
-          }}>Show games</button>
+            background: 'transparent',
+            border: '1px solid var(--line-strong)',
+            color: 'var(--ink-2)',
+            padding: '12px 14px',
+            borderRadius: 12,
+            fontSize: 13, fontWeight: 600, letterSpacing: '0.04em',
+            cursor: 'pointer',
+          }}>Clear all filters</button>
         </div>
       </div>
-    </div>
-  );
-}
 
-function CommanderRow({ label, caption, art, isAll, selected, onSelect }: any) {
-  return (
-    <button onClick={onSelect} style={{
-      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-      padding: '10px 12px',
-      background: selected ? 'var(--forest-soft)' : 'transparent',
-      border: `1px solid ${selected ? 'var(--forest-line)' : 'var(--line)'}`,
-      borderRadius: 14, cursor: 'pointer', textAlign: 'left',
-    }}>
-      {isAll ? (
-        <div style={{
-          width: 40, height: 50, borderRadius: 8, flexShrink: 0,
-          background: 'var(--parchment-deep)',
-          border: '1px dashed var(--line-strong)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--fg-subtle)',
-          fontFamily: 'var(--font-display)', fontSize: 18,
-        }}>∞</div>
-      ) : (
-        <div style={{
-          width: 40, height: 50, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
-          background: 'var(--parchment-deep)', boxShadow: 'inset 0 0 0 1px var(--line-strong)',
-        }}>
-          <img src={art} alt="" style={{ width: '100%', height: '100%',
-            objectFit: 'cover', objectPosition: '50% 20%' }}/>
-        </div>
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
-          fontSize: 16, color: 'var(--ink)', letterSpacing: '-0.01em',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
-        <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--fg-subtle)',
-          letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 }}>{caption}</div>
-      </div>
-      <div style={{
-        width: 22, height: 22, borderRadius: 999,
-        border: `1.5px solid ${selected ? 'var(--forest)' : 'var(--line-strong)'}`,
-        background: selected ? 'var(--forest)' : 'transparent',
-        color: 'var(--parchment)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        {selected && <Icon name="check" size={12} width={3} stroke="currentColor"/>}
-      </div>
-    </button>
+      <style>{`@keyframes popIn { from { transform: translateY(20px); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }`}</style>
+    </div>
   );
 }
 
