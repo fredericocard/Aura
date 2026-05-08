@@ -94,6 +94,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     trash: <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>,
     dots:  <><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></>,
     lock:  <><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
+    clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -472,6 +473,7 @@ function PageContent() {
   const [selectedBracket, setSelectedBracket] = useState(2);
   const [showBracketConfirm, setShowBracketConfirm] = useState(false);
   const [savingBracket, setSavingBracket] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -611,6 +613,7 @@ function PageContent() {
     .ph-stamp { font-family: var(--font-ui); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
 
     @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
     .toast {
       position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -660,25 +663,13 @@ function PageContent() {
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className="ph-root">
         <ScreenHeader title="Commander" onBack={() => router.push('/decks')} trailing={
-          <div style={{ display: 'flex', gap: 2 }}>
-            <button onClick={() => { setSelectedBracket(c.bracket || 2); setShowBracket(true); }} title="Change bracket" style={{
-              width: 38, height: 38, borderRadius: 999, border: 'none',
-              background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--copper)', cursor: 'pointer',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 400,
-                lineHeight: 1, letterSpacing: '-0.02em',
-              }}>B{c.bracket || '—'}</span>
-            </button>
-            <button onClick={() => setShowDelete(true)} title="Delete deck" style={{
-              width: 38, height: 38, borderRadius: 999, border: 'none',
-              background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--cat-rivalry)', cursor: 'pointer',
-            }}>
-              <Icon name="trash" size={19} stroke="currentColor" width={1.8}/>
-            </button>
-          </div>
+          <button onClick={() => setShowMenu(true)} title="More actions" style={{
+            width: 40, height: 40, borderRadius: 999, border: 'none',
+            background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--ink-2)', cursor: 'pointer',
+          }}>
+            <Icon name="dots" size={22} stroke="currentColor"/>
+          </button>
         }/>
 
         <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 16px 16px' }}>
@@ -801,6 +792,112 @@ function PageContent() {
 
         </div>
       </div>
+
+      {/* Actions sheet */}
+      {showMenu && (
+        <div onClick={() => setShowMenu(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 80,
+          background: 'rgba(43,33,24,0.42)',
+          backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            background: 'var(--parchment-card)',
+            borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            boxShadow: '0 -10px 40px -8px rgba(43,33,24,0.32)',
+            paddingBottom: 28,
+            display: 'flex', flexDirection: 'column',
+            animation: 'sheet-up 280ms cubic-bezier(.22,.61,.36,1)',
+          }}>
+            {/* Grabber */}
+            <div style={{
+              width: 36, height: 4, borderRadius: 999,
+              background: 'rgba(43,33,24,0.18)',
+              margin: '10px auto 6px',
+            }}/>
+            {/* Title row */}
+            <div style={{
+              padding: '8px 22px 14px',
+              display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+            }}>
+              <div className="ph-stamp" style={{ fontSize: 14, color: 'var(--ink-2)' }}>Actions</div>
+              <button onClick={() => setShowMenu(false)} style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
+                color: 'var(--ink-3)', padding: 0,
+              }}>Done</button>
+            </div>
+            {/* Rows */}
+            <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Change bracket */}
+              <button onClick={() => { setShowMenu(false); setSelectedBracket(c.bracket || 2); setShowBracket(true); }} style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                width: '100%', padding: '14px 14px',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                borderRadius: 16, textAlign: 'left',
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: 'var(--copper-soft)',
+                  border: '1.5px solid var(--copper)',
+                  color: 'var(--copper-deep)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 400,
+                }}>{c.bracket || '—'}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>Change bracket</div>
+                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>Currently bracket {c.bracket || '—'}</div>
+                </div>
+              </button>
+              {/* Recent games */}
+              <button onClick={() => { setShowMenu(false); router.push(`/recent-games?deckId=${c.id}`); }} style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                width: '100%', padding: '14px 14px',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                borderRadius: 16, textAlign: 'left',
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: 'var(--forest-soft)',
+                  border: '1.5px solid var(--forest)',
+                  color: 'var(--forest-deep)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Icon name="clock" size={20} stroke="currentColor" width={1.8}/>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>Recent games</div>
+                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>View match history</div>
+                </div>
+              </button>
+              {/* Delete deck */}
+              <button onClick={() => { setShowMenu(false); setShowDelete(true); }} style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                width: '100%', padding: '14px 14px',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                borderRadius: 16, textAlign: 'left',
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: 'var(--cat-rivalry-soft)',
+                  border: '1.5px solid var(--cat-rivalry)',
+                  color: 'var(--cat-rivalry)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Icon name="trash" size={20} stroke="currentColor" width={1.8}/>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--cat-rivalry)', lineHeight: 1.2 }}>Delete deck</div>
+                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>Remove from your library</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bracket picker */}
       {showBracket && (
