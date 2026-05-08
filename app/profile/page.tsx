@@ -6,16 +6,741 @@ import { useAuth } from '../../lib/auth-context';
 import { getUserCommanderSummaries, type CommanderSummary } from '@/lib/commander-profile';
 import { supabase } from '@/lib/supabase';
 
+/* ──────────────────────────────────────────────────────────────────
+   Design tokens (inline — mirrors tokens.css)
+   ────────────────────────────────────────────────────────────── */
+const T = {
+  parchment:      '#F5EFE2',
+  parchmentCard:  '#FAF5EA',
+  parchmentDeep:  '#EDE4D0',
+  ink:            '#2B2118',
+  ink2:           '#5C5043',
+  ink3:           '#8A7E6F',
+  ink4:           '#B8AE9E',
+  forest:         '#2F5D3A',
+  forestDeep:     '#22472B',
+  forestSoft:     '#E5ECE3',
+  forestLine:     'rgba(47,93,58,.35)',
+  copper:         '#B06B2C',
+  copperDeep:     '#8A5320',
+  copperSoft:     '#F3E3D1',
+  gold:           '#C99B2F',
+  rivalry:        '#9E2B2B',
+  rivalrySoft:    '#F1D4CF',
+  line:           'rgba(43,33,24,.08)',
+  lineStrong:     'rgba(43,33,24,.14)',
+  fontUI:         "'Instrument Sans', ui-sans-serif, system-ui, sans-serif",
+  fontDisplay:    "'Young Serif', ui-serif, Georgia, serif",
+  shadowRest:     '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+  shadowActive:   '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)',
+};
+
+/* Category definitions for commander vibe badges */
+const CATEGORIES = [
+  { id: 'brilliance', color: '#C99B2F', soft: '#F6ECD2', glyph: '/assets/glyphs/brilliance.png' },
+  { id: 'flavor',     color: '#7E4E8A', soft: '#EADDEE', glyph: '/assets/glyphs/flavor.png' },
+  { id: 'rivalry',    color: '#9E2B2B', soft: '#F1D4CF', glyph: '/assets/glyphs/rivalry.png' },
+  { id: 'allegiance', color: '#2F7A74', soft: '#D6E6E3', glyph: '/assets/glyphs/allegiance.png' },
+  { id: 'fun',        color: '#E07B4A', soft: '#F9DFCD', glyph: '/assets/glyphs/fun.png' },
+];
+
+/* ──────────────────────────────────────────────────────────────────
+   Inline SVG icons
+   ────────────────────────────────────────────────────────────── */
+function ProfileIcon({ name, size = 22, stroke = 'currentColor', width = 1.75 }: {
+  name: string; size?: number; stroke?: string; width?: number;
+}) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: width, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const paths: Record<string, React.ReactNode> = {
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></>,
+    user:     <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+    decks:    <><rect x="6" y="4" width="13" height="17" rx="2.5" transform="rotate(-6 12 13)"/><rect x="3" y="6" width="13" height="17" rx="2.5" transform="rotate(6 12 13)"/></>,
+    history:  <><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/><path d="M12 8v5l3 2"/></>,
+    plus:     <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+    'log-out':<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
+    camera:   <><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></>,
+    pencil:   <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></>,
+    'chevron-right': <polyline points="9 18 15 12 9 6"/>,
+    'chevron-left':  <polyline points="15 18 9 12 15 6"/>,
+  };
+  return <svg {...p}>{paths[name] || null}</svg>;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   BadgeGlyph — PNG-mask trait emblem
+   ────────────────────────────────────────────────────────────── */
+function BadgeGlyph({ name, size = 28, stroke = 'currentColor' }: {
+  name: string; size?: number; stroke?: string;
+}) {
+  const cat = CATEGORIES.find(c => c.id === name);
+  if (!cat) return null;
+  return (
+    <span style={{
+      display: 'inline-block',
+      width: size, height: size,
+      backgroundColor: stroke,
+      WebkitMaskImage: `url("${cat.glyph}")`,
+      maskImage: `url("${cat.glyph}")`,
+      WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+      WebkitMaskPosition: 'center', maskPosition: 'center',
+      WebkitMaskSize: 'contain', maskSize: 'contain',
+    }}/>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   AuraMark — brand mark SVG
+   ────────────────────────────────────────────────────────────── */
+function AuraMark({ size = 22, color = T.forest }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="36" r="2.4" fill={color}/>
+      <defs>
+        <clipPath id={`aura-clip-${size}`}><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
+      </defs>
+      <g clipPath={`url(#aura-clip-${size})`}>
+        <polygon points="8,60 30,4 31,4 24,60" fill={color}/>
+        <polygon points="40,60 33,4 34,4 56,60" fill={color}/>
+      </g>
+    </svg>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   MonogramAvatar — serif initial, copper rim, compass ticks, sigil
+   ────────────────────────────────────────────────────────────── */
+function MonogramAvatar({ initial, size = 96, sigil = null as string | null, ring = true }: {
+  initial: string; size?: number; sigil?: string | null; ring?: boolean;
+}) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 999,
+      background: T.parchmentDeep,
+      boxShadow: ring
+        ? `0 0 0 2px ${T.parchmentCard}, 0 0 0 4px ${T.copper}, 0 12px 28px -12px rgba(43,33,24,0.45)`
+        : `0 0 0 2px ${T.parchmentCard}, 0 0 0 1px ${T.lineStrong}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {ring && (
+        <svg width={size} height={size} viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, opacity: 0.18 }}>
+          <g stroke={T.copperDeep} strokeWidth="0.6" fill="none">
+            {Array.from({ length: 24 }).map((_, i) => {
+              const a = (i / 24) * Math.PI * 2;
+              const x1 = 50 + Math.cos(a) * 42, y1 = 50 + Math.sin(a) * 42;
+              const x2 = 50 + Math.cos(a) * 47, y2 = 50 + Math.sin(a) * 47;
+              return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}/>;
+            })}
+          </g>
+        </svg>
+      )}
+      <span style={{
+        fontFamily: T.fontDisplay, fontWeight: 400,
+        fontSize: size * 0.46, color: T.ink, letterSpacing: '-0.02em',
+        lineHeight: 1, position: 'relative',
+      }}>{initial}</span>
+      {sigil && (
+        <div style={{
+          position: 'absolute', right: -2, bottom: -2,
+          width: size * 0.30, height: size * 0.30, borderRadius: 999,
+          background: T.parchmentCard,
+          border: `1.5px solid ${T.copper}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: T.copper,
+          boxShadow: '0 2px 6px rgba(43,33,24,0.18)',
+        }}>
+          <BadgeGlyph name={sigil} size={size * 0.18} stroke={T.copperDeep}/>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   ProfileTopBar — Aura mark + settings gear
+   ────────────────────────────────────────────────────────────── */
+function ProfileTopBar({ onSettings }: { onSettings: () => void }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '6px 16px 12px',
+      flexShrink: 0,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <AuraMark size={22} color={T.forest}/>
+        <div style={{
+          fontFamily: T.fontDisplay, fontWeight: 400,
+          fontSize: 22, color: T.ink, letterSpacing: '-0.01em', lineHeight: 1,
+        }}>Aura</div>
+      </div>
+      <button onClick={onSettings} aria-label="Settings" style={{
+        width: 40, height: 40, borderRadius: 999, border: 'none',
+        background: 'transparent', color: T.ink2,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer',
+      }}>
+        <ProfileIcon name="settings" size={22}/>
+      </button>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   IdentityHero — avatar + name + meta line
+   ────────────────────────────────────────────────────────────── */
+function IdentityHero({ name, initial, joined, gameCount, sigil }: {
+  name: string; initial: string; joined: string; gameCount: number; sigil: string;
+}) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      gap: 12, padding: '4px 24px 0',
+    }}>
+      <MonogramAvatar initial={initial} size={104} sigil={sigil}/>
+      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+        <div style={{
+          fontFamily: T.fontDisplay, fontWeight: 400,
+          fontSize: 30, lineHeight: 1.1, letterSpacing: '-0.01em',
+          color: T.ink,
+        }}>{name}</div>
+        <div style={{
+          fontFamily: T.fontUI, fontSize: 12, fontWeight: 600,
+          letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+          color: T.ink3,
+        }}>{joined} · {gameCount} games</div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   PodCard — Create / Join CTA
+   ────────────────────────────────────────────────────────────── */
+function PodCard() {
+  return (
+    <div style={{
+      margin: '0 16px',
+      background: T.parchmentCard,
+      border: `1px solid ${T.line}`,
+      borderRadius: 20,
+      boxShadow: T.shadowRest,
+      overflow: 'hidden',
+    }}>
+      <div style={{ padding: '16px 18px 4px' }}>
+        <div style={{
+          fontFamily: T.fontUI, fontSize: 11, fontWeight: 700,
+          letterSpacing: '0.14em', textTransform: 'uppercase' as const,
+          color: T.ink3,
+        }}>Your pod</div>
+        <div style={{
+          fontFamily: T.fontDisplay, fontWeight: 400,
+          fontSize: 20, color: T.ink, lineHeight: 1.2, marginTop: 4,
+          letterSpacing: '-0.005em',
+        }}>Bring your table together.</div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, padding: '14px 14px 16px' }}>
+        <Link href="/create" style={{
+          flex: 1, border: 'none', cursor: 'pointer', textDecoration: 'none',
+          background: T.forest, color: T.parchment,
+          fontFamily: T.fontUI, fontWeight: 600, fontSize: 14,
+          padding: '12px 14px', borderRadius: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          boxShadow: T.shadowRest,
+        }}>
+          <ProfileIcon name="plus" size={16} width={2.2} stroke={T.parchment}/>
+          Create a pod
+        </Link>
+        <Link href="/join" style={{
+          flex: 1, cursor: 'pointer', textDecoration: 'none',
+          background: T.parchment, color: T.ink,
+          border: `1px solid ${T.lineStrong}`,
+          fontFamily: T.fontUI, fontWeight: 600, fontSize: 14,
+          padding: '12px 14px', borderRadius: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>Join a pod</Link>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   CommanderMiniCard — vertical card: art + parchment banner
+   ────────────────────────────────────────────────────────────── */
+function CommanderMiniCard({ commander }: { commander: CommanderSummary }) {
+  // Pick a vibe/category based on the commander's top badge or default
+  const vibeId = getTopBadge(commander);
+  const cat = CATEGORIES.find(c => c.id === vibeId) || CATEGORIES[0];
+
+  return (
+    <Link href={`/deck-accomplishments?deckId=${commander.deckId}`} style={{
+      flex: 1, minWidth: 0, padding: 0, textDecoration: 'none',
+      borderRadius: 14, overflow: 'hidden',
+      boxShadow: `${T.shadowRest}, inset 0 0 0 1px ${T.line}`,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{
+        position: 'relative',
+        height: 134,
+        background: T.ink,
+        overflow: 'hidden',
+      }}>
+        {commander.commanderArtUrl ? (
+          <img src={commander.commanderArtUrl} alt="" style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: '50% 22%',
+            filter: 'saturate(0.95) contrast(1.02)',
+          }}/>
+        ) : (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: T.parchmentDeep,
+            fontFamily: T.fontDisplay, fontSize: 36, color: T.ink3,
+          }}>{commander.commanderName.charAt(0)}</div>
+        )}
+        {/* gradient overlay */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg, transparent 40%, rgba(10,6,4,0.55) 100%)',
+        }}/>
+        {/* vibe sigil top-left */}
+        <div style={{
+          position: 'absolute', top: 8, left: 8,
+          width: 22, height: 22, borderRadius: 999,
+          background: 'rgba(10,6,4,0.55)',
+          border: `1px solid ${cat.color}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: cat.color,
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+        }}>
+          <BadgeGlyph name={cat.id} size={13} stroke={cat.color}/>
+        </div>
+      </div>
+      <div style={{
+        background: T.parchmentCard,
+        padding: '8px 9px 9px',
+        textAlign: 'left',
+      }}>
+        <div style={{
+          fontFamily: T.fontDisplay, fontWeight: 400,
+          fontSize: 14, lineHeight: 1.1, color: T.ink,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          letterSpacing: '-0.005em',
+        }}>{commander.commanderName.split(',')[0]}</div>
+        <div style={{
+          fontFamily: T.fontUI, fontSize: 10, fontWeight: 600,
+          letterSpacing: '0.12em', textTransform: 'uppercase' as const,
+          color: T.ink3, marginTop: 3,
+        }}>{commander.totalGames} games</div>
+      </div>
+    </Link>
+  );
+}
+
+/** Pick the strongest badge category for a commander */
+function getTopBadge(c: CommanderSummary): string {
+  // Commander summary doesn't carry per-badge counts, so default to brilliance
+  // This will be refined when we have badge breakdown in the summary
+  return 'brilliance';
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   CommandersSection
+   ────────────────────────────────────────────────────────────── */
+function CommandersSection({ commanders, loading }: { commanders: CommanderSummary[]; loading: boolean }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{
+        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+        padding: '0 20px',
+      }}>
+        <div style={{
+          fontFamily: T.fontUI, fontWeight: 700, fontSize: 14,
+          letterSpacing: '0.14em', textTransform: 'uppercase' as const,
+          color: T.ink2,
+        }}>Top Commanders</div>
+        <Link href="/decks" style={{
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          fontFamily: T.fontUI, fontSize: 12, fontWeight: 600,
+          color: T.forest, letterSpacing: '0.04em',
+          padding: 0, textDecoration: 'none',
+        }}>See all</Link>
+      </div>
+      <div style={{ display: 'flex', gap: 8, padding: '0 16px' }}>
+        {loading ? (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: T.ink3, fontSize: 13, fontFamily: T.fontUI, width: '100%' }}>Loading commanders...</div>
+        ) : commanders.length === 0 ? (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: T.ink3, fontSize: 13, fontFamily: T.fontUI, width: '100%' }}>No commanders registered yet</div>
+        ) : (
+          commanders.slice(0, 3).map(c => <CommanderMiniCard key={c.deckId} commander={c}/>)
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   BottomNav
+   ────────────────────────────────────────────────────────────── */
+function BottomNav({ active = 'profile' }: { active?: string }) {
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: 'user', href: '/profile' },
+    { id: 'decks',   label: 'Decks',   icon: 'decks', href: '/decks' },
+    { id: 'recent',  label: 'Recent',  icon: 'history', href: '/recent-games' },
+  ];
+  return (
+    <div style={{
+      flexShrink: 0,
+      borderTop: `1px solid ${T.line}`,
+      background: 'rgba(245,239,226,0.92)',
+      backdropFilter: 'blur(14px) saturate(120%)',
+      WebkitBackdropFilter: 'blur(14px) saturate(120%)',
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
+        padding: '8px 8px 4px',
+      }}>
+        {tabs.map(t => {
+          const isActive = t.id === active;
+          const inner = (
+            <>
+              <ProfileIcon name={t.icon} size={22} width={isActive ? 2 : 1.7} stroke={isActive ? T.forest : T.ink3}/>
+              <div style={{
+                fontFamily: T.fontUI, fontSize: 11,
+                fontWeight: isActive ? 700 : 500,
+                letterSpacing: '0.04em',
+                color: isActive ? T.forest : T.ink3,
+              }}>{t.label}</div>
+              {isActive && (
+                <div style={{
+                  position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
+                  width: 18, height: 2, borderRadius: 2, background: T.forest,
+                }}/>
+              )}
+            </>
+          );
+
+          if (isActive) {
+            return (
+              <div key={t.id} style={{
+                flex: 1, background: 'transparent', border: 'none',
+                padding: '8px 4px 4px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                position: 'relative',
+              }}>{inner}</div>
+            );
+          }
+          return (
+            <Link key={t.id} href={t.href} style={{
+              flex: 1, background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: '8px 4px 4px', textDecoration: 'none',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              position: 'relative',
+            }}>{inner}</Link>
+          );
+        })}
+      </div>
+      {/* Home indicator */}
+      <div style={{ height: 26, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 8 }}>
+        <div style={{ width: 134, height: 5, borderRadius: 999, background: 'rgba(43,33,24,0.65)' }}/>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   SettingsSheet — bottom sheet overlay
+   ────────────────────────────────────────────────────────────── */
+function SheetRow({ icon, iconColor, iconBg, iconBorder, title, sub, titleColor = T.ink, onClick, chevron = false }: {
+  icon: string; iconColor: string; iconBg: string; iconBorder: string;
+  title: string; sub: string; titleColor?: string;
+  onClick?: () => void; chevron?: boolean;
+}) {
+  return (
+    <button onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 14,
+      width: '100%', padding: '14px 14px',
+      background: 'transparent', border: 'none', cursor: 'pointer',
+      borderRadius: 16, textAlign: 'left',
+    }}>
+      <div style={{
+        width: 40, height: 40, borderRadius: 12,
+        background: iconBg,
+        border: `1.5px solid ${iconBorder}`,
+        color: iconColor,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <ProfileIcon name={icon} size={20}/>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: T.fontUI, fontSize: 16, fontWeight: 600,
+          color: titleColor, lineHeight: 1.2,
+        }}>{title}</div>
+        <div style={{
+          fontFamily: T.fontUI, fontSize: 12, fontWeight: 500,
+          color: T.ink3, marginTop: 2,
+        }}>{sub}</div>
+      </div>
+      {chevron && (
+        <ProfileIcon name="chevron-right" size={18} stroke={T.ink3} width={2}/>
+      )}
+    </button>
+  );
+}
+
+function SettingsSheet({ onClose, onAccount, onLogout }: {
+  onClose: () => void; onAccount: () => void; onLogout: () => void;
+}) {
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 80,
+      background: 'rgba(43,33,24,0.42)',
+      backdropFilter: 'blur(6px)',
+      WebkitBackdropFilter: 'blur(6px)',
+      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: T.parchmentCard,
+        borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        boxShadow: '0 -10px 40px -8px rgba(43,33,24,0.32)',
+        paddingBottom: 28,
+        display: 'flex', flexDirection: 'column',
+        animation: 'sheet-up 280ms cubic-bezier(.22,.61,.36,1)',
+      }}>
+        {/* Grabber */}
+        <div style={{
+          width: 36, height: 4, borderRadius: 999,
+          background: 'rgba(43,33,24,0.18)',
+          margin: '10px auto 6px',
+        }}/>
+        {/* Title row */}
+        <div style={{
+          padding: '8px 22px 14px',
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+        }}>
+          <div style={{
+            fontFamily: T.fontUI, fontWeight: 700, fontSize: 14,
+            letterSpacing: '0.14em', textTransform: 'uppercase' as const,
+            color: T.ink2,
+          }}>Settings</div>
+          <button onClick={onClose} style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontFamily: T.fontUI, fontSize: 13, fontWeight: 600,
+            color: T.ink3, padding: 0,
+          }}>Done</button>
+        </div>
+        {/* Rows */}
+        <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <SheetRow
+            icon="user"
+            iconColor={T.forest}
+            iconBg={T.forestSoft}
+            iconBorder={T.forestLine}
+            title="Account"
+            sub="Name, email, profile picture"
+            onClick={onAccount}
+            chevron
+          />
+          <SheetRow
+            icon="log-out"
+            iconColor={T.rivalry}
+            iconBg={T.rivalrySoft}
+            iconBorder="rgba(158,43,43,0.35)"
+            title="Log out"
+            sub="Sign out of this device"
+            titleColor={T.rivalry}
+            onClick={onLogout}
+          />
+        </div>
+        {/* Footer mark */}
+        <div style={{
+          marginTop: 18, paddingTop: 14,
+          borderTop: `1px solid ${T.line}`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+        }}>
+          <AuraMark size={16} color={T.ink3}/>
+          <div style={{
+            fontFamily: T.fontUI, fontSize: 10, fontWeight: 600,
+            letterSpacing: '0.22em', textTransform: 'uppercase' as const,
+            color: T.ink3,
+          }}>Aura · v1.0</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   AccountScreen — edit name, email, avatar
+   ────────────────────────────────────────────────────────────── */
+function FormField({ label, value, onChange, type = 'text', focused = false, readOnly = false }: {
+  label: string; value: string; onChange?: (v: string) => void;
+  type?: string; focused?: boolean; readOnly?: boolean;
+}) {
+  return (
+    <div style={{
+      background: T.parchmentCard,
+      border: focused ? `1.5px solid ${T.forest}` : `1px solid ${T.lineStrong}`,
+      borderRadius: 14,
+      padding: '10px 14px 12px',
+      position: 'relative',
+    }}>
+      <div style={{
+        fontFamily: T.fontUI, fontSize: 11, fontWeight: 700,
+        letterSpacing: '0.14em', textTransform: 'uppercase' as const,
+        color: focused ? T.forest : T.ink3,
+      }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+        <input
+          type={type}
+          value={value}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+          readOnly={readOnly}
+          style={{
+            flex: 1, minWidth: 0,
+            background: 'transparent', border: 'none', outline: 'none',
+            fontFamily: T.fontUI, fontSize: 16, fontWeight: 500,
+            color: readOnly ? T.ink3 : T.ink, padding: 0,
+            letterSpacing: '-0.005em',
+          }}
+        />
+        {!readOnly && <ProfileIcon name="pencil" size={16} stroke={T.ink3} width={1.8}/>}
+      </div>
+    </div>
+  );
+}
+
+function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, onSave, onDeleteAccount }: {
+  initial: string; nameValue: string; emailValue: string;
+  onNameChange: (v: string) => void; onBack: () => void;
+  onSave: () => void; onDeleteAccount: () => void;
+}) {
+  return (
+    <div style={{
+      width: '100%', height: '100%', position: 'fixed', inset: 0, zIndex: 90,
+      background: T.parchment,
+      backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(201,155,47,0.06), transparent 40%)',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+      fontFamily: T.fontUI,
+    }}>
+      {/* Header */}
+      <div style={{ paddingTop: 'env(safe-area-inset-top, 16px)' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '12px 12px 14px',
+          flexShrink: 0,
+        }}>
+          <button onClick={onBack} aria-label="Back" style={{
+            width: 40, height: 40, borderRadius: 999, border: 'none',
+            background: 'transparent', color: T.ink,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}>
+            <ProfileIcon name="chevron-left" size={24}/>
+          </button>
+          <h1 style={{
+            margin: 0, fontFamily: T.fontUI, fontWeight: 700,
+            fontSize: 20, letterSpacing: '-0.01em', color: T.ink,
+            flex: 1,
+          }}>Account</h1>
+        </div>
+      </div>
+
+      <div style={{
+        flex: 1, overflowY: 'auto',
+        padding: '4px 16px 24px',
+        display: 'flex', flexDirection: 'column', gap: 18,
+      }}>
+        {/* Avatar block */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '4px 0 8px' }}>
+          <div style={{ position: 'relative' }}>
+            <MonogramAvatar initial={initial} size={96} sigil={null}/>
+            <button aria-label="Change photo" style={{
+              position: 'absolute', right: -2, bottom: -2,
+              width: 34, height: 34, borderRadius: 999,
+              background: T.ink, color: T.parchment,
+              border: `3px solid ${T.parchment}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 10px -2px rgba(43,33,24,0.35)',
+            }}>
+              <ProfileIcon name="camera" size={16} width={2} stroke={T.parchment}/>
+            </button>
+          </div>
+          <button style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontFamily: T.fontUI, fontSize: 13, fontWeight: 600,
+            color: T.forest, padding: '4px 8px',
+            letterSpacing: '0.04em',
+          }}>Change photo</button>
+        </div>
+
+        {/* Form fields */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <FormField label="Display name" value={nameValue} onChange={onNameChange} focused/>
+          <FormField label="Email" value={emailValue} type="email" readOnly/>
+        </div>
+
+        {/* Save button */}
+        <button onClick={onSave} style={{
+          marginTop: 4,
+          width: '100%', border: 'none', cursor: 'pointer',
+          background: T.forest, color: T.parchment,
+          fontFamily: T.fontUI, fontWeight: 600, fontSize: 16,
+          padding: '16px 20px', borderRadius: 20,
+          boxShadow: T.shadowRest,
+        }}>Save changes</button>
+
+        <div style={{ flex: 1, minHeight: 12 }}/>
+
+        {/* Danger zone */}
+        <div style={{
+          paddingTop: 14,
+          borderTop: `1px solid ${T.line}`,
+          display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center',
+        }}>
+          <button onClick={onDeleteAccount} style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontFamily: T.fontUI, fontSize: 14, fontWeight: 700,
+            color: T.rivalry, padding: '8px 16px',
+            letterSpacing: '0.04em',
+          }}>Delete account</button>
+          <div style={{
+            fontFamily: T.fontUI, fontSize: 11, fontWeight: 500,
+            color: T.ink3, textAlign: 'center', maxWidth: 240,
+            lineHeight: 1.4,
+          }}>Permanent. Removes your games, badges, and memory cards.</div>
+        </div>
+      </div>
+
+      {/* Home indicator */}
+      <div style={{ height: 26, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 8, flexShrink: 0 }}>
+        <div style={{ width: 134, height: 5, borderRadius: 999, background: 'rgba(43,33,24,0.65)' }}/>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MAIN PAGE
+   ══════════════════════════════════════════════════════════════ */
 export default function ProfilePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [accountViewOpen, setAccountViewOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [nameInputValue, setNameInputValue] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [commanders, setCommanders] = useState<CommanderSummary[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(true);
-  const { signOut, user, loading: authLoading } = useAuth();
   const [userEmail, setUserEmail] = useState('');
+  const [joinDate, setJoinDate] = useState('');
+  const [gameCount, setGameCount] = useState(0);
+  const { signOut } = useAuth();
 
   useEffect(() => {
     async function load() {
@@ -23,953 +748,124 @@ export default function ProfilePage() {
       if (!authUser) { setLoadingDecks(false); return; }
       setNameInputValue(authUser.user_metadata?.display_name ?? authUser.email?.split('@')[0] ?? '');
       setUserEmail(authUser.email ?? '');
+
+      // Derive join date
+      if (authUser.created_at) {
+        const d = new Date(authUser.created_at);
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        setJoinDate(`Joined ${months[d.getMonth()]} ${d.getFullYear()}`);
+      }
+
       try {
         const summaries = await getUserCommanderSummaries(authUser.id);
         setCommanders(summaries);
+        // Total game count across all commanders
+        const total = summaries.reduce((sum, s) => sum + s.totalGames, 0);
+        setGameCount(total);
       } catch {}
       setLoadingDecks(false);
     }
     load();
   }, []);
 
-  const showToastMessage = (msg: string) => {
+  const showToastMsg = (msg: string) => {
     setToastMessage(msg);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  const closeSettings = () => {
-    setSettingsOpen(false);
-    setTimeout(() => {
-      setAccountViewOpen(false);
-    }, 300);
-  };
+  const initial = (nameInputValue || '?').charAt(0).toUpperCase();
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        html, body {
-          height: 100%;
-          overflow: hidden;
-          font-family: 'Inter', sans-serif;
-          background: #e8dcc8;
-        }
-
-        .app {
-          width: 100%;
-          height: 100%;
-          max-width: 430px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          padding: 0 24px;
-          padding-top: env(safe-area-inset-top, 16px);
-          padding-bottom: env(safe-area-inset-bottom, 0px);
-          overflow: hidden;
-        }
-
-        /* ── Top Bar ── */
-        .top-bar {
-          display: flex;
-          justify-content: flex-end;
-          padding: 12px 0 0;
-          flex-shrink: 0;
-        }
-
-        .settings-btn {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          background: none;
-          border: none;
-          transition: all 0.2s ease;
-        }
-
-        .settings-btn:active {
-          transform: scale(0.9);
-        }
-
-        .settings-btn svg {
-          width: 20px;
-          height: 20px;
-        }
-
-        /* ── Scrollable Content ── */
-        .profile-content {
-          flex: 1;
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        /* ── Avatar + Name ── */
-        .profile-header {
-          text-align: center;
-          padding: 16px 0 16px;
-        }
-
-        .avatar {
-          width: 72px;
-          height: 72px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 10px;
-          border: 1.5px solid rgb(56,158,133);
-          box-shadow: 0 4px 12px rgba(26,120,105,0.35);
-        }
-
-        .avatar-letter {
-          font-size: 32px;
-          font-weight: 700;
-          color: rgb(245,239,227);
-        }
-
-        .profile-name {
-          font-size: 20px;
-          font-weight: 700;
-          color: rgb(44,62,54);
-        }
-
-        .profile-points {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          margin-top: 4px;
-        }
-
-        .points-icon {
-          color: rgb(184,146,46);
-          font-size: 12px;
-        }
-
-        .points-value {
-          color: rgb(90,110,98);
-          font-size: 13px;
-          font-weight: 600;
-        }
-
-        /* ── Create / Join Pod Buttons ── */
-        .pod-actions {
-          padding: 0 0 16px;
-          display: flex;
-          gap: 10px;
-        }
-
-        .pod-btn {
-          flex: 1;
-          padding: 18px 10px;
-          cursor: pointer;
-          text-align: center;
-          border-radius: 12px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s ease;
-          aspect-ratio: 1.4;
-          justify-content: center;
-          border: none;
-          font-family: inherit;
-        }
-
-        .pod-btn:active {
-          transform: scale(0.9);
-        }
-
-        .pod-btn-create {
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-          border: 1.5px solid rgb(56,158,133);
-          box-shadow: 0 4px 12px rgba(26,120,105,0.35);
-        }
-
-        .pod-btn-join {
-          background: rgb(245,239,227);
-          border: 1.5px solid rgb(184,168,138);
-          box-shadow: 0 6px 16px rgba(26,20,13,0.08);
-        }
-
-        .pod-btn-label {
-          font-size: 14px;
-          font-weight: 600;
-          color: rgb(245,239,227);
-        }
-
-        .pod-btn-join .pod-btn-label {
-          color: rgb(44,62,54);
-        }
-
-        .pod-btn svg {
-          width: 18px;
-          height: 18px;
-        }
-
-        /* ── Section Cards ── */
-        .section-card {
-          margin-bottom: 16px;
-          padding: 16px;
-          background: rgb(245,239,227);
-          border-radius: 22px;
-          border: 1px solid rgb(184,168,138);
-          box-shadow: 0 6px 16px rgba(26,20,13,0.08);
-        }
-
-        .section-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 14px;
-        }
-
-        .section-title {
-          font-size: 15px;
-          font-weight: 700;
-          color: rgb(44,62,54);
-          flex-shrink: 0;
-        }
-
-        .section-divider {
-          flex: 1;
-          height: 1px;
-          background: rgba(184,168,138,0.55);
-        }
-
-        .section-link {
-          font-size: 11px;
-          color: rgb(26,122,106);
-          font-weight: 600;
-          cursor: pointer;
-          flex-shrink: 0;
-        }
-
-        /* ── Stats Grid ── */
-        .stats-grid {
-          display: flex;
-          gap: 8px;
-        }
-
-        .stat-cell {
-          flex: 1;
-          padding: 10px 4px;
-          background: rgb(222,212,192);
-          border-radius: 12px;
-          text-align: center;
-        }
-
-        .stat-value-row {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 3px;
-        }
-
-        .stat-icon {
-          font-size: 11px;
-        }
-
-        .stat-value {
-          color: rgb(44,62,54);
-          font-size: 18px;
-          font-weight: 700;
-        }
-
-        .stat-label {
-          color: rgb(90,110,98);
-          font-size: 9px;
-          margin-top: 3px;
-          font-weight: 500;
-        }
-
-        /* ── Most Rated Decks (vertical list) ── */
-        .rated-deck-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .rated-deck-row {
-          display: flex;
-          align-items: center;
-          gap: 0;
-          border-radius: 14px;
-          overflow: hidden;
-          border: 1px solid rgba(184,168,138,0.6);
-          background: rgb(222,212,192);
-        }
-
-        .rated-deck-img {
-          position: relative;
-          width: 64px;
-          height: 54px;
-          overflow: hidden;
-          flex-shrink: 0;
-          background: rgb(200,190,170);
-        }
-
-        .rated-deck-img img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .rated-deck-img-fade {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, transparent 40%, rgba(222,212,192,0.85) 100%);
-        }
-
-        .rated-deck-info {
-          flex: 1;
-          min-width: 0;
-          padding: 8px 12px;
-        }
-
-        .rated-deck-name {
-          color: rgb(44,62,54);
-          font-size: 13px;
-          font-weight: 700;
-          line-height: 1.2;
-          text-shadow: 0 0 8px rgba(245,239,227,0.5);
-        }
-
-        .rated-deck-aura {
-          color: rgb(60,130,185);
-          font-size: 11px;
-          font-weight: 600;
-          margin-top: 2px;
-        }
-
-        .aura-value {
-          font-weight: 700;
-          font-size: 12px;
-        }
-
-        /* ── Bottom Nav ── */
-        .bottom-nav {
-          margin-top: auto;
-          margin-bottom: 16px;
-          padding-top: 16px;
-          height: 84px;
-          border-radius: 26px;
-          border-top: 1px solid rgba(184,168,138,0.5);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-shrink: 0;
-        }
-
-        .nav-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          cursor: pointer;
-          flex: 1;
-          padding: 10px 6px;
-          border-radius: 18px;
-          background: transparent;
-          transition: all 0.2s ease;
-          border: none;
-          font-family: inherit;
-        }
-
-        /* Active state — current page, permanent teal gradient */
-        .nav-item.active {
-          background: linear-gradient(135deg, rgb(21,138,114) 0%, rgb(26,122,106) 100%);
-          border: 1px solid rgb(56,158,133);
-          box-shadow: 0 4px 12px rgba(26,120,105,0.45);
-        }
-
-        .nav-item.active .nav-label {
-          color: rgb(245,239,227);
-          font-weight: 700;
-        }
-
-        .nav-item.active .nav-icon-svg {
-          stroke: rgb(245,239,227);
-        }
-
-        /* Press state for inactive items */
-        .nav-item:not(.active):active {
-          transform: scale(0.9);
-          background: linear-gradient(135deg, rgb(21,138,114) 0%, rgb(26,122,106) 100%);
-        }
-
-        .nav-item:not(.active):active .nav-label {
-          color: rgb(245,239,227);
-        }
-
-        .nav-item:not(.active):active .nav-icon-svg {
-          stroke: rgb(245,239,227);
-        }
-
-        /* Active nav item press — subtle scale */
-        .nav-item.active:active {
-          transform: scale(0.95);
-        }
-
-        .nav-icon {
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .nav-icon-svg {
-          stroke: rgb(90,110,98);
-          fill: none;
-          transition: stroke 0.2s ease;
-        }
-
-        .nav-label {
-          font-weight: 500;
-          font-size: 12px;
-          color: rgb(90,110,98);
-          transition: color 0.2s ease;
-        }
-
-        /* ── Settings Modal ── */
-        .settings-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.55);
-          display: none;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .settings-overlay.active {
-          display: flex;
-        }
-
-        .settings-card {
-          width: calc(100% - 40px);
-          max-width: 335px;
-          background: rgb(245,239,227);
-          border: 1.3px solid rgb(184,168,138);
-          border-radius: 20px;
-          padding: 24px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-          position: relative;
-        }
-
-        .settings-close {
-          position: absolute;
-          top: 16px;
-          right: 16px;
-          background: none;
-          border: none;
-          font-size: 20px;
-          color: rgb(90,110,98);
-          cursor: pointer;
-          line-height: 1;
-        }
-
-        .settings-close:active {
-          transform: scale(0.9);
-        }
-
-        .settings-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: rgb(44,62,54);
-          margin-bottom: 18px;
-        }
-
-        .settings-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0;
-        }
-
-        .settings-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 14px 0;
-          border-bottom: 1px solid rgba(184,168,138,0.4);
-          cursor: pointer;
-          transition: all 0.2s ease;
-          background: none;
-          border: none;
-          font-family: inherit;
-          padding: 14px 0;
-          width: 100%;
-          text-align: left;
-        }
-
-        .settings-item:last-child {
-          border-bottom: none;
-        }
-
-        .settings-item:active {
-          transform: scale(0.98);
-        }
-
-        .settings-item-icon {
-          width: 20px;
-          height: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .settings-item-icon svg {
-          width: 18px;
-          height: 18px;
-        }
-
-        .settings-item-text {
-          flex: 1;
-        }
-
-        .settings-item-label {
-          font-size: 14px;
-          font-weight: 600;
-          color: rgb(44,62,54);
-        }
-
-        .settings-item-desc {
-          font-size: 11px;
-          color: rgb(90,110,98);
-          margin-top: 1px;
-        }
-
-        .settings-item-chevron {
-          color: rgb(26,122,106);
-          font-size: 16px;
-          font-weight: 600;
-        }
-
-        .settings-item.danger .settings-item-label {
-          color: rgb(168,74,58);
-        }
-
-        .settings-item.danger .settings-item-icon svg {
-          stroke: rgb(168,74,58);
-        }
-
-        /* ── Account View (inside settings modal) ── */
-        .account-view {
-          display: none;
-        }
-
-        .account-view.active {
-          display: block;
-        }
-
-        .settings-main.hidden {
-          display: none;
-        }
-
-        .account-back {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: none;
-          border: none;
-          font-family: inherit;
-          font-size: 13px;
-          font-weight: 600;
-          color: rgb(90,110,98);
-          cursor: pointer;
-          margin-bottom: 16px;
-          padding: 0;
-        }
-
-        .account-back:active {
-          transform: scale(0.95);
-        }
-
-        .account-avatar-edit {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 20px;
-        }
-
-        .account-avatar {
-          width: 72px;
-          height: 72px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1.5px solid rgb(56,158,133);
-          position: relative;
-          cursor: pointer;
-        }
-
-        .account-avatar-letter {
-          font-size: 32px;
-          font-weight: 700;
-          color: rgb(245,239,227);
-        }
-
-        .account-avatar-badge {
-          position: absolute;
-          bottom: 0;
-          right: 0;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: rgb(245,239,227);
-          border: 1.5px solid rgb(184,168,138);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .account-avatar-badge svg {
-          width: 12px;
-          height: 12px;
-        }
-
-        .account-change-photo {
-          font-size: 12px;
-          font-weight: 600;
-          color: rgb(26,122,106);
-          cursor: pointer;
-        }
-
-        .account-field {
-          margin-bottom: 14px;
-        }
-
-        .account-field-label {
-          font-size: 11px;
-          font-weight: 600;
-          color: rgb(90,110,98);
-          margin-bottom: 5px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .account-field-input {
-          width: 100%;
-          padding: 12px 14px;
-          background: rgb(222,212,192);
-          border: 1px solid rgb(184,168,138);
-          border-radius: 12px;
-          font-family: 'Inter', sans-serif;
-          font-size: 14px;
-          font-weight: 500;
-          color: rgb(44,62,54);
-          outline: none;
-        }
-
-        .account-field-input:focus {
-          border-color: rgb(56,158,133);
-        }
-
-        .account-save-btn {
-          width: 100%;
-          padding: 14px;
-          background: linear-gradient(135deg, rgb(14,92,77) 0%, rgb(26,122,106) 50%, rgb(42,143,120) 100%);
-          border: 1.5px solid rgb(56,158,133);
-          border-radius: 12px;
-          color: rgb(245,239,227);
-          font-family: 'Inter', sans-serif;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          margin-top: 6px;
-          transition: all 0.2s ease;
-        }
-
-        .account-save-btn:active {
-          transform: scale(0.98);
-        }
-
-        .account-delete {
-          text-align: center;
-          margin-top: 16px;
-          font-size: 12px;
-          font-weight: 600;
-          color: rgb(168,74,58);
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .account-delete:active {
-          transform: scale(0.95);
-        }
-
-        /* ── Toast ── */
-        .toast {
-          position: fixed;
-          bottom: 100px;
-          left: 50%;
-          transform: translateX(-50%) translateY(20px);
-          background: rgb(44,62,54);
-          color: rgb(245,239,227);
-          padding: 10px 20px;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 500;
-          opacity: 0;
-          pointer-events: none;
-          transition: all 0.3s ease;
-          z-index: 9999;
-        }
-
-        .toast.show {
-          opacity: 1;
-          transform: translateX(-50%) translateY(0);
+        html, body { height: 100%; overflow: hidden; }
+        @keyframes sheet-up {
+          from { transform: translateY(20px); opacity: 0.6; }
+          to   { transform: translateY(0);    opacity: 1; }
         }
       ` }} />
 
-      <div className="app">
-        {/* Settings */}
-        <div className="top-bar">
-          <button
-            className="settings-btn"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-          >
-            <svg viewBox="0 0 20 20" fill="none" stroke="rgb(90,110,98)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8.3 2h3.4l.5 2.2a6 6 0 0 1 1.5.9l2.1-.7 1.7 3-1.6 1.5a6 6 0 0 1 0 1.8l1.6 1.5-1.7 3-2.1-.7a6 6 0 0 1-1.5.9L11.7 18H8.3l-.5-2.2a6 6 0 0 1-1.5-.9l-2.1.7-1.7-3 1.6-1.5a6 6 0 0 1 0-1.8L2.5 7.8l1.7-3 2.1.7a6 6 0 0 1 1.5-.9L8.3 2Z"/>
-              <circle cx="10" cy="10" r="2.5"/>
-            </svg>
-          </button>
+      <div style={{
+        width: '100%', height: '100%', maxWidth: 430, margin: '0 auto',
+        position: 'relative',
+        background: T.parchment,
+        backgroundImage: 'radial-gradient(circle at 50% 6%, rgba(201,155,47,0.10), transparent 45%), radial-gradient(circle at 80% 95%, rgba(47,93,58,0.06), transparent 50%)',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+        fontFamily: T.fontUI,
+        paddingTop: 'env(safe-area-inset-top, 16px)',
+      }}>
+        <ProfileTopBar onSettings={() => setSettingsOpen(true)}/>
+
+        <div style={{
+          flex: 1, overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: 24,
+          paddingTop: 8, paddingBottom: 24,
+        }}>
+          <IdentityHero
+            name={nameInputValue || 'Player'}
+            initial={initial}
+            joined={joinDate || 'Joined recently'}
+            gameCount={gameCount}
+            sigil="brilliance"
+          />
+          <PodCard/>
+          <CommandersSection commanders={commanders} loading={loadingDecks}/>
         </div>
 
-        <div className="profile-content">
-
-          {/* Avatar + Name */}
-          <div className="profile-header">
-            <div className="avatar">
-              <span className="avatar-letter">{(nameInputValue || '?').charAt(0).toUpperCase()}</span>
-            </div>
-            <div className="profile-name">{nameInputValue || 'Player'}</div>
-          </div>
-
-          {/* Create / Join Pod */}
-          <div className="pod-actions">
-            <Link href="/create" className="pod-btn pod-btn-create" style={{ textDecoration: 'none' }}>
-              <svg viewBox="0 0 18 18" fill="none" stroke="rgb(245,239,227)" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M9 2L9 16M2 9L16 9"/>
-              </svg>
-              <span className="pod-btn-label">Create a Pod</span>
-            </Link>
-            <Link href="/join" className="pod-btn pod-btn-join" style={{ textDecoration: 'none' }}>
-              <svg viewBox="0 0 18 18" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.5" strokeLinecap="round">
-                <rect x="2" y="2" width="14" height="14" rx="2"/>
-                <path d="M6 9L9 12L12 6"/>
-              </svg>
-              <span className="pod-btn-label">Join a Pod</span>
-            </Link>
-          </div>
-
-          {/* Most Rated Decks */}
-          <div className="section-card">
-            <div className="section-header">
-              <span className="section-title">Your Decks</span>
-              <div className="section-divider"></div>
-              <Link href="/decks" className="section-link" style={{ textDecoration: 'none' }}>View all ›</Link>
-            </div>
-            <div className="rated-deck-list">
-              {loadingDecks ? (
-                <div style={{ padding: '16px 0', textAlign: 'center', color: 'rgb(90,110,98)', fontSize: 13 }}>Loading decks...</div>
-              ) : commanders.length === 0 ? (
-                <div style={{ padding: '16px 0', textAlign: 'center', color: 'rgb(90,110,98)', fontSize: 13 }}>No commanders registered yet</div>
-              ) : (
-                commanders.map((c: any) => (
-                  <Link key={c.deckId} href={`/deck-accomplishments?deckId=${c.deckId}`} className="rated-deck-row" style={{ textDecoration: 'none' }}>
-                    <div className="rated-deck-img">
-                      {c.commanderArtUrl ? (
-                        <img src={c.commanderArtUrl} alt={c.commanderName} />
-                      ) : (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgb(222,212,192)', fontSize: 18, color: 'rgb(44,62,54)' }}>{c.commanderName.charAt(0)}</div>
-                      )}
-                      <div className="rated-deck-img-fade"></div>
-                    </div>
-                    <div className="rated-deck-info">
-                      <div className="rated-deck-name">{c.commanderName}</div>
-                      <div className="rated-deck-aura"><span className="aura-value">{Math.round(c.auraScore)}</span> {c.tier}</div>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Bottom Nav: Recent Games | Profile (active) | Decks */}
-        <div className="bottom-nav">
-          <Link href="/recent-games" className="nav-item" style={{ textDecoration: 'none' }}>
-            <div className="nav-icon">
-              <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M2 4H16M2 9H16M2 14H16"/>
-              </svg>
-            </div>
-            <div className="nav-label">Recent Games</div>
-          </Link>
-
-          <button className="nav-item active">
-            <div className="nav-icon">
-              <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
-                <circle cx="9" cy="6" r="3.5"/>
-                <path d="M2.5 17C2.5 13 5 11 9 11C13 11 15.5 13 15.5 17"/>
-              </svg>
-            </div>
-            <div className="nav-label">Profile</div>
-          </button>
-
-          <Link href="/decks" className="nav-item" style={{ textDecoration: 'none' }}>
-            <div className="nav-icon">
-              <svg className="nav-icon-svg" width="18" height="18" viewBox="0 0 18 18" strokeWidth="1.5" strokeLinecap="round">
-                <rect x="3" y="1" width="12" height="14" rx="2"/>
-                <path d="M6 17H15C16 17 17 16 17 15V5" opacity="0.5" strokeWidth="1.2"/>
-              </svg>
-            </div>
-            <div className="nav-label">Decks</div>
-          </Link>
-        </div>
+        <BottomNav active="profile"/>
       </div>
 
-      {/* Settings Modal */}
-      <div className={`settings-overlay ${settingsOpen ? 'active' : ''}`}>
-        <div className="settings-card">
-          <button
-            className="settings-close"
-            onClick={closeSettings}
-          >
-            ✕
-          </button>
+      {/* Settings sheet */}
+      {settingsOpen && (
+        <SettingsSheet
+          onClose={() => setSettingsOpen(false)}
+          onAccount={() => { setSettingsOpen(false); setAccountOpen(true); }}
+          onLogout={async () => {
+            await signOut();
+            setSettingsOpen(false);
+            window.location.href = '/landing';
+          }}
+        />
+      )}
 
-          {/* Main settings list */}
-          <div className={`settings-main ${accountViewOpen ? 'hidden' : ''}`}>
-            <div className="settings-title">Settings</div>
-            <div className="settings-list">
-              <button
-                className="settings-item"
-                onClick={() => setAccountViewOpen(true)}
-              >
-                <div className="settings-item-icon">
-                  <svg viewBox="0 0 18 18" fill="none" stroke="rgb(44,62,54)" strokeWidth="1.4" strokeLinecap="round">
-                    <circle cx="9" cy="6" r="3.5"/>
-                    <path d="M2.5 17C2.5 13 5 11 9 11C13 11 15.5 13 15.5 17"/>
-                  </svg>
-                </div>
-                <div className="settings-item-text">
-                  <div className="settings-item-label">Account</div>
-                  <div className="settings-item-desc">Name, image, delete account</div>
-                </div>
-                <span className="settings-item-chevron">›</span>
-              </button>
-              <button
-                className="settings-item danger"
-                onClick={async () => {
-                  await signOut();
-                  setSettingsOpen(false);
-                  window.location.href = '/landing';
-                }}
-              >
-                <div className="settings-item-icon">
-                  <svg viewBox="0 0 18 18" fill="none" stroke="rgb(168,74,58)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 2H3C2 2 1 3 1 4V14C1 15 2 16 3 16H6"/>
-                    <path d="M12 13L17 9L12 5"/>
-                    <path d="M17 9H7"/>
-                  </svg>
-                </div>
-                <div className="settings-item-text">
-                  <div className="settings-item-label">Log Out</div>
-                </div>
-              </button>
-            </div>
-          </div>
+      {/* Account screen */}
+      {accountOpen && (
+        <AccountScreen
+          initial={initial}
+          nameValue={nameInputValue}
+          emailValue={userEmail}
+          onNameChange={setNameInputValue}
+          onBack={() => setAccountOpen(false)}
+          onSave={async () => {
+            const { error } = await supabase.auth.updateUser({
+              data: { display_name: nameInputValue },
+            });
+            if (error) {
+              showToastMsg('Failed to save: ' + error.message);
+            } else {
+              setAccountOpen(false);
+              showToastMsg('Changes saved');
+            }
+          }}
+          onDeleteAccount={() => showToastMsg('Delete Account — Coming Soon')}
+        />
+      )}
 
-          {/* Account edit view */}
-          <div className={`account-view ${accountViewOpen ? 'active' : ''}`}>
-            <button
-              className="account-back"
-              onClick={() => setAccountViewOpen(false)}
-            >
-              ‹ Settings
-            </button>
-
-            <div className="account-avatar-edit">
-              <div
-                className="account-avatar"
-                onClick={() => showToastMessage('Change Photo — Coming Soon')}
-              >
-                <span className="account-avatar-letter">{(nameInputValue || '?').charAt(0).toUpperCase()}</span>
-                <div className="account-avatar-badge">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="rgb(90,110,98)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 5H4L5.5 3H10.5L12 5H14V13H2Z"/>
-                    <circle cx="8" cy="9" r="2.5"/>
-                  </svg>
-                </div>
-              </div>
-              <span className="account-change-photo">Change Photo</span>
-            </div>
-
-            <div className="account-field">
-              <div className="account-field-label">Display Name</div>
-              <input
-                className="account-field-input"
-                type="text"
-                value={nameInputValue}
-                onChange={(e) => setNameInputValue(e.target.value)}
-              />
-            </div>
-
-            <div className="account-field">
-              <div className="account-field-label">Email</div>
-              <input
-                className="account-field-input"
-                type="email"
-                value={userEmail}
-                readOnly
-                style={{ color: 'rgb(90,110,98)' }}
-              />
-            </div>
-
-            <button
-              className="account-save-btn"
-              onClick={async () => {
-                const { error } = await supabase.auth.updateUser({
-                  data: { display_name: nameInputValue },
-                });
-                if (error) {
-                  showToastMessage('Failed to save: ' + error.message);
-                } else {
-                  setSettingsOpen(false);
-                  setAccountViewOpen(false);
-                  showToastMessage('Changes Saved');
-                }
-              }}
-            >
-              Save Changes
-            </button>
-
-            <div
-              className="account-delete"
-              onClick={() => showToastMessage('Delete Account — Coming Soon')}
-            >
-              Delete Account
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <div className={`toast ${showToast ? 'show' : ''}`}>
+      {/* Toast */}
+      <div style={{
+        position: 'fixed', bottom: 100, left: '50%',
+        transform: `translateX(-50%) translateY(${showToast ? 0 : 20}px)`,
+        background: T.ink, color: T.parchment,
+        padding: '10px 20px', borderRadius: 8,
+        fontFamily: T.fontUI, fontSize: 13, fontWeight: 500,
+        opacity: showToast ? 1 : 0,
+        pointerEvents: 'none',
+        transition: 'all 0.3s ease',
+        zIndex: 9999,
+      }}>
         {toastMessage}
       </div>
     </>
