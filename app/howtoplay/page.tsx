@@ -1570,7 +1570,7 @@ export default function HowToPlay() {
       <div
         className="ph-root"
         ref={pageRef}
-        style={{ minHeight: '100vh', background: 'var(--parchment)', position: 'relative' }}
+        style={{ minHeight: '100vh', background: 'var(--parchment)', position: 'relative', maxWidth: 430, margin: '0 auto', overflow: 'hidden' }}
         dangerouslySetInnerHTML={{ __html: HOWTO_HTML }}
       />
       {mounted && createPortal(

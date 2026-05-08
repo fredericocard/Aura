@@ -602,7 +602,9 @@ function BottomNav({ active = 'recent' }: { active?: 'profile' | 'decks' | 'rece
 
   return (
     <div style={{
-      position: 'fixed', left: 0, right: 0, bottom: 0,
+      position: 'fixed', left: '50%', bottom: 0,
+      transform: 'translateX(-50%)',
+      width: '100%', maxWidth: 430,
       borderTop: '1px solid rgba(43,33,24,0.14)',
       background: 'rgba(250,245,234,0.92)',
       backdropFilter: 'blur(14px) saturate(120%)',
@@ -979,7 +981,8 @@ function RecentGamesScreen({
 
   return (
     <div className="aura-root" style={{
-      position: 'relative', width: '100%', minHeight: '100vh',
+      position: 'relative', width: '100%', maxWidth: 430, minHeight: '100vh',
+      margin: '0 auto',
       background: 'var(--parchment)',
       display: 'flex', flexDirection: 'column',
     }}>
