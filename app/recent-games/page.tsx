@@ -206,11 +206,11 @@ function BadgeGlyph({ name, size = 28, stroke = 'currentColor', glyphBase }: any
       const wavy = [22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5];
       return (
         <svg {...p}>
-          {straight.map(a => {
+          {straight.map((a: any) => {
             const r = (a * Math.PI) / 180;
             return <path key={a} d={`M${32 + Math.cos(r) * 22} ${32 + Math.sin(r) * 22} L ${32 + Math.cos(r) * 30} ${32 + Math.sin(r) * 30}`}/>;
           })}
-          {wavy.map(a => {
+          {wavy.map((a: any) => {
             const r = (a * Math.PI) / 180, perp = r + Math.PI / 2;
             const x1 = 32 + Math.cos(r) * 22, y1 = 32 + Math.sin(r) * 22;
             const x2 = 32 + Math.cos(r) * 28, y2 = 32 + Math.sin(r) * 28;
@@ -533,7 +533,7 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
             At the table
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 18, paddingTop: 8 }}>
-            {game.players.map(pid => (
+            {game.players.map((pid: any) => (
               <TableSeat key={pid} playerId={pid} isYou={pid === youId}
                 isWinner={pid === game.winnerId} players={players}/>
             ))}
@@ -545,7 +545,7 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
           </div>
           {game.myBadges.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {game.myBadges.map((b, i) => (
+              {game.myBadges.map((b: any, i: any) => (
                 <EarnedRow key={i} badge={b} players={players} glyphBase={glyphBase}/>
               ))}
             </div>
@@ -596,7 +596,7 @@ function BottomNav({ active = 'recent', onNavigate }: any) {
       zIndex: 12,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 12px 6px' }}>
-        {items.map(it => {
+        {items.map((it: any) => {
           const isActive = it.id === active;
           return (
             <button key={it.id} onClick={() => onNavigate?.(it.id)} style={{
@@ -684,7 +684,7 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: a
               selected={!filter.commanderId}
               onSelect={() => onChange({ ...filter, commanderId: null })}
             />
-            {commanders.map(c => (
+            {commanders.map((c: any) => (
               <CommanderRow
                 key={c.id}
                 label={c.short}
@@ -705,7 +705,7 @@ function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: a
               { id: 'recent',    label: 'Most recent' },
               { id: 'aura-desc', label: 'Aura — high to low' },
               { id: 'aura-asc',  label: 'Aura — low to high' },
-            ].map(o => {
+            ].map((o: any) => {
               const active = filter.sort === o.id;
               return (
                 <button key={o.id} onClick={() => onChange({ ...filter, sort: o.id })} style={{
@@ -826,9 +826,9 @@ function RecentGamesScreen({
   }, []);
 
   const visible = games
-    .filter(g => !filter.commanderId || g.myCommanderId === filter.commanderId)
+    .filter((g: any) => !filter.commanderId || g.myCommanderId === filter.commanderId)
     .slice()
-    .sort((a, b) => {
+    .sort((a: any, b: any) => {
       if (filter.sort === 'aura-asc')  return a.auraDelta - b.auraDelta;
       if (filter.sort === 'aura-desc') return b.auraDelta - a.auraDelta;
       return 0;
@@ -861,11 +861,11 @@ function RecentGamesScreen({
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 110px' }}>
-        {groups.map(group => (
+        {groups.map((group: any) => (
           <div key={group.label}>
             <MonthDivider label={group.label} count={group.items.length}/>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {group.items.map(g => (
+              {group.items.map((g: any) => (
                 <GameRow
                   key={g.id}
                   game={g}
@@ -980,7 +980,7 @@ function RecentGamesPageInner() {
         }
       }
       // Apply final play counts
-      commanderMap.forEach((c, id) => {
+      commanderMap.forEach((c: any, id: any) => {
         c.plays = commanderPlays.get(id) ?? 0;
       });
 
@@ -998,7 +998,7 @@ function RecentGamesPageInner() {
       }
 
       // Fetch badge attributions for all games at once
-      const gameIds = log.entries.map(e => e.gameId);
+      const gameIds = log.entries.map((e: any) => e.gameId);
       let badgeRows: any[] = [];
       if (gameIds.length > 0) {
         const { data } = await supabase
@@ -1017,10 +1017,10 @@ function RecentGamesPageInner() {
       }
 
       // Map game entries to the Game shape RecentGamesScreen expects
-      const mapped: Game[] = log.entries.map(e => {
+      const mapped: Game[] = log.entries.map((e: any) => {
         const myBadgeIds = myBadgesByGame.get(e.gameId) ?? [];
         const myBadges = myBadgeIds.map((id: string) => ({ id, from: '' }));  // 'from' wired later from votes table
-        const winner = e.podCommanders.find(p => p.isWinner);
+        const winner = e.podCommanders.find((p: any) => p.isWinner);
         return {
           id: e.gameId,
           pod: `${e.podSize}-player game`,
@@ -1028,7 +1028,7 @@ function RecentGamesPageInner() {
           time: '',
           duration: '',
           myCommanderId: e.deckId,
-          players: e.podCommanders.map(p => p.userId),
+          players: e.podCommanders.map((p: any) => p.userId),
           winnerId: winner?.userId ?? null,
           auraDelta: e.isWinner ? 8 : (myBadgeIds.length > 0 ? 4 : 0),
           myBadges,
