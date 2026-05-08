@@ -474,6 +474,14 @@ function PageContent() {
   const [savingBracket, setSavingBracket] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
+  const displayToast = (msg: string) => {
+    setToastMsg(msg);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
   useEffect(() => {
     if (!deckId) { setError('No deck specified'); setLoading(false); return; }
@@ -531,9 +539,23 @@ function PageContent() {
   const handleDelete = async () => {
     if (!profile) return;
     setDeleting(true);
-    const { error: e } = await deleteCommander(profile.deckId);
-    if (!e) router.push('/decks');
-    else setDeleting(false);
+    try {
+      const { supabase: sb } = await import('@/lib/supabase');
+      // Delete related records first (FK constraints)
+      await sb.from('badge_vote_history').delete().eq('deck_id', profile.deckId);
+      await sb.from('game_players').delete().eq('deck_id', profile.deckId);
+      // Now delete the deck itself
+      const { error: e } = await deleteCommander(profile.deckId);
+      if (!e) {
+        router.push('/decks');
+      } else {
+        displayToast('Failed to delete: ' + e);
+        setDeleting(false);
+      }
+    } catch (err: any) {
+      displayToast('Failed to delete: ' + (err?.message ?? 'Unknown error'));
+      setDeleting(false);
+    }
   };
 
   const styles = `
@@ -589,6 +611,18 @@ function PageContent() {
     .ph-stamp { font-family: var(--font-ui); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
 
     @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .toast {
+      position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--ink); color: var(--parchment);
+      font-family: var(--font-ui); font-size: 14px; font-weight: 500;
+      padding: 12px 20px; border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(43,33,24,0.25);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+      z-index: 9999; max-width: 340px; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
   `;
 
   if (loading) {
@@ -626,13 +660,25 @@ function PageContent() {
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className="ph-root">
         <ScreenHeader title="Commander" onBack={() => router.push('/decks')} trailing={
-          <button onClick={() => setShowDelete(true)} title="More actions" style={{
-            width: 40, height: 40, borderRadius: 999, border: 'none',
-            background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--ink-2)', cursor: 'pointer',
-          }}>
-            <Icon name="dots" size={22} stroke="currentColor"/>
-          </button>
+          <div style={{ display: 'flex', gap: 2 }}>
+            <button onClick={() => { setSelectedBracket(c.bracket || 2); setShowBracket(true); }} title="Change bracket" style={{
+              width: 38, height: 38, borderRadius: 999, border: 'none',
+              background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--copper)', cursor: 'pointer',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 400,
+                lineHeight: 1, letterSpacing: '-0.02em',
+              }}>B{c.bracket || '—'}</span>
+            </button>
+            <button onClick={() => setShowDelete(true)} title="Delete deck" style={{
+              width: 38, height: 38, borderRadius: 999, border: 'none',
+              background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--cat-rivalry)', cursor: 'pointer',
+            }}>
+              <Icon name="trash" size={19} stroke="currentColor" width={1.8}/>
+            </button>
+          </div>
         }/>
 
         <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 16px 16px' }}>
@@ -753,52 +799,6 @@ function PageContent() {
             <WinRateMeter state={c.winRate}/>
           </div>
 
-          {/* Actions */}
-          <div style={{
-            marginTop: 'auto',
-            display: 'flex', gap: 8,
-            flexShrink: 0,
-          }}>
-            <button onClick={() => { setSelectedBracket(c.bracket || 2); setShowBracket(true); }} style={{
-              flex: 1, cursor: 'pointer',
-              background: 'var(--parchment-card)',
-              border: '1px solid var(--line-strong)',
-              borderLeft: '4px solid var(--copper)',
-              borderRadius: 'var(--r-card)',
-              padding: '10px 12px',
-              display: 'flex', alignItems: 'center', gap: 10,
-              fontFamily: 'var(--font-ui)',
-              boxShadow: 'var(--shadow-rest)',
-              textAlign: 'left', minWidth: 0,
-            }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 8,
-                background: 'var(--copper-soft)',
-                border: '1px solid var(--copper)',
-                color: 'var(--copper-deep)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 400,
-                flexShrink: 0,
-              }}>{c.bracket || '—'}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Change bracket</div>
-                <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  Currently bracket {c.bracket || '—'}
-                </div>
-              </div>
-            </button>
-
-            <button onClick={() => setShowDelete(true)} title="Remove from library" style={{
-              width: 48, flexShrink: 0, cursor: 'pointer',
-              background: 'transparent',
-              border: '1px dashed var(--line-strong)',
-              borderRadius: 'var(--r-card)',
-              color: 'var(--cat-rivalry)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Icon name="trash" size={18} stroke="currentColor" width={1.8}/>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -968,6 +968,9 @@ function PageContent() {
           </div>
         </div>
       )}
+
+      {/* Toast */}
+      <div className={`toast ${showToast ? 'show' : ''}`}>{toastMsg}</div>
     </>
   );
 }
