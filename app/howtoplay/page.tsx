@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
 const HOWTO_HTML = `<section class="cover cover-dark">
@@ -33,8 +34,8 @@ const HOWTO_HTML = `<section class="cover cover-dark">
   </div>
 </section>
 <div class="divider-torn divider-torn-cover">
-  <svg class="torn-edge" width="200" height="14" viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true">
-    <path d="M 0 14 L 0.0 2.0 L 8.3 9.7 L 16.7 2.2 L 25.0 8.2 L 33.3 3.1 L 41.7 7.8 L 50.0 3.9 L 58.3 6.7 L 66.7 3.0 L 75.0 8.2 L 83.3 4.9 L 91.7 9.3 L 100.0 2.5 L 108.3 10.0 L 116.7 4.4 L 125.0 7.8 L 133.3 4.8 L 141.7 7.7 L 150.0 3.9 L 158.3 7.3 L 166.7 4.3 L 175.0 8.2 L 183.3 4.0 L 191.7 7.7 L 200.0 2.4 L 200 14 Z" fill="var(--parchment)"/>
+  <svg class="torn-edge" width="200" height="14" viewBox="0 0 200 22" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 0 22 L 0.0 2.0 L 8.3 9.7 L 16.7 2.2 L 25.0 8.2 L 33.3 3.1 L 41.7 7.8 L 50.0 3.9 L 58.3 6.7 L 66.7 3.0 L 75.0 8.2 L 83.3 4.9 L 91.7 9.3 L 100.0 2.5 L 108.3 10.0 L 116.7 4.4 L 125.0 7.8 L 133.3 4.8 L 141.7 7.7 L 150.0 3.9 L 158.3 7.3 L 166.7 4.3 L 175.0 8.2 L 183.3 4.0 L 191.7 7.7 L 200.0 2.4 L 200 22 Z" fill="var(--parchment)"/>
   </svg>
 </div>
 
@@ -1504,6 +1505,8 @@ section.signoff > .divider-torn .torn-edge { transform: translateY(1px); }
 export default function HowToPlay() {
   const router = useRouter();
   const pageRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!pageRef.current) return;
@@ -1570,34 +1573,35 @@ export default function HowToPlay() {
         style={{ minHeight: '100vh', background: 'var(--parchment)', position: 'relative' }}
         dangerouslySetInnerHTML={{ __html: HOWTO_HTML }}
       />
-      <button
-        onClick={() => router.back()}
-        aria-label="Go back"
-        style={{
-          position: 'fixed',
-          top: 'max(16px, calc(env(safe-area-inset-top, 0px) + 12px))',
-          left: '16px',
-          zIndex: 9999,
-          padding: '10px 12px',
-          borderRadius: '999px',
-          background: 'var(--gold)',
-          color: 'var(--ink)',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '14px',
-          fontWeight: 700,
-          fontFamily: 'var(--font-ui)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.18), 0 0 0 1px rgba(43,33,24,0.15)',
-          letterSpacing: '0.04em',
-        }}
-      >
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-          <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+      {mounted && createPortal(
+        <button
+          onClick={() => router.back()}
+          aria-label="Go back"
+          style={{
+            position: 'fixed',
+            top: 'max(16px, calc(env(safe-area-inset-top, 0px) + 12px))',
+            left: '16px',
+            zIndex: 999999,
+            width: '44px',
+            height: '44px',
+            padding: 0,
+            borderRadius: '50%',
+            background: 'var(--gold)',
+            color: 'var(--ink)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25), 0 0 0 1px rgba(43,33,24,0.15)',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>,
+        document.body
+      )}
     </>
   );
 }
