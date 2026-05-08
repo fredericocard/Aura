@@ -149,7 +149,9 @@ function MonogramAvatar({ initial, size = 96, ring = true }: {
 /* ──────────────────────────────────────────────────────────────────
    ProfileTopBar — Aura mark + settings gear
    ────────────────────────────────────────────────────────────── */
-function ProfileTopBar({ onSettings }: { onSettings: () => void }) {
+function ProfileTopBar({ onSettings, name, initial, joined, gameCount }: {
+  onSettings: () => void; name: string; initial: string; joined: string; gameCount: number;
+}) {
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 10,
@@ -157,28 +159,40 @@ function ProfileTopBar({ onSettings }: { onSettings: () => void }) {
       backdropFilter: 'blur(14px) saturate(120%)',
       WebkitBackdropFilter: 'blur(14px) saturate(120%)',
       borderBottom: `1px solid ${T.line}`,
-      padding: '14px 16px 10px',
+      padding: '14px 16px 12px',
       flexShrink: 0,
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.ink3 }}>Account</div>
-          <h1 style={{
-            margin: '2px 0 0',
-            fontFamily: T.fontDisplay,
-            fontWeight: 400, fontSize: 32,
-            color: T.ink, letterSpacing: '-0.02em',
-            lineHeight: 1,
-          }}>Profile</h1>
+      {/* Aura wordmark row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AuraMark size={20} color={T.forest}/>
+          <span style={{
+            fontFamily: T.fontDisplay, fontWeight: 400,
+            fontSize: 18, color: T.ink, letterSpacing: '-0.01em', lineHeight: 1,
+          }}>Aura</span>
         </div>
         <button onClick={onSettings} aria-label="Settings" style={{
-          width: 40, height: 40, borderRadius: 999, border: 'none',
+          width: 36, height: 36, borderRadius: 999, border: 'none',
           background: 'transparent', color: T.ink2,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer',
         }}>
           <ProfileIcon name="settings" size={22}/>
         </button>
+      </div>
+      {/* Identity row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <MonogramAvatar initial={initial} size={46} ring={false}/>
+        <div>
+          <h1 style={{
+            margin: 0, fontFamily: T.fontDisplay, fontWeight: 400,
+            fontSize: 24, color: T.ink, letterSpacing: '-0.02em', lineHeight: 1,
+          }}>{name}</h1>
+          <div style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+            textTransform: 'uppercase' as const, color: T.ink3, marginTop: 3,
+          }}>{joined} · {gameCount} games</div>
+        </div>
       </div>
     </div>
   );
@@ -754,19 +768,19 @@ export default function ProfilePage() {
         fontFamily: T.fontUI,
         paddingTop: 'env(safe-area-inset-top, 16px)',
       }}>
-        <ProfileTopBar onSettings={() => setSettingsOpen(true)}/>
+        <ProfileTopBar
+          onSettings={() => setSettingsOpen(true)}
+          name={nameInputValue || 'Player'}
+          initial={initial}
+          joined={joinDate || 'Joined recently'}
+          gameCount={gameCount}
+        />
 
         <div style={{
           flex: 1, overflowY: 'auto',
           display: 'flex', flexDirection: 'column', gap: 16,
-          paddingTop: 4, paddingBottom: 24,
+          paddingTop: 12, paddingBottom: 24,
         }}>
-          <IdentityHero
-            name={nameInputValue || 'Player'}
-            initial={initial}
-            joined={joinDate || 'Joined recently'}
-            gameCount={gameCount}
-          />
           <PodCard/>
           <CommandersSection commanders={commanders} loading={loadingDecks}/>
         </div>
