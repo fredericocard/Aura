@@ -149,48 +149,89 @@ function MonogramAvatar({ initial, size = 96, ring = true }: {
 /* ──────────────────────────────────────────────────────────────────
    ProfileTopBar — Aura mark + settings gear
    ────────────────────────────────────────────────────────────── */
+/* ── Decorative compass rose SVG ────────────────────────────────────────── */
+function CompassRose({ size = 200, color = 'rgba(201,155,47,0.07)' }: { size?: number; color?: string }) {
+  const n = 32;
+  const lines = Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    const inner = i % 4 === 0 ? 8 : i % 2 === 0 ? 18 : 26;
+    const outer = i % 4 === 0 ? 48 : i % 2 === 0 ? 46 : 44;
+    return `M${50 + Math.cos(a) * inner} ${50 + Math.sin(a) * inner}L${50 + Math.cos(a) * outer} ${50 + Math.sin(a) * outer}`;
+  }).join('');
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" style={{ position: 'absolute', opacity: 1, pointerEvents: 'none' }}>
+      <circle cx="50" cy="50" r="46" fill="none" stroke={color} strokeWidth="0.5"/>
+      <circle cx="50" cy="50" r="28" fill="none" stroke={color} strokeWidth="0.4"/>
+      <circle cx="50" cy="50" r="3" fill={color}/>
+      <path d={lines} stroke={color} strokeWidth="0.6" fill="none"/>
+    </svg>
+  );
+}
+
 function ProfileTopBar({ onSettings, name, initial, joined, gameCount }: {
   onSettings: () => void; name: string; initial: string; joined: string; gameCount: number;
 }) {
   return (
     <div style={{
-      position: 'sticky', top: 0, zIndex: 10,
-      background: 'rgba(245,239,226,0.92)',
-      backdropFilter: 'blur(14px) saturate(120%)',
-      WebkitBackdropFilter: 'blur(14px) saturate(120%)',
-      borderBottom: `1px solid ${T.line}`,
-      padding: '14px 16px 12px',
-      flexShrink: 0,
+      position: 'relative', zIndex: 10, flexShrink: 0, overflow: 'hidden',
+      background: T.ink,
+      padding: '14px 16px 20px',
     }}>
+      {/* Dark radial glow */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 30% 60%, rgba(176,107,44,0.18) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(201,155,47,0.10) 0%, transparent 50%)',
+      }}/>
+      {/* Compass rose decoration — behind avatar */}
+      <div style={{ position: 'absolute', right: -20, top: -10, pointerEvents: 'none', opacity: 0.8 }}>
+        <CompassRose size={180} color="rgba(201,155,47,0.08)"/>
+      </div>
+      {/* Fine grain texture overlay */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.04,
+        backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'6\' height=\'6\' viewBox=\'0 0 6 6\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'1\' cy=\'1\' r=\'0.6\' fill=\'%23C99B2F\'/%3E%3C/svg%3E")',
+        backgroundSize: '6px 6px',
+      }}/>
+
       {/* Aura wordmark row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <AuraMark size={20} color={T.forest}/>
+          <AuraMark size={20} color={T.gold}/>
           <span style={{
             fontFamily: T.fontDisplay, fontWeight: 400,
-            fontSize: 18, color: T.ink, letterSpacing: '-0.01em', lineHeight: 1,
+            fontSize: 18, color: T.gold, letterSpacing: '-0.01em', lineHeight: 1,
           }}>Aura</span>
         </div>
         <button onClick={onSettings} aria-label="Settings" style={{
           width: 36, height: 36, borderRadius: 999, border: 'none',
-          background: 'transparent', color: T.ink2,
+          background: 'rgba(255,255,255,0.06)', color: T.ink4,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer',
         }}>
-          <ProfileIcon name="settings" size={22}/>
+          <ProfileIcon name="settings" size={20}/>
         </button>
       </div>
       {/* Identity row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <MonogramAvatar initial={initial} size={46} ring={false}/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, position: 'relative' }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: 999, flexShrink: 0,
+          background: 'rgba(201,155,47,0.12)',
+          boxShadow: `0 0 0 2px rgba(201,155,47,0.25), 0 8px 20px -8px rgba(0,0,0,0.5)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{
+            fontFamily: T.fontDisplay, fontWeight: 400,
+            fontSize: 24, color: T.gold, letterSpacing: '-0.02em', lineHeight: 1,
+          }}>{initial}</span>
+        </div>
         <div>
           <h1 style={{
             margin: 0, fontFamily: T.fontDisplay, fontWeight: 400,
-            fontSize: 24, color: T.ink, letterSpacing: '-0.02em', lineHeight: 1,
+            fontSize: 24, color: '#FAF5EA', letterSpacing: '-0.02em', lineHeight: 1,
           }}>{name}</h1>
           <div style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-            textTransform: 'uppercase' as const, color: T.ink3, marginTop: 3,
+            textTransform: 'uppercase' as const, color: T.ink4, marginTop: 4,
           }}>{joined} · {gameCount} games</div>
         </div>
       </div>
@@ -762,7 +803,6 @@ export default function ProfilePage() {
         width: '100%', height: '100%', maxWidth: 430, margin: '0 auto',
         position: 'relative',
         background: T.parchment,
-        backgroundImage: 'radial-gradient(circle at 50% 6%, rgba(201,155,47,0.10), transparent 45%), radial-gradient(circle at 80% 95%, rgba(47,93,58,0.06), transparent 50%)',
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
         fontFamily: T.fontUI,
