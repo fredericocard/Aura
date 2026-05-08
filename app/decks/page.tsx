@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { registerCommander, getMyCommanders, BRACKETS, type Deck } from '../../lib/commanders';
@@ -388,6 +388,42 @@ function BottomNav({ active = 'decks' }: { active?: 'profile' | 'decks' | 'recen
   );
 }
 
+// ── Swipe-to-dismiss hook ──────────────────────────────────────────────────
+function useSheetDrag(onDismiss: () => void) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const currentY = useRef(0);
+  const dragging = useRef(false);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+    currentY.current = 0;
+    dragging.current = true;
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragging.current) return;
+    const dy = e.touches[0].clientY - startY.current;
+    currentY.current = Math.max(0, dy); // only allow downward
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${currentY.current}px)`;
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    dragging.current = false;
+    if (sheetRef.current) sheetRef.current.style.transition = 'transform 0.25s cubic-bezier(.22,.61,.36,1)';
+    if (currentY.current > 100) {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(100%)';
+      setTimeout(onDismiss, 250);
+    } else {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(0)';
+    }
+    currentY.current = 0;
+  }, [onDismiss]);
+
+  return { sheetRef, onTouchStart, onTouchMove, onTouchEnd };
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function Page() {
   const router = useRouter();
@@ -407,6 +443,9 @@ export default function Page() {
   const [sortBy, setSortBy] = useState<'aura' | 'badges' | 'recent'>('aura');
   const [totalGames, setTotalGames] = useState(0);
   const [deckGameCounts, setDeckGameCounts] = useState<Record<string, number>>({});
+
+  const addSheetDrag = useSheetDrag(() => setShowAdd(false));
+  const bracketSheetDrag = useSheetDrag(() => setPendingCard(null));
 
   // Load decks from Supabase, then fetch per-deck game counts
   useEffect(() => {
@@ -744,7 +783,7 @@ export default function Page() {
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           fontFamily: 'var(--font-ui)',
         }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
+          <div ref={addSheetDrag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
             width: '100%', maxWidth: 430, height: '88%',
             background: 'var(--parchment)',
             borderRadius: '24px 24px 0 0',
@@ -754,17 +793,28 @@ export default function Page() {
             borderTop: '1px solid var(--line-strong)',
             animation: 'popIn 240ms var(--ease)',
           }}>
-            <div style={{
-              width: 40, height: 4, borderRadius: 999,
-              background: 'var(--ink-4)', margin: '0 auto 14px',
-            }}/>
-
-            <div style={{ marginBottom: 4 }}>
-              <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>From Scryfall</div>
-              <div style={{
-                fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 26,
-                color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
-              }}>Choose a commander</div>
+            {/* Drag handle + close */}
+            <div
+              onTouchStart={addSheetDrag.onTouchStart}
+              onTouchMove={addSheetDrag.onTouchMove}
+              onTouchEnd={addSheetDrag.onTouchEnd}
+              style={{ cursor: 'grab', touchAction: 'none' }}
+            >
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 6px' }}/>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '8px 0 14px' }}>
+                <div>
+                  <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>From Scryfall</div>
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 26,
+                    color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
+                  }}>Choose a commander</div>
+                </div>
+                <button onClick={() => setShowAdd(false)} style={{
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
+                  color: 'var(--ink-3)', padding: 0,
+                }}>Done</button>
+              </div>
             </div>
 
             {/* Search input */}
@@ -876,7 +926,7 @@ export default function Page() {
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           fontFamily: 'var(--font-ui)',
         }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
+          <div ref={bracketSheetDrag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
             width: '100%', maxWidth: 430,
             background: 'var(--parchment)',
             borderRadius: '24px 24px 0 0',
@@ -886,10 +936,22 @@ export default function Page() {
             borderTop: '1px solid var(--line-strong)',
             animation: 'popIn 240ms var(--ease)',
           }}>
-            <div style={{
-              width: 40, height: 4, borderRadius: 999,
-              background: 'var(--ink-4)', margin: '0 auto 14px',
-            }}/>
+            {/* Drag handle + close */}
+            <div
+              onTouchStart={bracketSheetDrag.onTouchStart}
+              onTouchMove={bracketSheetDrag.onTouchMove}
+              onTouchEnd={bracketSheetDrag.onTouchEnd}
+              style={{ cursor: 'grab', touchAction: 'none' }}
+            >
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 6px' }}/>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', padding: '8px 0 10px' }}>
+                <button onClick={() => setPendingCard(null)} style={{
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
+                  color: 'var(--ink-3)', padding: 0,
+                }}>Done</button>
+              </div>
+            </div>
 
             <div style={{ textAlign: 'center', marginBottom: 14 }}>
               <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Power level</div>
