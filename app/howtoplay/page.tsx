@@ -1490,7 +1490,7 @@ button.btn-secondary {
 
 
 /* ── Defensive overrides for the deployed page ── */
-html, body { margin: 0; padding: 0; overflow-x: hidden; background: var(--parchment); }
+html, body { margin: 0; padding: 0; background: var(--parchment); }
 .ph-root { width: 100%; max-width: 100vw; overflow-x: hidden; }
 
 /* Pull the cover torn edge 1px DOWN into the chapter (parchment) so the brown subpixel doesn't leak */
@@ -1578,7 +1578,7 @@ export default function HowToPlay() {
           top: 'max(16px, calc(env(safe-area-inset-top, 0px) + 12px))',
           left: '16px',
           zIndex: 9999,
-          padding: '10px 16px',
+          padding: '10px 12px',
           borderRadius: '999px',
           background: 'var(--gold)',
           color: 'var(--ink)',
@@ -1589,15 +1589,14 @@ export default function HowToPlay() {
           fontFamily: 'var(--font-ui)',
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '0',
           boxShadow: '0 4px 12px rgba(0,0,0,0.18), 0 0 0 1px rgba(43,33,24,0.15)',
           letterSpacing: '0.04em',
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
           <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        Back
       </button>
     </>
   );
