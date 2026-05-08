@@ -649,7 +649,7 @@ function MonthDivider({ label, count }: any) {
 // ── Filter sheet ─────────────────────────────────────────────────────────────
 function FilterSheet({ open, filter, onChange, onClose, onClear, commanders }: any) {
   return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 30,
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100,
       pointerEvents: open ? 'auto' : 'none' }}>
       <div onClick={onClose} style={{
         position: 'absolute', inset: 0,
