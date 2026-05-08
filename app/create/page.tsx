@@ -751,6 +751,11 @@ export default function Page() {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
   `;
 
   return (
@@ -872,79 +877,156 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Commander Search Popup */}
+      {/* Commander Search — bottom sheet */}
       {showNewDeck && (
-        <div className="search-overlay" onClick={closeNewDeck}>
-          <div className="search-card" onClick={(e) => e.stopPropagation()}>
-            <div className="search-header">
-              <div className="search-title">Choose Commander</div>
-              <button className="search-close" onClick={closeNewDeck}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+        <div onClick={closeNewDeck} style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          fontFamily: "'Instrument Sans', sans-serif",
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 430, height: '88%',
+            background: '#F5EFE2',
+            borderRadius: '24px 24px 0 0',
+            padding: '14px 16px 0',
+            boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
+            display: 'flex', flexDirection: 'column',
+            borderTop: '1px solid rgba(43,33,24,0.14)',
+            animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: '#B8AE9E', margin: '0 auto 14px' }}/>
+
+            <div style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8A7E6F' }}>From Scryfall</div>
+              <div style={{ fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 26, color: '#2B2118', letterSpacing: '-0.01em', marginTop: 2 }}>Choose a commander</div>
             </div>
-            <input
-              className="search-input"
-              type="text"
-              placeholder="Search commanders..."
-              value={searchQuery}
-              onChange={(e) => handleSearchInput(e.target.value)}
-              autoFocus
-            />
-            <div className="search-results">
-              {searching && <div className="search-hint">Searching...</div>}
-              {!searching && searchQuery.length < 2 && <div className="search-hint">Type a commander name to search</div>}
-              {!searching && searchQuery.length >= 2 && searchResults.length === 0 && <div className="search-hint">No commanders found</div>}
-              {searchResults.map((card, i) => (
-                <button key={i} className="search-result" onClick={() => handleSelectCommander(card)}>
-                  <div className="search-result-art">
-                    {getCardArt(card) && <img src={getCardArt(card)} alt={card.name} />}
-                  </div>
-                  <div className="search-result-info">
-                    <div className="search-result-name">{card.name}</div>
-                    <div className="search-result-mana">
-                      {card.color_identity.map((c, j) => (
-                        <span key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
-                      ))}
-                    </div>
-                  </div>
+
+            {/* Search input */}
+            <div style={{
+              marginTop: 14,
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '12px 14px',
+              background: '#FAF5EA',
+              border: '1px solid rgba(43,33,24,0.14)',
+              borderRadius: 14,
+              boxShadow: 'inset 0 1px 2px rgba(43,33,24,0.04)',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A7E6F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="text" value={searchQuery}
+                onChange={(e) => handleSearchInput(e.target.value)}
+                placeholder="Search legendary creatures…"
+                autoFocus
+                style={{
+                  flex: 1, border: 'none', background: 'transparent', outline: 'none',
+                  fontFamily: "'Instrument Sans', sans-serif", fontSize: 16, color: '#2B2118',
+                }}/>
+              {searchQuery && (
+                <button onClick={() => { setSearchQuery(''); setSearchResults([]); }} style={{
+                  background: 'transparent', border: 'none', cursor: 'pointer', color: '#8A7E6F', padding: 4,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
                 </button>
-              ))}
+              )}
+            </div>
+
+            {/* Results */}
+            <div style={{ flex: 1, overflowY: 'auto', marginTop: 14, paddingBottom: 14 }}>
+              {searching && (
+                <div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>Searching…</div>
+              )}
+              {!searching && searchQuery.length < 2 && (
+                <div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>Type a commander name to search</div>
+              )}
+              {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>No commanders found</div>
+              )}
+
+              {searchResults.length > 0 && (
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8A7E6F', padding: '0 4px 8px' }}>
+                  {searchResults.length} matches
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {searchResults.map((card, i) => {
+                  const art = getCardArt(card);
+                  return (
+                    <button key={i} onClick={() => handleSelectCommander(card)} style={{
+                      width: '100%', textAlign: 'left', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 10px', borderRadius: 14,
+                      background: 'transparent', border: 'none',
+                      fontFamily: "'Instrument Sans', sans-serif",
+                    }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 10,
+                        overflow: 'hidden', flexShrink: 0,
+                        border: '1px solid rgba(43,33,24,0.14)',
+                        background: '#1A140E',
+                      }}>
+                        {art && <img src={art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }}/>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 16,
+                          color: '#2B2118', lineHeight: 1.15, letterSpacing: '-0.005em',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>{card.name}</div>
+                        <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
+                          {card.color_identity.map((c, j) => (
+                            <span key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
+                          ))}
+                        </div>
+                      </div>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A7E6F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Bracket Picker Overlay */}
+      {/* Bracket Picker — bottom sheet */}
       {pendingCard && (
-        <div className="search-overlay" onClick={() => setPendingCard(null)}>
-          <div className="search-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
-            {/* Commander preview */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-              <div className="deck-art" style={{ width: 52, height: 52, borderRadius: 14 }}>
-                {pendingCard.artUrl ? (
-                  <img src={pendingCard.artUrl} alt={pendingCard.cardName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EDE4D0', borderRadius: 14, color: '#8A7E6F' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /></svg>
-                  </div>
-                )}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "'Young Serif', serif", fontSize: 18, color: '#2B2118', lineHeight: 1.15 }}>{pendingCard.cardName}</div>
-                <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
-                  {(pendingCard.colorIdentity || '').split('').map((c, j) => (
-                    <span key={j} className="mana-dot" style={{ background: MANA_COLORS[c] || '#A89F8E' }} />
-                  ))}
-                </div>
+        <div onClick={() => setPendingCard(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          fontFamily: "'Instrument Sans', sans-serif",
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 430,
+            background: '#F5EFE2',
+            borderRadius: '24px 24px 0 0',
+            padding: '14px 16px 28px',
+            boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
+            maxHeight: '90%', overflow: 'auto',
+            borderTop: '1px solid rgba(43,33,24,0.14)',
+            animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: '#B8AE9E', margin: '0 auto 14px' }}/>
+
+            <div style={{ textAlign: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8A7E6F' }}>Power level</div>
+              <div style={{ fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 26, color: '#2B2118', letterSpacing: '-0.01em', marginTop: 2 }}>Choose a bracket</div>
+              <div style={{ fontSize: 13, color: '#5C5043', marginTop: 4, padding: '0 12px' }}>
+                How this commander reads at the table. Set honestly so the pod knows what to bring.
               </div>
             </div>
 
-            {/* Bracket picker */}
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 10 }}>Declare bracket</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {BRACKETS.map(b => (
                 <button key={b.value} onClick={() => setSelectedBracket(b.value)} style={{
                   width: '100%', textAlign: 'left', cursor: 'pointer',
@@ -953,7 +1035,7 @@ export default function Page() {
                   background: selectedBracket === b.value ? '#EDE4D0' : 'transparent',
                   border: selectedBracket === b.value ? '1.5px solid #B06B2C' : '1px solid rgba(43,33,24,0.08)',
                   fontFamily: "'Instrument Sans', sans-serif",
-                  transition: 'all 0.15s ease',
+                  transition: 'background 0.15s ease, border-color 0.15s ease',
                 }}>
                   <div style={{
                     width: 32, height: 32, borderRadius: 999,
@@ -976,15 +1058,27 @@ export default function Page() {
               ))}
             </div>
 
-            {/* Confirm button */}
-            <button onClick={handleConfirmRegistration} disabled={registering} style={{
-              width: '100%', marginTop: 16, cursor: registering ? 'default' : 'pointer',
-              background: registering ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
-              border: 'none', borderRadius: 20, padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
-              fontFamily: "'Instrument Sans', sans-serif",
-            }}>{registering ? 'Registering...' : 'Register Commander'}</button>
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button onClick={() => setPendingCard(null)} style={{
+                flex: 1, cursor: 'pointer',
+                background: 'transparent',
+                border: '1px solid rgba(43,33,24,0.14)',
+                borderRadius: 20,
+                padding: '14px 16px',
+                color: '#2B2118',
+                fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 15,
+              }}>Cancel</button>
+              <button onClick={handleConfirmRegistration} disabled={registering} style={{
+                flex: 1.4, cursor: registering ? 'default' : 'pointer',
+                background: registering ? '#8A7E6F' : '#2F5D3A',
+                border: 'none',
+                borderRadius: 20,
+                padding: '14px 16px',
+                color: '#F5EFE2',
+                fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 15,
+                boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+              }}>{registering ? 'Registering…' : 'Save bracket'}</button>
+            </div>
           </div>
         </div>
       )}
