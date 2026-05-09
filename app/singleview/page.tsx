@@ -1679,6 +1679,7 @@ function PageContent() {
   const [patternIdx, setPatternIdx] = useState(0);
   const [expandedOpponent, setExpandedOpponent] = useState<string | null>(null);
   const [cmdrDmg, setCmdrDmg] = useState<Record<string, number>>({});
+  const [cmdrDmgFromYou, setCmdrDmgFromYou] = useState<Record<string, number>>({});
   const [eliminationReason, setEliminationReason] = useState<'life' | 'cmdr' | 'poison' | null>(null);
 
   // Debounced sync refs
@@ -1819,6 +1820,21 @@ function PageContent() {
 
         setCurrentUserData(currentPlayerData);
         setOpponents(opponentsList);
+
+        // Load "damage from you" — extract current user's seat key from each opponent's commander_damage_received
+        if (currentPlayerData) {
+          const myKey = `seat-${currentPlayerData.seatNumber}`;
+          const outgoing: Record<string, number> = {};
+          game.players.forEach((p: any) => {
+            const seatNum = p.seat_number ?? 1;
+            if (p.user_id === user?.id) return; // skip self
+            const received = p.commander_damage_received;
+            if (received && typeof received === 'object' && typeof received[myKey] === 'number') {
+              outgoing[`seat-${seatNum}`] = received[myKey];
+            }
+          });
+          setCmdrDmgFromYou(outgoing);
+        }
       } catch (err) {
         console.error('Failed to load game data:', err);
       }
@@ -1861,6 +1877,13 @@ function PageContent() {
               }
               return opp;
             }));
+            // Update "damage from you" — extract current user's seat from opponent's commander_damage_received
+            if (row.commander_damage_received && typeof row.commander_damage_received === 'object' && currentPlayerData) {
+              const myKey = `seat-${currentPlayerData.seatNumber}`;
+              const oppKey = `seat-${row.seat_number}`;
+              const amount = (row.commander_damage_received as Record<string, number>)[myKey] ?? 0;
+              setCmdrDmgFromYou(prev => ({ ...prev, [oppKey]: amount }));
+            }
           }
         }
       )
@@ -1985,7 +2008,7 @@ function PageContent() {
       colors: isEmptySeat ? [] : colorIdentityArray,
       life: opp.life,
       cmdrDmg: cmdrDmg[opp.id] || 0,
-      cmdrDmgFromYou: 0,
+      cmdrDmgFromYou: cmdrDmgFromYou[opp.id] || 0,
       counters: counters,
       keywords: isEmptySeat ? null : (detail.keywords || null),
       rulesText: isEmptySeat ? null : (detail.oracleText || null),
