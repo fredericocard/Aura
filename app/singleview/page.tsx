@@ -41,6 +41,8 @@ const TOKENS_CSS = `
 
 @keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
 @keyframes slideUpCard { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes slideOutLeft { to{transform:translateX(-110%);opacity:0} }
+@keyframes slideOutRight { to{transform:translateX(110%);opacity:0} }
 @keyframes dialShrinkUp { from{transform:scale(1.8) translateY(60px);opacity:0.3} to{transform:scale(1) translateY(0);opacity:1} }
 
 .sv-dice-btn { transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease; -webkit-tap-highlight-color: transparent; }
@@ -1197,9 +1199,49 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
 
 // ─── Opponent overlay — commander broadside ─────────────────────────────────
 function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLifeAdj, onSelectPlayer }: any) {
+  const touchRef = useRef<{ startX: number; startY: number; swiping: boolean }>({ startX: 0, startY: 0, swiping: false });
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [slideDir, setSlideDir] = useState<'none' | 'left' | 'right'>('none');
+
   if (!p) return null;
   const isEmpty = p.isEmptySeat;
   const showSelector = miniRoster.length > 1;
+  const currentIdx = miniRoster.findIndex((m: any) => m.id === p.id);
+
+  const goTo = (dir: 'left' | 'right') => {
+    const nextIdx = dir === 'left' ? currentIdx + 1 : currentIdx - 1;
+    if (nextIdx < 0 || nextIdx >= miniRoster.length) return;
+    setSlideDir(dir);
+    setTimeout(() => {
+      onSelectPlayer?.(miniRoster[nextIdx]);
+      setSlideDir('none');
+    }, 180);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchRef.current = { startX: t.clientX, startY: t.clientY, swiping: false };
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    const dx = t.clientX - touchRef.current.startX;
+    const dy = t.clientY - touchRef.current.startY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) {
+      touchRef.current.swiping = true;
+    }
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchRef.current.swiping) return;
+    const dx = e.changedTouches[0].clientX - touchRef.current.startX;
+    if (Math.abs(dx) < 40) return;
+    goTo(dx < 0 ? 'left' : 'right');
+  };
+
+  const cardAnim = slideDir === 'left'
+    ? 'slideOutLeft 0.18s ease-in forwards'
+    : slideDir === 'right'
+    ? 'slideOutRight 0.18s ease-in forwards'
+    : 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)';
 
   return (
     <div style={{
@@ -1249,7 +1291,11 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
         </div>
       )}
 
-      <div style={{
+      <div ref={cardRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
         margin: '14px 14px',
         background: '#150E08',
         border: '1px solid rgba(226,184,88,0.18)',
@@ -1257,7 +1303,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
         boxShadow: '0 30px 60px -20px rgba(0,0,0,0.60)',
         padding: 14, flex: 1, position: 'relative', overflow: 'hidden',
         display: 'flex', flexDirection: 'column', gap: 10,
-        animation: 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)',
+        animation: cardAnim,
       }}>
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
