@@ -1571,8 +1571,7 @@ function PageContent() {
   const handleCounterChange = (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => {
     const playerNum = selectedCounterPlayer;
     setCounters(prev => {
-      const cap = type === 'poison' ? 10 : 999;
-      const newVal = action === 'plus' ? Math.min(cap, prev[playerNum][type] + 1) : Math.max(0, prev[playerNum][type] - 1);
+      const newVal = action === 'plus' ? prev[playerNum][type] + 1 : Math.max(0, prev[playerNum][type] - 1);
 
       const userId = playerUserIds[playerNum];
       const seat = playerSeatNumbers[playerNum];
@@ -1603,7 +1602,7 @@ function PageContent() {
   const handleCmdrChange = (delta: number) => {
     setCmdrDamage(prev => {
       const cur = prev[cmdrFrom]?.[cmdrTo] ?? 0;
-      const next = Math.max(0, Math.min(21, cur + delta));
+      const next = Math.max(0, Math.min(99, cur + delta));
       return {
         ...prev,
         [cmdrFrom]: {
