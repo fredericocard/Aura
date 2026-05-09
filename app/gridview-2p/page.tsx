@@ -372,7 +372,7 @@ function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive }
   );
 }
 
-function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, flipped = false, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; flipped?: boolean; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void }) {
+function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, flipped = false, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; flipped?: boolean; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void }) {
   const counterEntries = Object.entries(cellCounters || {}).filter(([, n]) => (n as number) > 0);
   if (showQR) {
     return (
