@@ -272,7 +272,7 @@ function CellInner({ player }: { player: any }) {
       </div>
 
       <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column',
-        alignItems:'center', justifyContent:'center', gap:8 }}>
+        alignItems:'center', justifyContent:'center', gap:16 }}>
         <div style={{ fontFamily:'var(--font-display)', fontWeight:400,
           fontSize:120, lineHeight:1, letterSpacing:'-0.04em',
           color: DARK.ink,
@@ -472,7 +472,7 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
       {/* Life + counters — same color/size as claimed cells */}
       <div style={{
         position:'absolute', inset:0, zIndex:5, pointerEvents:'none',
-        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8,
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16,
       }}>
         <div style={{
           fontFamily:'var(--font-display)', fontWeight:400,

@@ -272,7 +272,7 @@ function CellInner({ player, lifeSize = 64 }: { player: any; lifeSize?: number }
       </div>
 
       <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column',
-        alignItems:'center', justifyContent:'center', gap:6 }}>
+        alignItems:'center', justifyContent:'center', gap:14 }}>
         <div style={{ fontFamily:'var(--font-display)', fontWeight:400,
           fontSize:lifeSize, lineHeight:1, letterSpacing:'-0.04em',
           color: DARK.ink,
@@ -492,7 +492,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
           {/* Life + counters — same color/size as claimed cells */}
           <div style={{
             position:'absolute', inset:0, zIndex:5, pointerEvents:'none',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
           }}>
             <div style={{
               fontFamily:'var(--font-display)', fontWeight:400,
