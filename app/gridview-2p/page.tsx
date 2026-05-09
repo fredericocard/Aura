@@ -162,17 +162,19 @@ function ScreenBg({ children }: { children: React.ReactNode }) {
   );
 }
 
-function CmdrDamageRing({ damages = [], radius = 20, strokeWidth = 3 }: {
+function CmdrDamageRing({ damages = [], radius = 20, strokeWidth = 3, insetOverlap = 0 }: {
   damages?: { from: string; amount: number; colorIndex: number }[];
   radius?: number;
   strokeWidth?: number;
+  insetOverlap?: number;
 }) {
   if (!damages.length) return null;
   let cursor = 0;
   return (
     <svg style={{
-      position: 'absolute', inset: 0,
-      width: '100%', height: '100%',
+      position: 'absolute', inset: -insetOverlap,
+      width: `calc(100% + ${insetOverlap * 2}px)`,
+      height: `calc(100% + ${insetOverlap * 2}px)`,
       pointerEvents: 'none',
       overflow: 'visible',
       zIndex: 4,
@@ -443,7 +445,7 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
       overflow:'hidden',
       transform: flipped ? 'rotate(180deg)' : 'none',
     }}>
-      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
+      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={2.5} insetOverlap={2.5}/>}
       {/* Header: seat label + compact Claim button */}
       <div style={{
         position:'absolute', top:14, left:16, right:16, zIndex:10,

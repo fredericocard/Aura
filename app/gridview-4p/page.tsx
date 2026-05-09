@@ -186,17 +186,19 @@ function ScreenBg({ children }: { children: React.ReactNode }) {
   );
 }
 
-function CmdrDamageRing({ damages = [], radius = 20, strokeWidth = 3 }: {
+function CmdrDamageRing({ damages = [], radius = 20, strokeWidth = 3, insetOverlap = 0 }: {
   damages?: { from: string; amount: number; colorIndex: number }[];
   radius?: number;
   strokeWidth?: number;
+  insetOverlap?: number;
 }) {
   if (!damages.length) return null;
   let cursor = 0;
   return (
     <svg style={{
-      position: 'absolute', inset: 0,
-      width: '100%', height: '100%',
+      position: 'absolute', inset: -insetOverlap,
+      width: `calc(100% + ${insetOverlap * 2}px)`,
+      height: `calc(100% + ${insetOverlap * 2}px)`,
       pointerEvents: 'none',
       overflow: 'visible',
       zIndex: 4,
@@ -478,7 +480,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
       overflow:'hidden',
     } as React.CSSProperties}>
-      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
+      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={2.5} insetOverlap={2.5}/>}
       <div style={{
         position:'absolute',
         top:'50%',
