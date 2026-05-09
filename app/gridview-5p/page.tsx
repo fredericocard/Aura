@@ -1538,9 +1538,20 @@ function PageContent() {
   const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
   const repeatTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
 
+  const dirtyUntilRef = useRef<Record<string, number>>({});
+  const isDirty = (key: string) => {
+    const until = dirtyUntilRef.current[key];
+    if (!until) return false;
+    if (Date.now() > until) { delete dirtyUntilRef.current[key]; return false; }
+    return true;
+  };
   const debouncedSync = (key: string, fn: () => void) => {
     if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
-    syncTimerRef.current[key] = setTimeout(fn, 300);
+    dirtyUntilRef.current[key] = Date.now() + 2000;
+    syncTimerRef.current[key] = setTimeout(() => {
+      fn();
+      setTimeout(() => { delete dirtyUntilRef.current[key]; }, 800);
+    }, 300);
   };
 
   useEffect(() => {
@@ -1603,8 +1614,16 @@ function PageContent() {
           if (!row) return;
           const num = row.seat_number;
           if (num && num <= 5) {
-            setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
-            setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
+            if (!isDirty(`life-${num}`)) {
+              setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
+            }
+            setCounters(prev => {
+              const updated = { ...prev[num] };
+              if (!isDirty(`poison-${num}`)) updated.poison = row.poison_counters ?? prev[num].poison;
+              if (!isDirty(`experience-${num}`)) updated.experience = row.experience_counters ?? prev[num].experience;
+              if (!isDirty(`energy-${num}`)) updated.energy = row.energy_counters ?? prev[num].energy;
+              return { ...prev, [num]: updated };
+            });
           }
         })
         .subscribe();
