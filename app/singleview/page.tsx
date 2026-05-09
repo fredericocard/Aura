@@ -2062,6 +2062,36 @@ function PageContent() {
     isEmptySeat: p.isEmptySeat,
   }));
 
+  // Loading screen: show dark bg + mesh + gold Aura mark until game data arrives
+  if (!currentUserData) {
+    return (
+      <div style={{
+        position: 'fixed', top: 0, bottom: 0, left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%', maxWidth: 430,
+        background: '#0A0604',
+        overflow: 'hidden',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <DigitalMatMesh patternIdx={patternIdx}/>
+        </div>
+        {/* Gold Aura mark, same tone as mesh */}
+        <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+          style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
+          <defs>
+            <clipPath id="aura-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
+          </defs>
+          <circle cx="32" cy="36" r="2.4" fill="rgba(226,184,88,0.7)"/>
+          <g clipPath="url(#aura-load)">
+            <polygon points="8,60 30,4 31,4 24,60" fill="rgba(226,184,88,0.7)"/>
+            <polygon points="40,60 33,4 34,4 56,60" fill="rgba(226,184,88,0.7)"/>
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       position: 'fixed', top: 0, bottom: 0, left: '50%',
