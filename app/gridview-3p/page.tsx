@@ -111,16 +111,18 @@ function CounterChip({ kind, count }: { kind: string; count: number }) {
   );
 }
 
-function DarkCompassBg() {
+function DarkCompassBg({ centered = false }: { centered?: boolean } = {}) {
   return (
     <svg width="520" height="520" viewBox="0 0 320 320" style={{
-      position: 'absolute', top: '22%', left: '50%',
+      position: 'absolute', top: centered ? '50%' : '22%', left: '50%',
       transform: 'translate(-50%, -50%)',
       opacity: 0.18,
       pointerEvents: 'none',
       zIndex: 0,
-      WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
-      maskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
+      ...(centered ? {} : {
+        WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
+        maskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
+      }),
     } as React.CSSProperties}>
       <g stroke={DARK.copper} strokeWidth="0.8" fill="none">
         {Array.from({ length: 24 }).map((_, i) => {
@@ -1793,7 +1795,7 @@ function PageContent() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        <DarkCompassBg/>
+        <DarkCompassBg centered/>
         <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
           style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
           <defs>

@@ -1752,6 +1752,8 @@ function PageContent() {
   const [energy, setEnergy] = useState(0);
   const [dead, setDead] = useState(false);
 
+  const [gameLoaded, setGameLoaded] = useState(false);
+
   // UI state
   const [showDice, setShowDice] = useState(false);
   const [showCounters, setShowCounters] = useState(false);
@@ -1920,8 +1922,10 @@ function PageContent() {
           });
           setCmdrDmgFromYou(outgoing);
         }
+        setGameLoaded(true);
       } catch (err) {
         console.error('Failed to load game data:', err);
+        setGameLoaded(true); // show UI even on error
       }
     }
 
@@ -2071,6 +2075,31 @@ function PageContent() {
       }, 120);
     }, 400);
   }, [adjustLife]);
+
+  // Loading screen
+  if (!gameLoaded) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0,
+        background: '#0A0604',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
+        <CompassRose size={520} opacity={0.18} color="#B06B2C"/>
+        <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+          style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
+          <defs>
+            <clipPath id="aura-sv-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
+          </defs>
+          <circle cx="32" cy="36" r="2.4" fill="rgba(226,184,88,0.7)"/>
+          <g clipPath="url(#aura-sv-load)">
+            <polygon points="8,60 30,4 31,4 24,60" fill="rgba(226,184,88,0.7)"/>
+            <polygon points="40,60 33,4 34,4 56,60" fill="rgba(226,184,88,0.7)"/>
+          </g>
+        </svg>
+      </div>
+    );
+  }
 
   // Map backend opponent data to wireframe format
   const mappedOpponents = opponents.map((opp: any) => {
