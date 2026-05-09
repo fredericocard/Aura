@@ -41,8 +41,8 @@ const TOKENS_CSS = `
 
 @keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
 @keyframes slideUpCard { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
-@keyframes slideOutLeft { to{transform:translateX(-110%);opacity:0} }
-@keyframes slideOutRight { to{transform:translateX(110%);opacity:0} }
+@keyframes slideInFromRight { from{transform:translateX(105%);opacity:0.4} to{transform:translateX(0);opacity:1} }
+@keyframes slideInFromLeft { from{transform:translateX(-105%);opacity:0.4} to{transform:translateX(0);opacity:1} }
 @keyframes dialShrinkUp { from{transform:scale(1.8) translateY(60px);opacity:0.3} to{transform:scale(1) translateY(0);opacity:1} }
 
 .sv-dice-btn { transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease; -webkit-tap-highlight-color: transparent; }
@@ -1199,49 +1199,89 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
 
 // ─── Opponent overlay — commander broadside ─────────────────────────────────
 function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLifeAdj, onSelectPlayer }: any) {
-  const touchRef = useRef<{ startX: number; startY: number; swiping: boolean }>({ startX: 0, startY: 0, swiping: false });
   const cardRef = useRef<HTMLDivElement>(null);
-  const [slideDir, setSlideDir] = useState<'none' | 'left' | 'right'>('none');
+  const touchRef = useRef<{ startX: number; startY: number; locked: boolean; dir: 'h' | 'v' | null }>({ startX: 0, startY: 0, locked: false, dir: null });
+  const [dragX, setDragX] = useState(0);
+  const [slideIn, setSlideIn] = useState<'none' | 'from-left' | 'from-right'>('none');
+  const transitioning = useRef(false);
 
   if (!p) return null;
   const isEmpty = p.isEmptySeat;
   const showSelector = miniRoster.length > 1;
   const currentIdx = miniRoster.findIndex((m: any) => m.id === p.id);
 
-  const goTo = (dir: 'left' | 'right') => {
+  const canGoLeft = currentIdx < miniRoster.length - 1;  // swipe left = next
+  const canGoRight = currentIdx > 0;                      // swipe right = prev
+
+  const commitSwipe = (dir: 'left' | 'right') => {
+    if (transitioning.current) return;
     const nextIdx = dir === 'left' ? currentIdx + 1 : currentIdx - 1;
-    if (nextIdx < 0 || nextIdx >= miniRoster.length) return;
-    setSlideDir(dir);
+    if (nextIdx < 0 || nextIdx >= miniRoster.length) { setDragX(0); return; }
+    transitioning.current = true;
+    // Animate current card off-screen
+    const cardW = cardRef.current?.offsetWidth ?? 320;
+    const flyTo = dir === 'left' ? -(cardW + 40) : (cardW + 40);
+    setDragX(flyTo);
     setTimeout(() => {
       onSelectPlayer?.(miniRoster[nextIdx]);
-      setSlideDir('none');
-    }, 180);
+      setDragX(0);
+      setSlideIn(dir === 'left' ? 'from-right' : 'from-left');
+      transitioning.current = false;
+      setTimeout(() => setSlideIn('none'), 350);
+    }, 300);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (transitioning.current) return;
     const t = e.touches[0];
-    touchRef.current = { startX: t.clientX, startY: t.clientY, swiping: false };
+    touchRef.current = { startX: t.clientX, startY: t.clientY, locked: false, dir: null };
+    // Remove transition during drag for real-time tracking
+    if (cardRef.current) cardRef.current.style.transition = 'none';
   };
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (transitioning.current) return;
     const t = e.touches[0];
     const dx = t.clientX - touchRef.current.startX;
     const dy = t.clientY - touchRef.current.startY;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) {
-      touchRef.current.swiping = true;
+    // Lock direction on first significant move
+    if (!touchRef.current.dir) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        touchRef.current.dir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+      } else return;
+    }
+    if (touchRef.current.dir !== 'h') return;
+    e.preventDefault();
+    touchRef.current.locked = true;
+    // Apply rubber-band if at boundary
+    let move = dx;
+    if ((dx < 0 && !canGoLeft) || (dx > 0 && !canGoRight)) {
+      move = dx * 0.2; // rubber band
+    }
+    setDragX(move);
+  };
+  const handleTouchEnd = () => {
+    if (transitioning.current) return;
+    // Restore transition for snap-back / fly-away
+    if (cardRef.current) cardRef.current.style.transition = 'transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease';
+    if (!touchRef.current.locked) { setDragX(0); return; }
+    const threshold = 60;
+    if (dragX < -threshold && canGoLeft) {
+      commitSwipe('left');
+    } else if (dragX > threshold && canGoRight) {
+      commitSwipe('right');
+    } else {
+      setDragX(0); // snap back
     }
   };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchRef.current.swiping) return;
-    const dx = e.changedTouches[0].clientX - touchRef.current.startX;
-    if (Math.abs(dx) < 40) return;
-    goTo(dx < 0 ? 'left' : 'right');
-  };
 
-  const cardAnim = slideDir === 'left'
-    ? 'slideOutLeft 0.18s ease-in forwards'
-    : slideDir === 'right'
-    ? 'slideOutRight 0.18s ease-in forwards'
-    : 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)';
+  const dragOpacity = Math.max(0.3, 1 - Math.abs(dragX) / 400);
+  const cardAnim = slideIn === 'from-right'
+    ? 'slideInFromRight 0.35s cubic-bezier(0.22,1,0.36,1)'
+    : slideIn === 'from-left'
+    ? 'slideInFromLeft 0.35s cubic-bezier(0.22,1,0.36,1)'
+    : dragX === 0 && slideIn === 'none'
+    ? 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)'
+    : 'none';
 
   return (
     <div style={{
@@ -1303,7 +1343,12 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
         boxShadow: '0 30px 60px -20px rgba(0,0,0,0.60)',
         padding: 14, flex: 1, position: 'relative', overflow: 'hidden',
         display: 'flex', flexDirection: 'column', gap: 10,
+        transform: `translateX(${dragX}px)`,
+        opacity: dragOpacity,
+        transition: dragX === 0 && !transitioning.current ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease' : undefined,
         animation: cardAnim,
+        willChange: 'transform, opacity',
+        touchAction: 'pan-y',
       }}>
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
