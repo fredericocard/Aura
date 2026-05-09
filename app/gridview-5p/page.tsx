@@ -114,7 +114,7 @@ function CounterChip({ kind, count }: { kind: string; count: number }) {
 function DarkCompassBg({ centered = false }: { centered?: boolean } = {}) {
   return (
     <svg width="520" height="520" viewBox="0 0 320 320" style={{
-      position: 'absolute', top: centered ? '50%' : '22%', left: '50%',
+      position: 'absolute', top: centered ? '42%' : '22%', left: '50%',
       transform: 'translate(-50%, -50%)',
       opacity: 0.18,
       pointerEvents: 'none',
@@ -1780,9 +1780,10 @@ function PageContent() {
   // Loading screen
   if (!gameLoaded) {
     return (
-      <div style={{ position: 'fixed', inset: 0, background: DARK.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      <div style={{ position: 'fixed', inset: 0, background: DARK.bg, overflow: 'hidden' }}>
         <DarkCompassBg centered/>
-        <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
+        <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+          style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2, opacity: 0.55 }}>
           <defs><clipPath id="aura-gv-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
           <circle cx="32" cy="36" r="2.4" fill="rgba(226,184,88,0.7)"/>
           <g clipPath="url(#aura-gv-load)">

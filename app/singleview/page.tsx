@@ -2082,12 +2082,31 @@ function PageContent() {
       <div style={{
         position: 'fixed', inset: 0,
         background: '#0A0604',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        <CompassRose size={520} opacity={0.18} color="#B06B2C"/>
+        {/* Compass rose — slightly above center */}
+        <svg width={520} height={520} viewBox="0 0 320 320" style={{
+          position: 'absolute', top: '42%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          opacity: 0.18, pointerEvents: 'none',
+        }}>
+          <g stroke="#B06B2C" strokeWidth="0.8" fill="none">
+            {Array.from({ length: 24 }).map((_, i) => {
+              const a = (i / 24) * Math.PI * 2;
+              const r1 = 40, r2 = 150;
+              return <line key={i}
+                x1={160 + Math.cos(a) * r1} y1={160 + Math.sin(a) * r1}
+                x2={160 + Math.cos(a) * r2} y2={160 + Math.sin(a) * r2}/>;
+            })}
+            <circle cx="160" cy="160" r="40"/>
+            <circle cx="160" cy="160" r="60" strokeDasharray="1 3"/>
+            <circle cx="160" cy="160" r="100" strokeDasharray="1 4"/>
+            <circle cx="160" cy="160" r="150"/>
+          </g>
+        </svg>
+        {/* Aura logo — slightly below center */}
         <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
-          style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
+          style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2, opacity: 0.55 }}>
           <defs>
             <clipPath id="aura-sv-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
           </defs>
