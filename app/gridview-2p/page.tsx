@@ -456,7 +456,7 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
       overflow:'hidden',
       transform: flipped ? 'rotate(180deg)' : 'none',
     }}>
-      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={2.5} insetOverlap={2.5}/>}
+      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
       {(() => {
         const isLifeZero = (life ?? 1) <= 0;
         const isPoisoned = (cellCounters?.poison || 0) >= 10;

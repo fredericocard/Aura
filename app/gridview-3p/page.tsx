@@ -465,7 +465,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
       overflow:'hidden',
     } as React.CSSProperties}>
-      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={2.5} insetOverlap={2.5}/>}
+      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
       {(() => {
         const isLifeZero = (life ?? 1) <= 0;
         const isPoisoned = (cellCounters?.poison || 0) >= 10;
