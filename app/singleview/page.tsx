@@ -304,10 +304,10 @@ function DigitalMatMesh({ patternIdx = 0 }: { patternIdx?: number }) {
 function SVBackdrop({ src, patternIdx = 0 }: { src: string; patternIdx?: number }) {
   return (
     <>
-      <img src={src} alt="" style={{
+      {src ? <img src={src} alt="" style={{
         position: 'absolute', inset: 0, width: '100%', height: '100%',
         objectFit: 'cover',
-      }}/>
+      }}/> : null}
 
       {/* Digital mat mesh overlay */}
       <DigitalMatMesh patternIdx={patternIdx}/>
@@ -1706,7 +1706,7 @@ function PageContent() {
   const [opponents, setOpponents] = useState<any[]>([]);
   const [currentUserData, setCurrentUserData] = useState<any>(null);
   const [commanderDetails, setCommanderDetails] = useState<Record<string, any>>({});
-  const [myArt, setMyArt] = useState('https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg');
+  const [myArt, setMyArt] = useState('');
   const [myColors, setMyColors] = useState<string[]>([]);
   const [myName, setMyName] = useState('Your Commander');
   const [podName, setPodNameState] = useState('Game');
