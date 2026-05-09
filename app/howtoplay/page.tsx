@@ -1514,31 +1514,28 @@ export default function HowToPlay() {
     if (!pageRef.current) return;
     const root = pageRef.current;
 
-    // Wire CTA buttons by their text content
-    const handleCreateProfile = () => {
-      if (auth?.isLoggedIn) {
-        router.push('/profile');
-      } else {
-        try { sessionStorage.setItem('loginRedirect', '/profile'); } catch {}
-        router.push('/landing?login=1');
-      }
-    };
-    const handleJoinPod = () => router.push('/join');
-
-    type Wired = { btn: HTMLButtonElement; fn: () => void };
-    const wired: Wired[] = [];
-
-    const buttons = root.querySelectorAll('button');
-    buttons.forEach(btn => {
+    // Wire CTA buttons via event delegation on the root ref so we don't
+    // depend on the buttons inside dangerouslySetInnerHTML being there now.
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const btn = target.closest('button') as HTMLButtonElement | null;
+      if (!btn) return;
       const text = (btn.textContent || '').trim();
       if (text.includes('Create your profile')) {
-        btn.addEventListener('click', handleCreateProfile);
-        wired.push({ btn, fn: handleCreateProfile });
+        e.preventDefault();
+        if (auth?.isLoggedIn) {
+          router.push('/profile');
+        } else {
+          try { sessionStorage.setItem('loginRedirect', '/profile'); } catch {}
+          router.push('/landing?login=1');
+        }
       } else if (text.includes('Join an existing pod')) {
-        btn.addEventListener('click', handleJoinPod);
-        wired.push({ btn, fn: handleJoinPod });
+        e.preventDefault();
+        router.push('/join');
       }
-    });
+    };
+    root.addEventListener('click', handleClick);
 
     // Scroll-driven floating animation on the Brilliance/Allegiance text cards
     const brilliance = root.querySelector<HTMLElement>('.ch3-phone-mount .float-card.brilliance');
@@ -1569,7 +1566,7 @@ export default function HowToPlay() {
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
-      wired.forEach(({ btn, fn }) => btn.removeEventListener('click', fn));
+      root.removeEventListener('click', handleClick);
     };
   }, [router, auth]);
 
