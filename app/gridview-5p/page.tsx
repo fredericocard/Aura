@@ -304,7 +304,7 @@ function CellInner({ player, lifeSize = 64 }: { player: any; lifeSize?: number }
   );
 }
 
-function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive }: { player: any; rotation: number; onTapLeft: () => void; onTapRight: () => void; onRevive?: () => void }) {
+function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { player: any; rotation: number; onTapLeft: () => void; onTapRight: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
   const hasRing = (player.cmdrDamage || []).length > 0;
   return (
     <div style={{
@@ -371,22 +371,20 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive }: { p
             display:'flex', alignItems:'center', justifyContent:'center',
           }}
             onClick={onTapLeft}
-            onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
-            onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-            onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-            onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
-            onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; onHoldLeftStart && onHoldLeftStart(); }}
+            onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+            onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+            onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
           />
           <button style={{
             flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
             display:'flex', alignItems:'center', justifyContent:'center',
           }}
             onClick={onTapRight}
-            onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
-            onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-            onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-            onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
-            onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+            onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; onHoldRightStart && onHoldRightStart(); }}
+            onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+            onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+            onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
           />
         </div>
       </div>
@@ -530,21 +528,19 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
               flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
             }}
               onClick={onTapLeft}
-              onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
-              onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-              onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-              onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
-              onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+              onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; onHoldLeftStart && onHoldLeftStart(); }}
+              onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+              onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+              onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
             />
             <button style={{
               flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
             }}
               onClick={onTapRight}
-              onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
-              onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-              onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-              onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
-              onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+              onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; onHoldRightStart && onHoldRightStart(); }}
+              onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+              onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+              onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
             />
           </div>
         </div>
@@ -553,7 +549,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
   );
 }
 
-function NormalCell({ player, onTapLeft, onTapRight, onRevive, lifeSize = 72 }: { player: any; onTapLeft: () => void; onTapRight: () => void; onRevive?: () => void; lifeSize?: number }) {
+function NormalCell({ player, onTapLeft, onTapRight, onRevive, lifeSize = 72, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { player: any; onTapLeft: () => void; onTapRight: () => void; onRevive?: () => void; lifeSize?: number; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
   const hasRing = (player.cmdrDamage || []).length > 0;
   return (
     <div style={{
@@ -573,22 +569,20 @@ function NormalCell({ player, onTapLeft, onTapRight, onRevive, lifeSize = 72 }: 
           display:'flex', alignItems:'center', justifyContent:'center',
         }}
           onClick={onTapLeft}
-          onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
-          onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-          onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-          onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; }}
-          onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; onHoldLeftStart && onHoldLeftStart(); }}
+          onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+          onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+          onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
         />
         <button style={{
           flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
           display:'flex', alignItems:'center', justifyContent:'center',
         }}
           onClick={onTapRight}
-          onMouseDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
-          onMouseUp={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-          onMouseLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
-          onTouchStart={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; }}
-          onTouchEnd={(e: any) => { e.currentTarget.style.background = 'transparent'; }}
+          onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; onHoldRightStart && onHoldRightStart(); }}
+          onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+          onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+          onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
         />
       </div>
     </div>
@@ -1669,6 +1663,22 @@ function PageContent() {
     };
   };
 
+  const startLifeHold = (playerNum: number, delta: number) => {
+    if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
+    if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
+    holdTimersRef.current[playerNum] = setTimeout(() => {
+      handleLifeChange(playerNum, delta);
+      repeatTimersRef.current[playerNum] = setInterval(() => {
+        handleLifeChange(playerNum, delta);
+      }, 120);
+    }, 400);
+  };
+
+  const stopLifeHold = (playerNum: number) => {
+    if (holdTimersRef.current[playerNum]) { clearTimeout(holdTimersRef.current[playerNum]); delete holdTimersRef.current[playerNum]; }
+    if (repeatTimersRef.current[playerNum]) { clearInterval(repeatTimersRef.current[playerNum]); delete repeatTimersRef.current[playerNum]; }
+  };
+
   const handleLifeChange = (playerNum: number, delta: number) => {
     setPlayers(prev => {
       const newLife = Math.max(0, Math.min(999, prev[playerNum].life + delta));
@@ -1908,6 +1918,9 @@ function PageContent() {
                     rotation={90}
                     onTapLeft={() => handleLifeChange(2, -1)}
                     onTapRight={() => handleLifeChange(2, 1)}
+                    onHoldLeftStart={() => startLifeHold(2, -1)}
+                    onHoldRightStart={() => startLifeHold(2, 1)}
+                    onHoldEnd={() => stopLifeHold(2)}
               onRevive={() => handleRevive(2)}
                   />
                 ) : (
@@ -1923,6 +1936,9 @@ function PageContent() {
                   onCloseQR={() => setJoinModalOpen(false)}
                     onTapLeft={() => handleLifeChange(2, -1)}
                     onTapRight={() => handleLifeChange(2, 1)}
+                    onHoldLeftStart={() => startLifeHold(2, -1)}
+                    onHoldRightStart={() => startLifeHold(2, 1)}
+                    onHoldEnd={() => stopLifeHold(2)}
               onRevive={() => handleRevive(2)}
                   />
                 )}
@@ -1934,6 +1950,9 @@ function PageContent() {
                     rotation={90}
                     onTapLeft={() => handleLifeChange(3, -1)}
                     onTapRight={() => handleLifeChange(3, 1)}
+                    onHoldLeftStart={() => startLifeHold(3, -1)}
+                    onHoldRightStart={() => startLifeHold(3, 1)}
+                    onHoldEnd={() => stopLifeHold(3)}
               onRevive={() => handleRevive(3)}
                   />
                 ) : (
@@ -1949,6 +1968,9 @@ function PageContent() {
                   onCloseQR={() => setJoinModalOpen(false)}
                     onTapLeft={() => handleLifeChange(3, -1)}
                     onTapRight={() => handleLifeChange(3, 1)}
+                    onHoldLeftStart={() => startLifeHold(3, -1)}
+                    onHoldRightStart={() => startLifeHold(3, 1)}
+                    onHoldEnd={() => stopLifeHold(3)}
               onRevive={() => handleRevive(3)}
                   />
                 )}
@@ -1963,6 +1985,9 @@ function PageContent() {
                     rotation={-90}
                     onTapLeft={() => handleLifeChange(4, -1)}
                     onTapRight={() => handleLifeChange(4, 1)}
+                    onHoldLeftStart={() => startLifeHold(4, -1)}
+                    onHoldRightStart={() => startLifeHold(4, 1)}
+                    onHoldEnd={() => stopLifeHold(4)}
               onRevive={() => handleRevive(4)}
                   />
                 ) : (
@@ -1978,6 +2003,9 @@ function PageContent() {
                   onCloseQR={() => setJoinModalOpen(false)}
                     onTapLeft={() => handleLifeChange(4, -1)}
                     onTapRight={() => handleLifeChange(4, 1)}
+                    onHoldLeftStart={() => startLifeHold(4, -1)}
+                    onHoldRightStart={() => startLifeHold(4, 1)}
+                    onHoldEnd={() => stopLifeHold(4)}
               onRevive={() => handleRevive(4)}
                   />
                 )}
@@ -1989,6 +2017,9 @@ function PageContent() {
                     rotation={-90}
                     onTapLeft={() => handleLifeChange(5, -1)}
                     onTapRight={() => handleLifeChange(5, 1)}
+                    onHoldLeftStart={() => startLifeHold(5, -1)}
+                    onHoldRightStart={() => startLifeHold(5, 1)}
+                    onHoldEnd={() => stopLifeHold(5)}
               onRevive={() => handleRevive(5)}
                   />
                 ) : (
@@ -2004,6 +2035,9 @@ function PageContent() {
                   onCloseQR={() => setJoinModalOpen(false)}
                     onTapLeft={() => handleLifeChange(5, -1)}
                     onTapRight={() => handleLifeChange(5, 1)}
+                    onHoldLeftStart={() => startLifeHold(5, -1)}
+                    onHoldRightStart={() => startLifeHold(5, 1)}
+                    onHoldEnd={() => stopLifeHold(5)}
               onRevive={() => handleRevive(5)}
                   />
                 )}
@@ -2017,6 +2051,9 @@ function PageContent() {
                 player={enrichPlayer(1, true)}
                 onTapLeft={() => handleLifeChange(1, -1)}
                 onTapRight={() => handleLifeChange(1, 1)}
+                onHoldLeftStart={() => startLifeHold(1, -1)}
+                onHoldRightStart={() => startLifeHold(1, 1)}
+                onHoldEnd={() => stopLifeHold(1)}
               onRevive={() => handleRevive(1)}
                 lifeSize={72}
               />
