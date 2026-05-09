@@ -767,6 +767,37 @@ function ModalTitle({ kickerText, title }: any) {
 
 // ─── Bottom Sheet Shell (KeepsakeCard style) ────────────────────────────────
 function BottomSheet({ children, onClose }: any) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const currentY = useRef(0);
+  const dragging = useRef(false);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+    currentY.current = 0;
+    dragging.current = true;
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragging.current) return;
+    const dy = e.touches[0].clientY - startY.current;
+    currentY.current = Math.max(0, dy);
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${currentY.current}px)`;
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    dragging.current = false;
+    if (sheetRef.current) sheetRef.current.style.transition = 'transform 0.25s cubic-bezier(.22,.61,.36,1)';
+    if (currentY.current > 100) {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(100%)';
+      setTimeout(onClose, 250);
+    } else {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(0)';
+    }
+    currentY.current = 0;
+  }, [onClose]);
+
   return (
     <>
       {/* Backdrop */}
@@ -787,7 +818,7 @@ function BottomSheet({ children, onClose }: any) {
       }}/>
 
       {/* Sheet body */}
-      <div style={{
+      <div ref={sheetRef} style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
         borderTopLeftRadius: 24, borderTopRightRadius: 24,
         overflow: 'hidden',
@@ -809,11 +840,21 @@ function BottomSheet({ children, onClose }: any) {
           <CompassRose size={280} opacity={0.06} color="#E2B858"/>
 
           {/* Drag handle */}
-          <div style={{
-            position: 'relative', zIndex: 1,
-            width: 40, height: 4, borderRadius: 999,
-            background: 'rgba(226,184,88,0.18)', margin: '0 auto 14px',
-          }}/>
+          <div
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            style={{
+              position: 'relative', zIndex: 1,
+              cursor: 'grab', touchAction: 'none',
+              padding: '4px 0 10px',
+            }}
+          >
+            <div style={{
+              width: 40, height: 4, borderRadius: 999,
+              background: 'rgba(226,184,88,0.18)', margin: '0 auto',
+            }}/>
+          </div>
 
           <div style={{ position: 'relative', zIndex: 1 }}>
             {children}
@@ -1887,7 +1928,8 @@ function PageContent() {
     const setter = setters[kind];
     if (setter) {
       setter((prev: number) => {
-        const newVal = Math.max(0, prev + delta);
+        let newVal = Math.max(0, prev + delta);
+        if (kind === 'poison') newVal = Math.min(10, newVal);
         if (gameId && user?.id) {
           const updateFn = {
             poison: updatePoisonCounters,
