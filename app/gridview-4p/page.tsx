@@ -356,24 +356,36 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive }: { p
       {(player.counters?.poison || 0) >= 10 && (
         <div style={{
           position:'absolute', inset:0, zIndex:20,
-          background:'rgba(10,6,4,0.78)',
-          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
+          background:'radial-gradient(ellipse at 50% 50%, rgba(158,43,43,0.45) 0%, rgba(10,6,4,0.92) 65%)',
+          backdropFilter:'blur(2px)',
+          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18,
+          boxShadow:'inset 0 0 0 3px #9E2B2B, inset 0 0 40px rgba(158,43,43,0.4)',
+          animation:'revive-pulse 2.4s ease-in-out infinite',
         }}>
           <div style={{
-            fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
-            letterSpacing:'0.20em', textTransform:'uppercase',
-            color: '#9E2B2B',
-          }}>Defeated · Poison</div>
+            display:'inline-flex', alignItems:'center', gap:10,
+            padding:'8px 18px',
+            background:'rgba(158,43,43,0.20)',
+            border:'1.5px solid #C84545',
+            borderRadius:999,
+            fontFamily:'var(--font-ui)', fontSize:13, fontWeight:800,
+            letterSpacing:'0.24em', textTransform:'uppercase',
+            color:'#FFE6E0',
+            textShadow:'0 1px 8px rgba(158,43,43,0.7)',
+          }}>
+            <span style={{ fontSize:18 }}>☠</span>
+            Defeated · Poison
+          </div>
           <button onClick={onRevive} style={{
             display:'inline-flex', alignItems:'center', gap:8,
-            padding:'10px 18px',
+            padding:'14px 28px',
             background: DARK.forest,
             color: DARK.ink,
             border:'none', borderRadius:999,
-            fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
-            letterSpacing:'0.16em', textTransform:'uppercase',
+            fontFamily:'var(--font-ui)', fontSize:14, fontWeight:800,
+            letterSpacing:'0.20em', textTransform:'uppercase',
             cursor:'pointer', whiteSpace:'nowrap',
-            boxShadow:'0 4px 14px -4px rgba(63,159,77,0.35)',
+            boxShadow:'0 6px 18px -4px rgba(63,159,77,0.55), 0 0 0 2px rgba(63,159,77,0.18)',
           }}>Revive</button>
         </div>
       )}
@@ -713,6 +725,7 @@ function DicePlaque({ option, active, result, onClick }: { option: { id: string;
   const accent = active ? DARK.copper : DARK.ink3;
   return (
     <button onClick={onClick} style={{
+      width: '100%', minWidth: 0,
       position: 'relative',
       background: active ? `radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)` : '#1A120A',
       border: `1px solid ${active ? `${DARK.copper}88` : 'rgba(226,184,88,0.22)'}`,
@@ -1022,7 +1035,7 @@ function DiceModal({ open, onClose, players, selectedDiceOpt, diceResults, onRol
     }}>
       <ModalCard width={320} onClose={onClose}>
         <ModalTitle kicker="Roll" title="Dice & Random"/>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
           {DICE_OPTS.map(opt => (
             <DicePlaque key={opt.id} option={opt}
               active={selectedDiceOpt === opt.id}
@@ -1831,6 +1844,17 @@ function PageContent() {
 
     .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: ${DARK.bgCard}; color: ${DARK.ink}; padding: 12px 24px; border-radius: 10px; border: 1px solid ${DARK.lineStrong}; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 9999; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @keyframes revive-pulse {
+      0%, 100% {
+        box-shadow: inset 0 0 0 3px #9E2B2B, inset 0 0 40px rgba(158,43,43,0.40);
+        background: radial-gradient(ellipse at 50% 50%, rgba(158,43,43,0.45) 0%, rgba(10,6,4,0.92) 65%);
+      }
+      50% {
+        box-shadow: inset 0 0 0 3px #C84545, inset 0 0 60px rgba(200,69,69,0.65);
+        background: radial-gradient(ellipse at 50% 50%, rgba(200,69,69,0.55) 0%, rgba(10,6,4,0.95) 70%);
+      }
+    }
   `;
 
   return (
