@@ -1643,6 +1643,11 @@ function PageContent() {
         if (pod?.short_code) setPodShortCode(pod.short_code);
       }
 
+      // Fetch current user's profile name
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const myUserId = authUser?.id ?? null;
+      const myDisplayName = authUser?.user_metadata?.display_name ?? null;
+
       const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
       let deckMap = new Map();
       if (deckIds.length > 0) {
@@ -1662,11 +1667,13 @@ function PageContent() {
         const slot = p.seat_number ?? 1;
         if (slot > 5) return;
         const isEmptySeat = !p.user_id && !p.deck_id && !p.commander_name;
-        const displayName = deck?.commander_name ?? p.commander_name ?? `Player ${slot}`;
+        const commanderName = deck?.commander_name ?? p.commander_name ?? null;
+        const profileName = (p.user_id === myUserId && myDisplayName) ? myDisplayName : null;
+        const displayName = profileName ?? (commanderName ? commanderName.split(',')[0] : `Player ${slot}`);
 
         newPlayers[slot] = {
           life: p.life_total ?? 40,
-          name: displayName.split(',')[0],
+          name: displayName,
           commander: deck?.commander_name ?? p.commander_name ?? null,
           claimed: !isEmptySeat,
           colors: (deck?.color_identity ?? '').split('').filter((c: string) => 'WUBRG'.includes(c)),
