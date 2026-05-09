@@ -398,43 +398,53 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       <div style={{
         position:'relative',
         height:'100%',
+        containerType:'size',
         borderRadius:'20px',
         background: DARK.bgDeep,
         border: `2.5px dashed rgba(226,184,88,0.25)`,
         boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
         overflow:'hidden',
-        transform: `rotate(${rotation}deg)`,
-      }}>
-        <button onClick={onCloseQR} aria-label="Close" style={{
-          position:'absolute', top:10, right:10, zIndex:30,
-          width:32, height:32, borderRadius:999,
-          background:'rgba(10,6,4,0.55)',
-          border:`1px solid ${DARK.lineStrong}`,
-          color: DARK.ink2, fontSize:18, fontWeight:600,
-          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-          lineHeight:1, padding:0,
-        }}>×</button>
+      } as React.CSSProperties}>
         <div style={{
-          position:'absolute', inset:0, zIndex:20,
-          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
-          padding:20,
-        }}>
+          position:'absolute',
+          top:'50%',
+          left:'50%',
+          width:'100cqh',
+          height:'100cqw',
+          transform:`translate(-50%, -50%) rotate(${rotation}deg)`,
+          transformOrigin:'center center',
+        } as React.CSSProperties}>
+          <button onClick={onCloseQR} aria-label="Close" style={{
+            position:'absolute', top:10, right:10, zIndex:30,
+            width:32, height:32, borderRadius:999,
+            background:'rgba(10,6,4,0.55)',
+            border:`1px solid ${DARK.lineStrong}`,
+            color: DARK.ink2, fontSize:18, fontWeight:600,
+            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+            lineHeight:1, padding:0,
+          }}>×</button>
           <div style={{
-            padding:10, background:'#FAF5EA', borderRadius:14,
-            boxShadow:'0 4px 20px -6px rgba(0,0,0,0.35)',
+            position:'absolute', inset:0, zIndex:20,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
+            padding:20,
           }}>
-            {qrCodeUrl ? (
-              <img src={qrCodeUrl} alt="QR code to join pod" width={140} height={140} style={{ imageRendering:'pixelated', display:'block' }}/>
-            ) : (
-              <div style={{ width:140, height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:11 }}>No pod code</div>
+            <div style={{
+              padding:10, background:'#FAF5EA', borderRadius:14,
+              boxShadow:'0 4px 20px -6px rgba(0,0,0,0.35)',
+            }}>
+              {qrCodeUrl ? (
+                <img src={qrCodeUrl} alt="QR code to join pod" width={140} height={140} style={{ imageRendering:'pixelated', display:'block' }}/>
+              ) : (
+                <div style={{ width:140, height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:11 }}>No pod code</div>
+              )}
+            </div>
+            {podShortCode && (
+              <div style={{
+                fontFamily:'var(--font-display)', fontSize:18, letterSpacing:'0.16em',
+                color: DARK.ink, fontVariantNumeric:'tabular-nums',
+              }}>{`${podShortCode.slice(0,3)}—${podShortCode.slice(3)}`}</div>
             )}
           </div>
-          {podShortCode && (
-            <div style={{
-              fontFamily:'var(--font-display)', fontSize:18, letterSpacing:'0.16em',
-              color: DARK.ink, fontVariantNumeric:'tabular-nums',
-            }}>{`${podShortCode.slice(0,3)}—${podShortCode.slice(3)}`}</div>
-          )}
         </div>
       </div>
     );
