@@ -724,7 +724,7 @@ function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.
         {playerNums.map(n => {
           const p = players[n];
           const on = n === selectedNum;
-          const initial = (p.name || `P${n}`).charAt(0).toUpperCase();
+          const initial = `P${n}`;
           return (
             <button key={n} onClick={() => onSelect(n)} style={{
               flex: 1, minWidth: 0,
@@ -748,7 +748,7 @@ function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.
                   {p.art ? (
                     <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 25%' }}/>
                   ) : (
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: size * 0.45, color: DARK.ink2 }}>{initial}</span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: size * 0.32, color: DARK.ink2 }}>{initial}</span>
                   )}
                   {!on && <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,6,4,0.25)' }}/>}
                 </div>
@@ -1194,7 +1194,7 @@ function CountersModalLandscape({ open, onClose, players, selectedNum, setSelect
               {playerNums.map(n => {
                 const p = players[n];
                 const on = n === selectedNum;
-                const initial = (p?.name || `P${n}`).charAt(0).toUpperCase();
+                const initial = `P${n}`;
                 return (
                   <button key={n} onClick={() => setSelectedNum(n)} style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
@@ -1279,7 +1279,7 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
       {playerNums.map(n => {
         const p = players[n];
         const on = n === selectedN;
-        const initial = (p?.name || `P${n}`).charAt(0).toUpperCase();
+        const initial = `P${n}`;
         return (
           <button key={n} onClick={() => setN(n)} style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -1567,7 +1567,8 @@ function PageContent() {
   const handleCounterChange = (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => {
     const playerNum = selectedCounterPlayer;
     setCounters(prev => {
-      const newVal = action === 'plus' ? prev[playerNum][type] + 1 : Math.max(0, prev[playerNum][type] - 1);
+      const cap = type === 'poison' ? 10 : 999;
+      const newVal = action === 'plus' ? Math.min(cap, prev[playerNum][type] + 1) : Math.max(0, prev[playerNum][type] - 1);
 
       const userId = playerUserIds[playerNum];
       const seat = playerSeatNumbers[playerNum];
@@ -1598,7 +1599,7 @@ function PageContent() {
   const handleCmdrChange = (delta: number) => {
     setCmdrDamage(prev => {
       const cur = prev[cmdrFrom]?.[cmdrTo] ?? 0;
-      const next = Math.max(0, Math.min(99, cur + delta));
+      const next = Math.max(0, Math.min(21, cur + delta));
       return {
         ...prev,
         [cmdrFrom]: {
