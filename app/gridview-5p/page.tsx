@@ -394,7 +394,7 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive, onHol
             display:'flex', alignItems:'center', justifyContent:'center',
           }}
             onClick={onTapRight}
-            onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; onHoldRightStart && onHoldRightStart(); }}
+            onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; onHoldRightStart && onHoldRightStart(); }}
             onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
             onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
             onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
@@ -599,7 +599,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
               flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
             }}
               onClick={onTapRight}
-              onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; onHoldRightStart && onHoldRightStart(); }}
+              onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; onHoldRightStart && onHoldRightStart(); }}
               onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
               onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
               onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
@@ -688,7 +688,7 @@ function NormalCell({ player, onTapLeft, onTapRight, onRevive, lifeSize = 72, on
           display:'flex', alignItems:'center', justifyContent:'center',
         }}
           onClick={onTapRight}
-          onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(80,200,80,0.08)'; onHoldRightStart && onHoldRightStart(); }}
+          onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; onHoldRightStart && onHoldRightStart(); }}
           onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
           onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
           onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
