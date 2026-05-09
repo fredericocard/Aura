@@ -70,6 +70,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     coin:     <><circle cx="12" cy="12" r="9"/><path d="M9 9h4a2 2 0 0 1 0 4H9V9zm0 4v3"/></>,
     shuffle:  <><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></>,
     arrow:    <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
+    rotate:   <><polyline points="21 2 21 8 15 8"/><path d="M21 8a9 9 0 1 0-2.6 6.4"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -673,7 +674,7 @@ function ModalCompass({ size = 300, opacity = 0.10 }: { size?: number; opacity?:
   );
 }
 
-function ModalCard({ width = 320, onClose, children, showCompass = true }: { width?: number; onClose: () => void; children: React.ReactNode; showCompass?: boolean }) {
+function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, showCompass = true }: { width?: number; onClose: () => void; onRotate?: () => void; rotated?: boolean; children: React.ReactNode; showCompass?: boolean }) {
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
@@ -687,6 +688,8 @@ function ModalCard({ width = 320, onClose, children, showCompass = true }: { wid
         background: '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
+        transform: rotated ? 'rotate(180deg)' : 'none',
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {showCompass && <ModalCompass/>}
         <button onClick={onClose} style={{
@@ -699,6 +702,18 @@ function ModalCard({ width = 320, onClose, children, showCompass = true }: { wid
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
+        {onRotate && (
+          <button onClick={onRotate} aria-label="Rotate" style={{
+            position: 'absolute', top: 10, right: 10, zIndex: 2,
+            width: 36, height: 36, borderRadius: 999,
+            background: 'rgba(226,184,88,0.12)',
+            border: '1.5px solid rgba(226,184,88,0.30)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          }}>
+            <Icon name="rotate" size={16} stroke={DARK.ink2} width={1.8}/>
+          </button>
+        )}
         <div style={{ position: 'relative' }}>{children}</div>
       </div>
     </div>
@@ -1010,6 +1025,7 @@ function DiceModal({ open, onClose, players, selectedDiceOpt, diceResults, onRol
   diceResults: Record<string, string>;
   onRoll: (id: string) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   return (
     <div onClick={onClose} style={{
@@ -1017,7 +1033,7 @@ function DiceModal({ open, onClose, players, selectedDiceOpt, diceResults, onRol
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={320} onClose={onClose}>
+      <ModalCard width={320} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated}>
         <ModalTitle kicker="Roll" title="Dice & Random"/>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
           {DICE_OPTS.map(opt => (
@@ -1042,6 +1058,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
   counters: Record<number, { poison: number; experience: number; energy: number }>;
   onChange: (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const playerCounts = counters[selectedNum] ?? { poison: 0, energy: 0, experience: 0 };
   return (
@@ -1050,7 +1067,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={326} onClose={onClose} showCompass={false}>
+      <ModalCard width={326} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Adjust" title="Counters"/>
         <div style={{ marginBottom: 18 }}>
           <PlayerAvatarRow players={players} selectedNum={selectedNum}
@@ -1090,6 +1107,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   damage: Record<number, Record<number, number>>;
   onChange: (delta: number) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const amount = damage[fromNum]?.[toNum] ?? 0;
   const lethal = 21;
@@ -1098,29 +1116,22 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   const accent = CMDR_DMG_COLORS[heatIdx];
   const fromPlayer = players[fromNum];
   const toPlayer = players[toNum];
+  // 2p: 'damage from' is always the OTHER player. Hide that row, auto-set fromNum.
+  const handleSelectTo = (n: number) => {
+    setToNum(n);
+    setFromNum(n === 1 ? 2 : 1);
+  };
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={332} onClose={onClose} showCompass={false}>
+      <ModalCard width={332} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Track" title="Commander Damage"/>
-        <div style={{ marginBottom: 10 }}>
-          <PlayerAvatarRow players={players} selectedNum={fromNum} onSelect={setFromNum}
-            label="Damage from" accent={accent} size={38}/>
-        </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 6, margin: '4px 0', color: DARK.ink4,
-        }}>
-          <span style={{ width: 36, height: 1, background: DARK.lineStrong }}/>
-          <Icon name="shield" size={11} stroke={DARK.ink3} width={1.6}/>
-          <span style={{ width: 36, height: 1, background: DARK.lineStrong }}/>
-        </div>
         <div style={{ marginBottom: 12 }}>
-          <PlayerAvatarRow players={players} selectedNum={toNum} onSelect={setToNum}
-            label="Damage to" accent={DARK.ink} size={38}/>
+          <PlayerAvatarRow players={players} selectedNum={toNum} onSelect={handleSelectTo}
+            label="Damage to" accent={accent} size={42}/>
         </div>
         <div style={{
           background: '#140E08',
@@ -1189,9 +1200,21 @@ function PageContent() {
   const holdTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
   const repeatTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
 
+  // Track fields with pending local changes — realtime updates are ignored until cleared
+  const dirtyUntilRef = useRef<Record<string, number>>({});
+  const isDirty = (key: string) => {
+    const until = dirtyUntilRef.current[key];
+    if (!until) return false;
+    if (Date.now() > until) { delete dirtyUntilRef.current[key]; return false; }
+    return true;
+  };
   const debouncedSync = (key: string, fn: () => void) => {
     if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
-    syncTimerRef.current[key] = setTimeout(fn, 300);
+    dirtyUntilRef.current[key] = Date.now() + 2000;
+    syncTimerRef.current[key] = setTimeout(() => {
+      fn();
+      setTimeout(() => { delete dirtyUntilRef.current[key]; }, 800);
+    }, 300);
   };
 
   useEffect(() => {
@@ -1254,8 +1277,16 @@ function PageContent() {
           if (!row) return;
           const num = row.seat_number;
           if (num && num <= 2) {
-            setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
-            setCounters(prev => ({ ...prev, [num]: { poison: row.poison_counters ?? prev[num].poison, experience: row.experience_counters ?? prev[num].experience, energy: row.energy_counters ?? prev[num].energy } }));
+            if (!isDirty(`life-${num}`)) {
+              setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
+            }
+            setCounters(prev => {
+              const updated = { ...prev[num] };
+              if (!isDirty(`poison-${num}`)) updated.poison = row.poison_counters ?? prev[num].poison;
+              if (!isDirty(`experience-${num}`)) updated.experience = row.experience_counters ?? prev[num].experience;
+              if (!isDirty(`energy-${num}`)) updated.energy = row.energy_counters ?? prev[num].energy;
+              return { ...prev, [num]: updated };
+            });
           }
         })
         .subscribe();
@@ -1286,6 +1317,11 @@ function PageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players]);
 
+
+  // Players with commander art attached for modal avatars.
+  const playersWithArt = Object.fromEntries(
+    Object.entries(players).map(([k, pl]) => [k, { ...pl, art: pl.commander ? commanderArt[pl.commander] : undefined }])
+  ) as typeof players;
 
   // Merge counters + cmdr damage onto a player so cells get all visual data
   const enrichPlayer = (n: number, isYou = false) => {
@@ -1396,7 +1432,7 @@ function PageContent() {
   const handleCmdrChange = (delta: number) => {
     setCmdrDamage(prev => {
       const cur = prev[cmdrFrom]?.[cmdrTo] ?? 0;
-      const next = Math.max(0, Math.min(99, cur + delta));
+      const next = Math.max(0, Math.min(21, cur + delta));
       return {
         ...prev,
         [cmdrFrom]: {
@@ -1610,7 +1646,7 @@ function PageContent() {
         <DiceModal
           open={diceModalOpen}
           onClose={() => setDiceModalOpen(false)}
-          players={players}
+          players={playersWithArt}
           selectedDiceOpt={diceTab}
           diceResults={diceResults}
           onRoll={handleDiceRoll}
@@ -1621,7 +1657,7 @@ function PageContent() {
         <CountersModal
           open={countersModalOpen}
           onClose={() => setCountersModalOpen(false)}
-          players={players}
+          players={playersWithArt}
           selectedNum={selectedCounterPlayer}
           setSelectedNum={setSelectedCounterPlayer}
           counters={counters}
@@ -1633,7 +1669,7 @@ function PageContent() {
         <CmdrDmgModal
           open={cmdrModalOpen}
           onClose={() => setCmdrModalOpen(false)}
-          players={players}
+          players={playersWithArt}
           fromNum={cmdrFrom}
           toNum={cmdrTo}
           setFromNum={setCmdrFrom}
