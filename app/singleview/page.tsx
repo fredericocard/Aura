@@ -43,8 +43,8 @@ const TOKENS_CSS = `
 @keyframes slideUpCard { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
 @keyframes dialShrinkUp { from{transform:scale(1.8) translateY(60px);opacity:0.3} to{transform:scale(1) translateY(0);opacity:1} }
 
-.sv-dice-btn { transition: transform 0.15s cubic-bezier(.22,.61,.36,1), box-shadow 0.15s ease; }
-.sv-dice-btn:active { transform: scale(0.95) !important; }
+.sv-dice-btn { transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease; -webkit-tap-highlight-color: transparent; }
+.sv-dice-btn:active { transform: scale(0.92) !important; filter: brightness(1.15); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -109,6 +109,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: any) {
     'chevron-left':  <polyline points="15 18 9 12 15 6"/>,
     'memory-log':    <><path d="M4 5a2 2 0 0 1 2-2h11l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5z"/><path d="M8 8h8M8 12h8M8 16h5"/></>,
     plus:            <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+    minus:           <line x1="5" y1="12" x2="19" y2="12"/>,
     x:               <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
     grid:            <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></>,
     user:            <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
@@ -1620,7 +1621,7 @@ function PageContent() {
   const [patternIdx, setPatternIdx] = useState(0);
   const [expandedOpponent, setExpandedOpponent] = useState<string | null>(null);
   const [cmdrDmg, setCmdrDmg] = useState<Record<string, number>>({});
-  const [eliminationReason, setEliminationReason] = useState<'life' | 'cmdr' | null>(null);
+  const [eliminationReason, setEliminationReason] = useState<'life' | 'cmdr' | 'poison' | null>(null);
 
   // Debounced sync refs
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
@@ -1930,6 +1931,11 @@ function PageContent() {
       setter((prev: number) => {
         let newVal = Math.max(0, prev + delta);
         if (kind === 'poison') newVal = Math.min(10, newVal);
+        if (kind === 'poison' && newVal >= 10) {
+          setEliminationReason('poison');
+          setShowEliminated(true);
+          setDead(true);
+        }
         if (gameId && user?.id) {
           const updateFn = {
             poison: updatePoisonCounters,
@@ -1951,7 +1957,11 @@ function PageContent() {
     if (gameId && user?.id) {
       abandonGame(gameId, user.id).then(() => {
         router.push(isLoggedIn ? '/profile' : '/landing');
-      }).catch(() => {});
+      }).catch(() => {
+        router.push(isLoggedIn ? '/profile' : '/landing');
+      });
+    } else {
+      router.push('/landing');
     }
   };
 
@@ -2116,6 +2126,15 @@ function PageContent() {
               // Life stays the same — just un-eliminate on backend
               if (gameId && user?.id) {
                 updateLifeTotal(gameId, user.id, life).catch(() => {});
+              }
+            } else if (eliminationReason === 'poison') {
+              // Poison elimination: revive at 9 poison
+              setPoison(9);
+              setDead(false);
+              setShowEliminated(false);
+              setEliminationReason(null);
+              if (gameId && user?.id) {
+                updatePoisonCounters(gameId, user.id, 9).catch(() => {});
               }
             } else {
               // Life-based elimination: revive at 1 life
