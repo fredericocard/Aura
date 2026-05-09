@@ -2080,10 +2080,12 @@ function PageContent() {
   if (!gameLoaded) {
     return (
       <div style={{ position: 'fixed', inset: 0, overflow: 'hidden',
-        background: `radial-gradient(ellipse at 50% 0%, rgba(176,107,44,0.10) 0%, transparent 50%),
-          radial-gradient(ellipse at 0% 40%, rgba(176,107,44,0.05) 0%, transparent 40%),
-          radial-gradient(ellipse at 100% 60%, rgba(176,107,44,0.05) 0%, transparent 40%),
-          radial-gradient(ellipse at 50% 100%, rgba(176,107,44,0.08) 0%, transparent 45%),
+        background: `radial-gradient(ellipse 80% 40% at 50% 0%, rgba(176,107,44,0.18) 0%, transparent 100%),
+          radial-gradient(ellipse 50% 35% at 0% 35%, rgba(176,107,44,0.12) 0%, transparent 100%),
+          radial-gradient(ellipse 50% 35% at 100% 55%, rgba(176,107,44,0.12) 0%, transparent 100%),
+          radial-gradient(ellipse 70% 30% at 50% 100%, rgba(176,107,44,0.14) 0%, transparent 100%),
+          radial-gradient(ellipse 40% 25% at 25% 75%, rgba(176,107,44,0.06) 0%, transparent 100%),
+          radial-gradient(ellipse 40% 25% at 80% 20%, rgba(176,107,44,0.06) 0%, transparent 100%),
           #0A0604`,
       }}>
         {/* Compass rose — top of screen */}
