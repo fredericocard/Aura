@@ -1222,6 +1222,7 @@ function PageContent() {
     2: { poison: 0, experience: 0, energy: 0 }
   });
 
+  const [gameLoaded, setGameLoaded] = useState(false);
   const [selectedCounterPlayer, setSelectedCounterPlayer] = useState(1);
   const [diceTab, setDiceTab] = useState('d20');
   const [diceResults, setDiceResults] = useState<Record<string, string>>({});
@@ -1321,6 +1322,7 @@ function PageContent() {
       setPlayerUserIds(newUserIds);
       setPlayerSeatNumbers(newSeatNumbers);
       setCounters(newCounters);
+      setGameLoaded(true);
 
       // Load commander damage from Supabase (stored as damage RECEIVED per player)
       // Convert to cmdrDamage[from][to] format used by gridview
@@ -1407,6 +1409,31 @@ function PageContent() {
   const playersWithArt = Object.fromEntries(
     Object.entries(players).map(([k, pl]) => [k, { ...pl, art: pl.commander ? commanderArt[pl.commander] : undefined }])
   ) as typeof players;
+
+  // Loading screen — dark bg + compass pattern + gold Aura mark
+  if (!gameLoaded) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0,
+        background: DARK.bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
+        <DarkCompassBg/>
+        <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+          style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
+          <defs>
+            <clipPath id="aura-gv-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
+          </defs>
+          <circle cx="32" cy="36" r="2.4" fill="rgba(226,184,88,0.7)"/>
+          <g clipPath="url(#aura-gv-load)">
+            <polygon points="8,60 30,4 31,4 24,60" fill="rgba(226,184,88,0.7)"/>
+            <polygon points="40,60 33,4 34,4 56,60" fill="rgba(226,184,88,0.7)"/>
+          </g>
+        </svg>
+      </div>
+    );
+  }
 
   // Merge counters + cmdr damage onto a player so cells get all visual data
   const enrichPlayer = (n: number, isYou = false) => {
