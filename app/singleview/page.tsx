@@ -1868,10 +1868,10 @@ function PageContent() {
 
   const startLongPress = useCallback((delta: number) => {
     longPressRef.current.timeout = setTimeout(() => {
-      adjustLife(delta * 4);
+      adjustLife(delta);
       longPressRef.current.interval = setInterval(() => {
-        adjustLife(delta * 5);
-      }, 200);
+        adjustLife(delta);
+      }, 120);
     }, 400);
   }, [adjustLife]);
 
@@ -1950,7 +1950,7 @@ function PageContent() {
   const handleAbandon = () => {
     if (gameId && user?.id) {
       abandonGame(gameId, user.id).then(() => {
-        router.push('/dashboard');
+        router.push(isLoggedIn ? '/profile' : '/landing');
       }).catch(() => {});
     }
   };
