@@ -399,18 +399,9 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
           })}
         </g>
 
-        {/* Copper gradient ring */}
-        <defs>
-          <linearGradient id="dial-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#E2B858"/>
-            <stop offset="22%" stopColor="#C99B2F"/>
-            <stop offset="50%" stopColor="#8C5A28"/>
-            <stop offset="78%" stopColor="#C99B2F"/>
-            <stop offset="100%" stopColor="#E2B858"/>
-          </linearGradient>
-        </defs>
+        {/* Outer ring — neutral gray so it doesn't clash with cmdr damage arcs */}
         <circle cx={cx} cy={cx} r={radius}
-          fill="none" stroke="url(#dial-ring-grad)" strokeWidth="2.5" strokeOpacity="0.6"/>
+          fill="none" stroke="#8A7E6F" strokeWidth="2" strokeOpacity="0.35"/>
 
         {/* Commander damage segments */}
         {segments.map((seg: any, i: number) => (
@@ -430,7 +421,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
 
         {/* Inner decorative ring */}
         <circle cx={cx} cy={cx} r="65"
-          fill="none" stroke="#E2B858" strokeWidth="0.4" strokeOpacity="0.25"
+          fill="none" stroke="#8A7E6F" strokeWidth="0.4" strokeOpacity="0.3"
           strokeDasharray="1 3"/>
 
       </svg>

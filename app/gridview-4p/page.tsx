@@ -355,42 +355,48 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive, onHol
         transformOrigin:'center center',
       } as React.CSSProperties}>
         <CellInner player={player}/>
-      {(player.counters?.poison || 0) >= 10 && (
-        <div style={{
-          position:'absolute', inset:0, zIndex:20,
-          background:'radial-gradient(ellipse at 50% 50%, rgba(158,43,43,0.45) 0%, rgba(10,6,4,0.92) 65%)',
-          backdropFilter:'blur(2px)',
-          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18,
-          boxShadow:'inset 0 0 0 3px #9E2B2B, inset 0 0 40px rgba(158,43,43,0.4)',
-          animation:'revive-pulse 2.4s ease-in-out infinite',
-        }}>
+      {(() => {
+        const isPoisoned = (player.counters?.poison || 0) >= 10;
+        const isCmdrLethal = (player.cmdrDamage || []).some((d: any) => d.amount >= 21);
+        if (!isPoisoned && !isCmdrLethal) return null;
+        const reason = isPoisoned && isCmdrLethal ? 'Poison + Commander' : isPoisoned ? 'Poison' : 'Commander';
+        return (
           <div style={{
-            display:'inline-flex', alignItems:'center', gap:10,
-            padding:'8px 18px',
-            background:'rgba(158,43,43,0.20)',
-            border:'1.5px solid #C84545',
-            borderRadius:999,
-            fontFamily:'var(--font-ui)', fontSize:13, fontWeight:800,
-            letterSpacing:'0.24em', textTransform:'uppercase',
-            color:'#FFE6E0',
-            textShadow:'0 1px 8px rgba(158,43,43,0.7)',
+            position:'absolute', inset:0, zIndex:20,
+            background:'radial-gradient(ellipse at 50% 50%, rgba(158,43,43,0.45) 0%, rgba(10,6,4,0.92) 65%)',
+            backdropFilter:'blur(2px)',
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18,
+            boxShadow:'inset 0 0 0 3px #9E2B2B, inset 0 0 40px rgba(158,43,43,0.4)',
+            animation:'revive-pulse 2.4s ease-in-out infinite',
           }}>
-            <span style={{ fontSize:18 }}>☠</span>
-            Defeated · Poison
+            <div style={{
+              display:'inline-flex', alignItems:'center', gap:10,
+              padding:'8px 18px',
+              background:'rgba(158,43,43,0.20)',
+              border:'1.5px solid #C84545',
+              borderRadius:999,
+              fontFamily:'var(--font-ui)', fontSize:13, fontWeight:800,
+              letterSpacing:'0.24em', textTransform:'uppercase',
+              color:'#FFE6E0',
+              textShadow:'0 1px 8px rgba(158,43,43,0.7)',
+            }}>
+              <span style={{ fontSize:18 }}>☠</span>
+              Defeated · {reason}
+            </div>
+            <button onClick={onRevive} style={{
+              display:'inline-flex', alignItems:'center', gap:8,
+              padding:'14px 28px',
+              background: DARK.forest,
+              color: DARK.ink,
+              border:'none', borderRadius:999,
+              fontFamily:'var(--font-ui)', fontSize:14, fontWeight:800,
+              letterSpacing:'0.20em', textTransform:'uppercase',
+              cursor:'pointer', whiteSpace:'nowrap',
+              boxShadow:'0 6px 18px -4px rgba(176,107,44,0.55), 0 0 0 2px rgba(176,107,44,0.18)',
+            }}>Revive</button>
           </div>
-          <button onClick={onRevive} style={{
-            display:'inline-flex', alignItems:'center', gap:8,
-            padding:'14px 28px',
-            background: DARK.forest,
-            color: DARK.ink,
-            border:'none', borderRadius:999,
-            fontFamily:'var(--font-ui)', fontSize:14, fontWeight:800,
-            letterSpacing:'0.20em', textTransform:'uppercase',
-            cursor:'pointer', whiteSpace:'nowrap',
-            boxShadow:'0 6px 18px -4px rgba(176,107,44,0.55), 0 0 0 2px rgba(176,107,44,0.18)',
-          }}>Revive</button>
-        </div>
-      )}
+        );
+      })()}
 
         {/* Tap zones */}
         <div style={{ position:'absolute', inset:0, display:'flex', zIndex:10 }}>
@@ -481,6 +487,48 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       overflow:'hidden',
     } as React.CSSProperties}>
       {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={2.5} insetOverlap={2.5}/>}
+      {(() => {
+        const isPoisoned = (cellCounters?.poison || 0) >= 10;
+        const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
+        if (!isPoisoned && !isCmdrLethal) return null;
+        const reason = isPoisoned && isCmdrLethal ? 'Poison + Commander' : isPoisoned ? 'Poison' : 'Commander';
+        return (
+          <div style={{
+            position:'absolute', inset:0, zIndex:25,
+            background:'radial-gradient(ellipse at 50% 50%, rgba(158,43,43,0.45) 0%, rgba(10,6,4,0.92) 65%)',
+            backdropFilter:'blur(2px)',
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18,
+            boxShadow:'inset 0 0 0 3px #9E2B2B, inset 0 0 40px rgba(158,43,43,0.4)',
+            animation:'revive-pulse 2.4s ease-in-out infinite',
+          }}>
+            <div style={{
+              display:'inline-flex', alignItems:'center', gap:10,
+              padding:'8px 18px',
+              background:'rgba(158,43,43,0.20)',
+              border:'1.5px solid #C84545',
+              borderRadius:999,
+              fontFamily:'var(--font-ui)', fontSize:13, fontWeight:800,
+              letterSpacing:'0.24em', textTransform:'uppercase',
+              color:'#FFE6E0',
+              textShadow:'0 1px 8px rgba(158,43,43,0.7)',
+            }}>
+              <span style={{ fontSize:18 }}>☠</span>
+              Defeated · {reason}
+            </div>
+            <button onClick={onRevive} style={{
+              display:'inline-flex', alignItems:'center', gap:8,
+              padding:'14px 28px',
+              background: DARK.forest,
+              color: DARK.ink,
+              border:'none', borderRadius:999,
+              fontFamily:'var(--font-ui)', fontSize:14, fontWeight:800,
+              letterSpacing:'0.20em', textTransform:'uppercase',
+              cursor:'pointer', whiteSpace:'nowrap',
+              boxShadow:'0 6px 18px -4px rgba(176,107,44,0.55), 0 0 0 2px rgba(176,107,44,0.18)',
+            }}>Revive</button>
+          </div>
+        );
+      })()}
       <div style={{
         position:'absolute',
         top:'50%',
@@ -1769,6 +1817,18 @@ function PageContent() {
     setCounters(prev => {
       const cur = prev[playerNum] ?? { poison: 0, experience: 0, energy: 0 };
       return { ...prev, [playerNum]: { ...cur, poison: Math.min(9, cur.poison) } };
+    });
+    setCmdrDamage(prev => {
+      const next: typeof prev = { ...prev };
+      let changed = false;
+      for (const fromN of Object.keys(next).map(Number)) {
+        const dmgFromN = next[fromN] ?? {};
+        if ((dmgFromN[playerNum] ?? 0) >= 21) {
+          next[fromN] = { ...dmgFromN, [playerNum]: 20 };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
     });
   };
 
