@@ -265,7 +265,7 @@ function CellInner({ player }: { player: any }) {
               background: DARK.copper,
               boxShadow: '0 0 8px rgba(226,184,88,0.7)',
             }}/>}
-            {player.isYou ? 'You' : player.name}
+            {player.name}
           </div>
           <div style={{ fontFamily:'var(--font-display)', fontSize:13, lineHeight:1.15,
             color: DARK.ink,
@@ -334,36 +334,22 @@ function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive, 
         return (
           <div style={{
             position:'absolute', inset:0, zIndex:20,
-            background:'radial-gradient(ellipse at 50% 50%, rgba(158,43,43,0.45) 0%, rgba(10,6,4,0.92) 65%)',
-            backdropFilter:'blur(2px)',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18,
-            boxShadow:'inset 0 0 0 3px #9E2B2B, inset 0 0 40px rgba(158,43,43,0.4)',
-            animation:'revive-pulse 2.4s ease-in-out infinite',
+            background:'rgba(10,6,4,0.88)',
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
           }}>
             <div style={{
-              display:'inline-flex', alignItems:'center', gap:10,
-              padding:'8px 18px',
-              background:'rgba(158,43,43,0.20)',
-              border:'1.5px solid #C84545',
-              borderRadius:999,
-              fontFamily:'var(--font-ui)', fontSize:13, fontWeight:800,
-              letterSpacing:'0.24em', textTransform:'uppercase',
-              color:'#FFE6E0',
-              textShadow:'0 1px 8px rgba(158,43,43,0.7)',
-            }}>
-              <span style={{ fontSize:18 }}>☠</span>
-              Defeated · {reason}
-            </div>
+              fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
+              letterSpacing:'0.20em', textTransform:'uppercase',
+              color: DARK.ink2,
+            }}>Defeated · {reason}</div>
             <button onClick={onRevive} style={{
-              display:'inline-flex', alignItems:'center', gap:8,
-              padding:'14px 28px',
+              padding:'10px 22px',
               background: DARK.forest,
               color: DARK.ink,
               border:'none', borderRadius:999,
-              fontFamily:'var(--font-ui)', fontSize:14, fontWeight:800,
-              letterSpacing:'0.20em', textTransform:'uppercase',
+              fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
+              letterSpacing:'0.16em', textTransform:'uppercase',
               cursor:'pointer', whiteSpace:'nowrap',
-              boxShadow:'0 6px 18px -4px rgba(176,107,44,0.55), 0 0 0 2px rgba(176,107,44,0.18)',
             }}>Revive</button>
           </div>
         );
@@ -470,37 +456,23 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
         return (
           <div style={{
             position:'absolute', inset:0, zIndex:25,
-            background:'radial-gradient(ellipse at 50% 50%, rgba(158,43,43,0.45) 0%, rgba(10,6,4,0.92) 65%)',
-            backdropFilter:'blur(2px)',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18,
-            boxShadow:'inset 0 0 0 3px #9E2B2B, inset 0 0 40px rgba(158,43,43,0.4)',
-            animation:'revive-pulse 2.4s ease-in-out infinite',
+            background:'rgba(10,6,4,0.88)',
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
           }}>
             <div style={{
-              display:'inline-flex', alignItems:'center', gap:10,
-              padding:'8px 18px',
-              background:'rgba(158,43,43,0.20)',
-              border:'1.5px solid #C84545',
-              borderRadius:999,
-              fontFamily:'var(--font-ui)', fontSize:13, fontWeight:800,
-              letterSpacing:'0.24em', textTransform:'uppercase',
-              color:'#FFE6E0',
-              textShadow:'0 1px 8px rgba(158,43,43,0.7)',
-            }}>
-              <span style={{ fontSize:18 }}>☠</span>
-              Defeated · {reason}
-            </div>
-            <button onClick={onRevive} style={{
-              display:'inline-flex', alignItems:'center', gap:8,
-              padding:'14px 28px',
+              fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
+              letterSpacing:'0.20em', textTransform:'uppercase',
+              color: DARK.ink2,
+            }}>Defeated · {reason}</div>
+            <button onClick={onClaimSeat} style={{
+              padding:'10px 22px',
               background: DARK.forest,
               color: DARK.ink,
               border:'none', borderRadius:999,
-              fontFamily:'var(--font-ui)', fontSize:14, fontWeight:800,
-              letterSpacing:'0.20em', textTransform:'uppercase',
+              fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
+              letterSpacing:'0.16em', textTransform:'uppercase',
               cursor:'pointer', whiteSpace:'nowrap',
-              boxShadow:'0 6px 18px -4px rgba(176,107,44,0.55), 0 0 0 2px rgba(176,107,44,0.18)',
-            }}>Revive</button>
+            }}>Revive Game</button>
           </div>
         );
       })()}
@@ -907,7 +879,7 @@ function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.
                 whiteSpace: 'nowrap',
                 overflow: 'hidden', textOverflow: 'ellipsis',
                 maxWidth: '100%',
-              }}>{n === 1 ? 'You' : (p.name || `Player ${n}`)}</div>
+              }}>{p.name || `Player ${n}`}</div>
             </button>
           );
         })}
@@ -1210,11 +1182,11 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
             fontFamily: 'var(--font-ui)', fontSize: 11,
           }}>
             <span style={{ color: accent, fontWeight: 700, letterSpacing: '0.04em' }}>
-              {fromNum === 1 ? 'You' : (fromPlayer?.name || `Player ${fromNum}`)}
+              {fromPlayer?.name || `Player ${fromNum}`}
             </span>
             <Icon name="arrow" size={12} stroke={accent} width={2}/>
             <span style={{ color: DARK.ink, fontWeight: 700, letterSpacing: '0.04em' }}>
-              {toNum === 1 ? 'You' : (toPlayer?.name || `Player ${toNum}`)}
+              {toPlayer?.name || `Player ${toNum}`}
             </span>
           </div>
         </div>
@@ -1431,7 +1403,7 @@ function PageContent() {
         Math.floor((amount / 21) * CMDR_DMG_COLORS.length)
       );
       damages.push({
-        from: fromN === 1 ? 'You' : (players[fromN]?.name || `P${fromN}`),
+        from: players[fromN]?.name || `P${fromN}`,
         amount,
         colorIndex: heatIdx,
       });
@@ -1633,7 +1605,7 @@ function PageContent() {
         const pool = claimed.length >= 2 ? claimed : Object.entries(players);
         if (pool.length === 0) return '—';
         const [num, p] = pool[Math.floor(Math.random() * pool.length)];
-        return num === '1' ? 'You' : (p.name || `Player ${num}`);
+        return p.name || `Player ${num}`;
       }
       return '?';
     };
