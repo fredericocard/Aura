@@ -473,15 +473,26 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
               letterSpacing:'0.20em', textTransform:'uppercase',
               color: DARK.ink2,
             }}>Defeated · {reason}</div>
-            <button onClick={onClaimSeat} style={{
-              padding:'10px 22px',
-              background: DARK.forest,
-              color: DARK.ink,
-              border:'none', borderRadius:999,
-              fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
-              letterSpacing:'0.16em', textTransform:'uppercase',
-              cursor:'pointer', whiteSpace:'nowrap',
-            }}>Revive Game</button>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+              <button onClick={onRevive} style={{
+                padding:'10px 22px',
+                background: DARK.forest,
+                color: DARK.ink,
+                border:'none', borderRadius:999,
+                fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
+                letterSpacing:'0.16em', textTransform:'uppercase',
+                cursor:'pointer', whiteSpace:'nowrap',
+              }}>Revive</button>
+              <button onClick={onClaimSeat} style={{
+                padding:'8px 18px',
+                background:'transparent',
+                color: DARK.ink2,
+                border:`1px solid ${DARK.lineStrong}`, borderRadius:999,
+                fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
+                letterSpacing:'0.16em', textTransform:'uppercase',
+                cursor:'pointer', whiteSpace:'nowrap',
+              }}>Review Game</button>
+            </div>
           </div>
         );
       })()}
