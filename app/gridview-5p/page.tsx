@@ -448,7 +448,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       containerType:'size',
       borderRadius:'20px',
       background: DARK.bgDeep,
-      border: hasRing ? '2.5px solid transparent' : `2.5px dashed rgba(226,184,88,0.25)`,
+      border: `2.5px dashed rgba(226,184,88,0.25)`,
       boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
       overflow:'hidden',
     } as React.CSSProperties}>

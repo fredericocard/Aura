@@ -438,7 +438,7 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
       height:'100%',
       borderRadius:'20px',
       background: DARK.bgDeep,
-      border: hasRing ? '2.5px solid transparent' : `2.5px dashed rgba(226,184,88,0.25)`,
+      border: `2.5px dashed rgba(226,184,88,0.25)`,
       boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
       overflow:'hidden',
       transform: flipped ? 'rotate(180deg)' : 'none',
