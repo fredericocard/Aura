@@ -2079,14 +2079,10 @@ function PageContent() {
   // Loading screen
   if (!gameLoaded) {
     return (
-      <div style={{
-        position: 'fixed', inset: 0,
-        background: '#0A0604',
-        overflow: 'hidden',
-      }}>
-        {/* Compass rose — slightly above center */}
+      <div style={{ position: 'fixed', inset: 0, background: '#0A0604', overflow: 'hidden' }}>
+        {/* Compass rose — top of screen */}
         <svg width={520} height={520} viewBox="0 0 320 320" style={{
-          position: 'absolute', top: '42%', left: '50%',
+          position: 'absolute', top: '8%', left: '50%',
           transform: 'translate(-50%, -50%)',
           opacity: 0.18, pointerEvents: 'none',
         }}>
@@ -2104,9 +2100,17 @@ function PageContent() {
             <circle cx="160" cy="160" r="150"/>
           </g>
         </svg>
-        {/* Aura logo — slightly below center */}
+        {/* Copper glow at bottom */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%',
+          background: 'linear-gradient(0deg, rgba(176,107,44,0.08) 0%, rgba(176,107,44,0.03) 30%, transparent 100%)',
+          pointerEvents: 'none' }}/>
+        {/* Darker bottom */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
+          background: 'linear-gradient(0deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 40%, transparent 100%)',
+          pointerEvents: 'none' }}/>
+        {/* Aura logo — dead center */}
         <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
-          style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2, opacity: 0.55 }}>
+          style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2, opacity: 0.55 }}>
           <defs>
             <clipPath id="aura-sv-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
           </defs>
