@@ -116,7 +116,7 @@ function DarkCompassBg({ centered = false }: { centered?: boolean } = {}) {
     <svg width="520" height="520" viewBox="0 0 320 320" style={{
       position: 'absolute', top: centered ? '8%' : '22%', left: '50%',
       transform: 'translate(-50%, -50%)',
-      opacity: 0.18,
+      opacity: centered ? 0.30 : 0.18,
       pointerEvents: 'none',
       zIndex: 0,
       ...(centered ? {} : {
@@ -1789,13 +1789,16 @@ function PageContent() {
   // Loading screen
   if (!gameLoaded) {
     return (
-      <div style={{ position: 'fixed', inset: 0, background: DARK.bg, overflow: 'hidden' }}>
+      <div style={{ position: 'fixed', inset: 0, overflow: 'hidden',
+        background: `radial-gradient(ellipse at 50% 0%, rgba(176,107,44,0.10) 0%, transparent 50%),
+          radial-gradient(ellipse at 0% 40%, rgba(176,107,44,0.05) 0%, transparent 40%),
+          radial-gradient(ellipse at 100% 60%, rgba(176,107,44,0.05) 0%, transparent 40%),
+          radial-gradient(ellipse at 50% 100%, rgba(176,107,44,0.08) 0%, transparent 45%),
+          ${DARK.bg}`,
+      }}>
         <DarkCompassBg centered/>
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%',
-          background: 'linear-gradient(0deg, rgba(176,107,44,0.08) 0%, rgba(176,107,44,0.03) 30%, transparent 100%)',
-          pointerEvents: 'none' }}/>
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
-          background: 'linear-gradient(0deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 40%, transparent 100%)',
+          background: 'linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 40%, transparent 100%)',
           pointerEvents: 'none' }}/>
         <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
           style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2, opacity: 0.55 }}>

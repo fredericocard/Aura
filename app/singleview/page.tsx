@@ -2079,12 +2079,18 @@ function PageContent() {
   // Loading screen
   if (!gameLoaded) {
     return (
-      <div style={{ position: 'fixed', inset: 0, background: '#0A0604', overflow: 'hidden' }}>
+      <div style={{ position: 'fixed', inset: 0, overflow: 'hidden',
+        background: `radial-gradient(ellipse at 50% 0%, rgba(176,107,44,0.10) 0%, transparent 50%),
+          radial-gradient(ellipse at 0% 40%, rgba(176,107,44,0.05) 0%, transparent 40%),
+          radial-gradient(ellipse at 100% 60%, rgba(176,107,44,0.05) 0%, transparent 40%),
+          radial-gradient(ellipse at 50% 100%, rgba(176,107,44,0.08) 0%, transparent 45%),
+          #0A0604`,
+      }}>
         {/* Compass rose — top of screen */}
         <svg width={520} height={520} viewBox="0 0 320 320" style={{
           position: 'absolute', top: '8%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          opacity: 0.18, pointerEvents: 'none',
+          opacity: 0.30, pointerEvents: 'none',
         }}>
           <g stroke="#B06B2C" strokeWidth="0.8" fill="none">
             {Array.from({ length: 24 }).map((_, i) => {
@@ -2100,13 +2106,8 @@ function PageContent() {
             <circle cx="160" cy="160" r="150"/>
           </g>
         </svg>
-        {/* Copper glow at bottom */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%',
-          background: 'linear-gradient(0deg, rgba(176,107,44,0.08) 0%, rgba(176,107,44,0.03) 30%, transparent 100%)',
-          pointerEvents: 'none' }}/>
-        {/* Darker bottom */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
-          background: 'linear-gradient(0deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 40%, transparent 100%)',
+          background: 'linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 40%, transparent 100%)',
           pointerEvents: 'none' }}/>
         {/* Aura logo — dead center */}
         <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
