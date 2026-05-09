@@ -418,7 +418,7 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive, onHol
   );
 }
 
-function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, rotation, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; rotation: number; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void }) {
+function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, rotation, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; rotation: number; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
   const counterEntries = Object.entries(cellCounters || {}).filter(([, n]) => (n as number) > 0);
   if (showQR) {
     return (
