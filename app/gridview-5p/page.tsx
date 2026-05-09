@@ -336,7 +336,7 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive }: { p
           <div style={{
             fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
             letterSpacing:'0.20em', textTransform:'uppercase',
-            color: DARK.cellRivalryBorder || '#9E2B2B',
+            color: '#9E2B2B',
           }}>Defeated · Poison</div>
           <button onClick={onRevive} style={{
             display:'inline-flex', alignItems:'center', gap:8,
