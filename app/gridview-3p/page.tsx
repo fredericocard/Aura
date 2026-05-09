@@ -3,7 +3,7 @@
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
-import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat } from '@/lib/game-triggers';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
@@ -392,7 +392,7 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive, onHol
   );
 }
 
-function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, rotation, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; rotation: number; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
+function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, cmdrDamage = [], rotation, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; cmdrDamage?: { from: string; amount: number; colorIndex: number }[]; rotation: number; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
   const counterEntries = Object.entries(cellCounters || {}).filter(([, n]) => (n as number) > 0);
   if (showQR) {
     return (
@@ -440,6 +440,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       </div>
     );
   }
+  const hasRing = (cmdrDamage || []).length > 0;
   return (
     <div style={{
       position:'relative',
@@ -447,10 +448,11 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       containerType:'size',
       borderRadius:'20px',
       background: DARK.bgDeep,
-      border: `2.5px dashed rgba(226,184,88,0.25)`,
+      border: hasRing ? '2.5px solid transparent' : `2.5px dashed rgba(226,184,88,0.25)`,
       boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
       overflow:'hidden',
     } as React.CSSProperties}>
+      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
       <div style={{
         position:'absolute',
         top:'50%',
@@ -1940,6 +1942,7 @@ function PageContent() {
                   seatLabel="Player 2"
                   life={players[2].life}
                   counters={counters[2]}
+                  cmdrDamage={enrichPlayer(2).cmdrDamage}
                   rotation={90}
                   onClaimSeat={() => openJoinModal(2)}
                   showQR={joinModalOpen && joinSlot === 2}
@@ -1972,6 +1975,7 @@ function PageContent() {
                   seatLabel="Player 3"
                   life={players[3].life}
                   counters={counters[3]}
+                  cmdrDamage={enrichPlayer(3).cmdrDamage}
                   rotation={-90}
                   onClaimSeat={() => openJoinModal(3)}
                   showQR={joinModalOpen && joinSlot === 3}

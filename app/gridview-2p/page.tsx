@@ -3,7 +3,7 @@
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
-import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat } from '@/lib/game-triggers';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
@@ -383,7 +383,7 @@ function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive, 
   );
 }
 
-function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, flipped = false, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; flipped?: boolean; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
+function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, cmdrDamage = [], flipped = false, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; cmdrDamage?: { from: string; amount: number; colorIndex: number }[]; flipped?: boolean; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
   const counterEntries = Object.entries(cellCounters || {}).filter(([, n]) => (n as number) > 0);
   if (showQR) {
     return (
@@ -431,17 +431,19 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
       </div>
     );
   }
+  const hasRing = (cmdrDamage || []).length > 0;
   return (
     <div style={{
       position:'relative',
       height:'100%',
       borderRadius:'20px',
       background: DARK.bgDeep,
-      border: `2.5px dashed rgba(226,184,88,0.25)`,
+      border: hasRing ? '2.5px solid transparent' : `2.5px dashed rgba(226,184,88,0.25)`,
       boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
       overflow:'hidden',
       transform: flipped ? 'rotate(180deg)' : 'none',
     }}>
+      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
       {/* Header: seat label + compact Claim button */}
       <div style={{
         position:'absolute', top:14, left:16, right:16, zIndex:10,
@@ -1270,6 +1272,25 @@ function PageContent() {
       setPlayerSeatNumbers(newSeatNumbers);
       setCounters(newCounters);
 
+      // Load commander damage from Supabase (stored as damage RECEIVED per player)
+      // Convert to cmdrDamage[from][to] format used by gridview
+      const loadedCmdrDmg: Record<number, Record<number, number>> = {};
+      game.players.forEach((p: any) => {
+        const toSeat = p.seat_number ?? 1;
+        if (toSeat > 2) return;
+        const received = p.commander_damage_received;
+        if (received && typeof received === 'object') {
+          Object.entries(received).forEach(([key, amount]) => {
+            const fromSeat = parseInt(key.replace('seat-', ''), 10);
+            if (!isNaN(fromSeat) && typeof amount === 'number' && amount > 0) {
+              if (!loadedCmdrDmg[fromSeat]) loadedCmdrDmg[fromSeat] = {};
+              loadedCmdrDmg[fromSeat][toSeat] = amount;
+            }
+          });
+        }
+      });
+      setCmdrDamage(loadedCmdrDmg);
+
       const channel = supabase
         .channel(`game-${gameId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
@@ -1287,6 +1308,20 @@ function PageContent() {
               if (!isDirty(`energy-${num}`)) updated.energy = row.energy_counters ?? prev[num].energy;
               return { ...prev, [num]: updated };
             });
+            // Commander damage received — convert from Supabase format to cmdrDamage[from][to]
+            if (!isDirty(`cmdr-${num}`) && row.commander_damage_received && typeof row.commander_damage_received === 'object') {
+              const received = row.commander_damage_received as Record<string, number>;
+              setCmdrDamage(prev => {
+                const next = { ...prev };
+                Object.entries(received).forEach(([key, amount]) => {
+                  const fromSeat = parseInt(key.replace('seat-', ''), 10);
+                  if (!isNaN(fromSeat) && typeof amount === 'number') {
+                    next[fromSeat] = { ...(next[fromSeat] ?? {}), [num]: amount };
+                  }
+                });
+                return next;
+              });
+            }
           }
         })
         .subscribe();
@@ -1433,13 +1468,30 @@ function PageContent() {
     setCmdrDamage(prev => {
       const cur = prev[cmdrFrom]?.[cmdrTo] ?? 0;
       const next = Math.max(0, Math.min(21, cur + delta));
-      return {
+      const updated = {
         ...prev,
         [cmdrFrom]: {
           ...(prev[cmdrFrom] ?? {}),
           [cmdrTo]: next,
         }
       };
+
+      // Sync to Supabase: rebuild damage map for the RECEIVING player (cmdrTo)
+      if (gameId) {
+        const damageMap: Record<string, number> = {};
+        Object.entries(updated).forEach(([from, targets]) => {
+          const amount = (targets as Record<number, number>)[cmdrTo];
+          if (amount && amount > 0) damageMap[`seat-${from}`] = amount;
+        });
+        debouncedSync(`cmdr-${cmdrTo}`, () => {
+          const userId = playerUserIds[cmdrTo];
+          const seat = playerSeatNumbers[cmdrTo];
+          if (userId) updateCommanderDamage(gameId, userId, damageMap).catch(() => {});
+          else if (seat) updateCommanderDamageBySeat(gameId, seat, damageMap).catch(() => {});
+        });
+      }
+
+      return updated;
     });
   };
 
@@ -1606,6 +1658,7 @@ function PageContent() {
               seatLabel="Player 2"
               life={players[2].life}
               counters={counters[2]}
+              cmdrDamage={enrichPlayer(2).cmdrDamage}
               flipped={true}
               onClaimSeat={() => openJoinModal(2)}
               showQR={joinModalOpen && joinSlot === 2}
