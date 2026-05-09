@@ -1684,12 +1684,24 @@ function PageContent() {
   // Debounced sync refs
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const pendingSyncRef = useRef<Record<string, () => void>>({});
+  // Track fields with pending local changes — realtime updates are ignored until cleared
+  const dirtyUntilRef = useRef<Record<string, number>>({});
+  const isDirty = (key: string) => {
+    const until = dirtyUntilRef.current[key];
+    if (!until) return false;
+    if (Date.now() > until) { delete dirtyUntilRef.current[key]; return false; }
+    return true;
+  };
   const debouncedSync = (key: string, fn: () => void) => {
     if (syncTimerRef.current[key]) clearTimeout(syncTimerRef.current[key]);
     pendingSyncRef.current[key] = fn;
+    // Mark dirty: ignore realtime for this field for up to 2s (covers debounce + network round-trip)
+    dirtyUntilRef.current[key] = Date.now() + 2000;
     syncTimerRef.current[key] = setTimeout(() => {
       fn();
       delete pendingSyncRef.current[key];
+      // Clear dirty 800ms after write fires (time for realtime echo to arrive)
+      setTimeout(() => { delete dirtyUntilRef.current[key]; }, 800);
     }, 300);
   };
 
@@ -1824,11 +1836,12 @@ function PageContent() {
           if (!row) return;
 
           if (row.user_id && row.user_id === user?.id) {
-            setLife(row.life_total ?? 40);
-            setPoison(row.poison_counters ?? 0);
-            setExperience(row.experience_counters ?? 0);
-            setEnergy(row.energy_counters ?? 0);
-            if (row.commander_damage_received && typeof row.commander_damage_received === 'object') {
+            // Only apply realtime values for fields without pending local changes
+            if (!isDirty('life')) setLife(row.life_total ?? 40);
+            if (!isDirty('poison')) setPoison(row.poison_counters ?? 0);
+            if (!isDirty('experience')) setExperience(row.experience_counters ?? 0);
+            if (!isDirty('energy')) setEnergy(row.energy_counters ?? 0);
+            if (!isDirty('cmdrDmg') && row.commander_damage_received && typeof row.commander_damage_received === 'object') {
               setCmdrDmg(row.commander_damage_received);
             }
           } else {
