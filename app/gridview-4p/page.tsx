@@ -356,10 +356,15 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive, onHol
       } as React.CSSProperties}>
         <CellInner player={player}/>
       {(() => {
+        const isLifeZero = (player.life ?? 1) <= 0;
         const isPoisoned = (player.counters?.poison || 0) >= 10;
         const isCmdrLethal = (player.cmdrDamage || []).some((d: any) => d.amount >= 21);
-        if (!isPoisoned && !isCmdrLethal) return null;
-        const reason = isPoisoned && isCmdrLethal ? 'Poison + Commander' : isPoisoned ? 'Poison' : 'Commander';
+        if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
+        const causes: string[] = [];
+        if (isLifeZero) causes.push('Life');
+        if (isPoisoned) causes.push('Poison');
+        if (isCmdrLethal) causes.push('Commander');
+        const reason = causes.join(' + ');
         return (
           <div style={{
             position:'absolute', inset:0, zIndex:20,
@@ -488,10 +493,15 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
     } as React.CSSProperties}>
       {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={2.5} insetOverlap={2.5}/>}
       {(() => {
+        const isLifeZero = (life ?? 1) <= 0;
         const isPoisoned = (cellCounters?.poison || 0) >= 10;
         const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
-        if (!isPoisoned && !isCmdrLethal) return null;
-        const reason = isPoisoned && isCmdrLethal ? 'Poison + Commander' : isPoisoned ? 'Poison' : 'Commander';
+        if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
+        const causes: string[] = [];
+        if (isLifeZero) causes.push('Life');
+        if (isPoisoned) causes.push('Poison');
+        if (isCmdrLethal) causes.push('Commander');
+        const reason = causes.join(' + ');
         return (
           <div style={{
             position:'absolute', inset:0, zIndex:25,
@@ -1814,6 +1824,11 @@ function PageContent() {
   };
 
   const handleRevive = (playerNum: number) => {
+    setPlayers(prev => {
+      const cur = prev[playerNum];
+      if (!cur || (cur.life ?? 1) > 0) return prev;
+      return { ...prev, [playerNum]: { ...cur, life: 1 } };
+    });
     setCounters(prev => {
       const cur = prev[playerNum] ?? { poison: 0, experience: 0, energy: 0 };
       return { ...prev, [playerNum]: { ...cur, poison: Math.min(9, cur.poison) } };
