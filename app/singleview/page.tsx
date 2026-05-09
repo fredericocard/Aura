@@ -868,20 +868,43 @@ function BottomSheet({ children, onClose }: any) {
 
 // ─── Dice bottom sheet (KeepsakeCard) ───────────────────────────────────────
 function DiceSheet({ onClose, opponents = [] }: any) {
-  const [results, setResults] = useState({ d6: null, d20: null, coin: null, player: null });
+  const [results, setResults] = useState<Record<string, string | null>>({ d6: null, d20: null, coin: null, player: null });
   const [lastRolled, setLastRolled] = useState<string | null>(null);
+  const [rollingKey, setRollingKey] = useState<string | null>(null);
+  const rollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const roll = (type: string) => {
-    let result: any;
-    if (type === 'd6') result = Math.floor(Math.random() * 6) + 1;
-    else if (type === 'd20') result = Math.floor(Math.random() * 20) + 1;
-    else if (type === 'coin') result = Math.random() < 0.5 ? 'Heads' : 'Tails';
-    else {
-      const names = ['You', ...opponents.map((o: any) => o.name)];
-      result = names[Math.floor(Math.random() * names.length)];
+    // Cancel any in-progress roll
+    if (rollIntervalRef.current) {
+      clearInterval(rollIntervalRef.current);
+      rollIntervalRef.current = null;
     }
-    setResults(prev => ({ ...prev, [type]: result }));
+
     setLastRolled(type);
+    setRollingKey(type);
+
+    const rollOne = (final: boolean): string => {
+      if (type === 'd6') return String(Math.floor(Math.random() * 6) + 1);
+      if (type === 'd20') return String(Math.floor(Math.random() * 20) + 1);
+      if (type === 'coin') {
+        const v = Math.random() < 0.5;
+        return final ? (v ? 'Heads' : 'Tails') : (v ? 'H' : 'T');
+      }
+      const names = ['You', ...opponents.map((o: any) => o.name)];
+      return names[Math.floor(Math.random() * names.length)];
+    };
+
+    let frame = 0;
+    rollIntervalRef.current = setInterval(() => {
+      frame++;
+      setResults(prev => ({ ...prev, [type]: rollOne(false) }));
+      if (frame >= 14) {
+        if (rollIntervalRef.current) clearInterval(rollIntervalRef.current);
+        rollIntervalRef.current = null;
+        setResults(prev => ({ ...prev, [type]: rollOne(true) }));
+        setRollingKey(null);
+      }
+    }, 70);
   };
 
   const dice = [
@@ -941,7 +964,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
                 fontFamily: 'var(--font-ui)', fontSize: 9,
                 color: '#5C5043',
                 letterSpacing: '0.04em', marginTop: 2,
-              }}>{val ? (isLast ? 'Last roll' : 'Previous') : 'Tap to roll'}</div>
+              }}>{rollingKey === d.key ? 'Rolling...' : val ? (isLast ? 'Last roll' : 'Previous') : 'Tap to roll'}</div>
             </button>
           );
         })}
