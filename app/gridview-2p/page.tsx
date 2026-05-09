@@ -532,13 +532,20 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
 }
 
 function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, podId, gameId }: { active?: string; onDiceClick: () => void; onCountersClick: () => void; onCmdrClick: () => void; podId: string; gameId: string }) {
-  const items = [
-    { id: 'grid',   icon: 'grid',   label: 'Grid' },
-    { id: 'single', icon: 'user',   label: 'You' },
+  const [sliding, setSliding] = useState(false);
+  const actions = [
     { id: 'dice',   icon: 'dice',   label: 'Dice' },
     { id: 'count',  icon: 'plus',   label: 'Counters' },
-    { id: 'cmdr',   icon: 'shield',  label: 'Cmdr Dmg' },
+    { id: 'cmdr',   icon: 'shield', label: 'Cmdr Dmg' },
   ];
+  const handleToggle = (target: string) => {
+    if (target === active || sliding) return;
+    if (target === 'single') {
+      setSliding(true);
+      setTimeout(() => { window.location.href = `/singleview?podId=${podId}&gameId=${gameId}`; }, 280);
+    }
+  };
+  const thumbLeft = (active === 'grid' && !sliding) || (active === 'single' && sliding);
   return (
     <div style={{
       flexShrink: 0,
@@ -549,28 +556,57 @@ function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, p
         background: DARK.navPill,
         border: `1px solid ${DARK.navBorder}`,
         borderRadius: 999, boxShadow: DARK.shadowRest,
-        padding: 6, display: 'flex', justifyContent: 'space-between',
+        padding: 6, display: 'flex', gap: 4,
       }}>
-        {items.map(it => {
-          const on = it.id === active;
+        {/* ── View toggle (Grid / You) ── */}
+        <div style={{
+          position: 'relative', display: 'flex', flex: '0 0 auto',
+          width: 120, borderRadius: 999, overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, bottom: 0,
+            width: '50%', borderRadius: 999,
+            background: DARK.forest,
+            transform: thumbLeft ? 'translateX(0%)' : 'translateX(100%)',
+            transition: 'transform 0.28s cubic-bezier(.4,.0,.2,1)',
+          }}/>
+          {[{ id: 'grid', icon: 'grid', label: 'Grid' }, { id: 'single', icon: 'user', label: 'You' }].map(it => {
+            const on = it.id === active && !sliding || it.id !== active && sliding;
+            return (
+              <button key={it.id} onClick={() => handleToggle(it.id)} style={{
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                padding: '6px 0', border: 'none', background: 'transparent',
+                color: on ? DARK.ink : DARK.ink3,
+                borderRadius: 999, position: 'relative', zIndex: 1,
+                fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
+                cursor: 'pointer', transition: 'color 0.28s ease',
+              }}>
+                <Icon name={it.icon} size={16} stroke={on ? DARK.ink : DARK.ink3}/>
+                <span>{it.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ width: 1, alignSelf: 'stretch', margin: '4px 2px', background: 'rgba(226,184,88,0.12)', borderRadius: 1 }}/>
+
+        {actions.map(it => {
           const handleClick = () => {
             if (it.id === 'dice') onDiceClick();
             else if (it.id === 'count') onCountersClick();
             else if (it.id === 'cmdr') onCmdrClick();
-            else if (it.id === 'single') window.location.href = `/singleview?podId=${podId}&gameId=${gameId}`;
           };
           return (
             <button key={it.id} onClick={handleClick} style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              padding: '6px 0', border: 'none',
-              background: on ? DARK.forest : 'transparent',
-              color: on ? DARK.ink : DARK.ink3,
-              borderRadius: 999,
+              padding: '6px 0', border: 'none', background: 'transparent',
+              color: DARK.ink3, borderRadius: 999,
               fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
               letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
               cursor: 'pointer',
             }}>
-              <Icon name={it.icon} size={16} stroke={on ? DARK.ink : DARK.ink3}/>
+              <Icon name={it.icon} size={16} stroke={DARK.ink3}/>
               <span>{it.label}</span>
             </button>
           );

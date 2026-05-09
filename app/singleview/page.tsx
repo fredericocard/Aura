@@ -593,13 +593,19 @@ function OpponentRow({ p, onTap }: any) {
 
 // ─── Bottom nav (KeepsakeCard dark) ─────────────────────────────────────────
 function GameNav({ active = 'single', onNav }: any) {
-  const items = [
-    { id: 'grid',   icon: 'grid',       label: 'Grid' },
-    { id: 'single', icon: 'user',       label: 'You' },
-    { id: 'dice',   icon: 'dice',       label: 'Dice' },
-    { id: 'count',  icon: 'plus',       label: 'Counters' },
-    { id: 'cmdr',   icon: 'shield',      label: 'Cmdr Dmg' },
+  const [sliding, setSliding] = React.useState(false);
+  const viewIdx = active === 'grid' ? 0 : 1;
+  const actions = [
+    { id: 'dice',   icon: 'dice',   label: 'Dice' },
+    { id: 'count',  icon: 'plus',   label: 'Counters' },
+    { id: 'cmdr',   icon: 'shield', label: 'Cmdr Dmg' },
   ];
+  const handleToggle = (target: 'grid' | 'single') => {
+    if (target === active || sliding) return;
+    setSliding(true);
+    setTimeout(() => { onNav?.(target); }, 280);
+  };
+  const thumbLeft = (active === 'grid' && !sliding) || (active === 'single' && sliding);
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0,
@@ -611,28 +617,57 @@ function GameNav({ active = 'single', onNav }: any) {
         border: '1px solid rgba(226,184,88,0.18)',
         borderRadius: 999,
         boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
-        padding: 6, display: 'flex', justifyContent: 'space-between',
+        padding: 6, display: 'flex', gap: 4,
       }}>
-        {items.map(it => {
-          const on = it.id === active;
-          return (
-            <button key={it.id} onClick={() => onNav?.(it.id)} style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              padding: '6px 0', border: 'none',
-              background: on ? '#B06B2C' : 'transparent',
-              color: on ? '#F0E8D8' : '#8A7E6F',
-              borderRadius: 999,
-              fontFamily: 'var(--font-ui)',
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-              textTransform: 'uppercase', gap: 2,
-              cursor: 'pointer',
-            }}>
-              <Icon name={it.icon} size={16}
-                stroke={on ? '#F0E8D8' : '#8A7E6F'}/>
-              <span>{it.label}</span>
-            </button>
-          );
-        })}
+        {/* ── View toggle (Grid / You) ── */}
+        <div style={{
+          position: 'relative', display: 'flex', flex: '0 0 auto',
+          width: 120, borderRadius: 999, overflow: 'hidden',
+        }}>
+          {/* Sliding copper thumb */}
+          <div style={{
+            position: 'absolute', top: 0, bottom: 0,
+            width: '50%', borderRadius: 999,
+            background: '#B06B2C',
+            transform: thumbLeft ? 'translateX(0%)' : 'translateX(100%)',
+            transition: 'transform 0.28s cubic-bezier(.4,.0,.2,1)',
+          }}/>
+          {[{ id: 'grid', icon: 'grid', label: 'Grid' }, { id: 'single', icon: 'user', label: 'You' }].map(it => {
+            const on = it.id === active && !sliding || it.id !== active && sliding;
+            return (
+              <button key={it.id} onClick={() => handleToggle(it.id as any)} style={{
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                padding: '6px 0', border: 'none', background: 'transparent',
+                color: on ? '#F0E8D8' : '#8A7E6F',
+                borderRadius: 999, position: 'relative', zIndex: 1,
+                fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
+                cursor: 'pointer', transition: 'color 0.28s ease',
+              }}>
+                <Icon name={it.icon} size={16} stroke={on ? '#F0E8D8' : '#8A7E6F'}/>
+                <span>{it.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Separator ── */}
+        <div style={{ width: 1, alignSelf: 'stretch', margin: '4px 2px', background: 'rgba(226,184,88,0.12)', borderRadius: 1 }}/>
+
+        {/* ── Action buttons (Dice, Counters, Cmdr Dmg) ── */}
+        {actions.map(it => (
+          <button key={it.id} onClick={() => onNav?.(it.id)} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '6px 0', border: 'none', background: 'transparent',
+            color: '#8A7E6F', borderRadius: 999,
+            fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
+            cursor: 'pointer',
+          }}>
+            <Icon name={it.icon} size={16} stroke="#8A7E6F"/>
+            <span>{it.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
