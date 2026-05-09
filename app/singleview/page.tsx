@@ -43,6 +43,9 @@ const TOKENS_CSS = `
 @keyframes slideUpCard { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
 @keyframes dialShrinkUp { from{transform:scale(1.8) translateY(60px);opacity:0.3} to{transform:scale(1) translateY(0);opacity:1} }
 
+.sv-dice-btn { transition: transform 0.15s cubic-bezier(.22,.61,.36,1), box-shadow 0.15s ease; }
+.sv-dice-btn:active { transform: scale(0.95) !important; }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   background: var(--parchment);
@@ -786,11 +789,16 @@ function BottomSheet({ children, onClose }: any) {
       {/* Sheet body */}
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
-        borderTop: '2px solid transparent',
-        borderImage: 'linear-gradient(90deg, #8C5A28 0%, #E2B858 25%, #C99B2F 50%, #E2B858 75%, #8C5A28 100%) 1',
         borderTopLeftRadius: 24, borderTopRightRadius: 24,
         overflow: 'hidden',
       }}>
+        {/* Gold top edge — follows rounded corners */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+          background: 'linear-gradient(90deg, #8C5A28 0%, #E2B858 25%, #C99B2F 50%, #E2B858 75%, #8C5A28 100%)',
+          borderTopLeftRadius: 24, borderTopRightRadius: 24,
+          zIndex: 1,
+        }}/>
         <div style={{
           position: 'relative',
           background: '#1C140C',
@@ -857,7 +865,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
             ? 'radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)'
             : '#1A120A';
           return (
-            <button key={d.key} onClick={() => roll(d.key)} style={{
+            <button key={d.key} className="sv-dice-btn" onClick={() => roll(d.key)} style={{
               position: 'relative',
               background: bgFill,
               border: `1px solid ${isLast ? 'rgba(226,184,88,0.53)' : 'rgba(226,184,88,0.22)'}`,
