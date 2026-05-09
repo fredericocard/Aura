@@ -1676,6 +1676,8 @@ function PageContent() {
   // Debounced sync refs
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const pendingSyncRef = useRef<Record<string, () => void>>({});
+  // Track current user's seat number for realtime-handler closure access
+  const mySeatRef = useRef<number>(0);
   // Track fields with pending local changes — realtime updates are ignored until cleared
   const dirtyUntilRef = useRef<Record<string, number>>({});
   const isDirty = (key: string) => {
@@ -1810,6 +1812,7 @@ function PageContent() {
         });
 
         setCurrentUserData(currentPlayerData);
+        if (currentPlayerData) mySeatRef.current = currentPlayerData.seatNumber;
         setOpponents(opponentsList);
 
         // Load "damage from you" — extract current user's seat key from each opponent's commander_damage_received
@@ -1869,8 +1872,8 @@ function PageContent() {
               return opp;
             }));
             // Update "damage from you" — extract current user's seat from opponent's commander_damage_received
-            if (row.commander_damage_received && typeof row.commander_damage_received === 'object' && currentPlayerData) {
-              const myKey = `seat-${currentPlayerData.seatNumber}`;
+            if (row.commander_damage_received && typeof row.commander_damage_received === 'object' && mySeatRef.current > 0) {
+              const myKey = `seat-${mySeatRef.current}`;
               const oppKey = `seat-${row.seat_number}`;
               const amount = (row.commander_damage_received as Record<string, number>)[myKey] ?? 0;
               setCmdrDmgFromYou(prev => ({ ...prev, [oppKey]: amount }));
