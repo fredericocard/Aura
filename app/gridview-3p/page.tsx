@@ -304,7 +304,7 @@ function CellInner({ player, lifeSize = 64 }: { player: any; lifeSize?: number }
   );
 }
 
-function SidewaysCell({ player, rotation, onTapLeft, onTapRight }: { player: any; rotation: number; onTapLeft: () => void; onTapRight: () => void }) {
+function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive }: { player: any; rotation: number; onTapLeft: () => void; onTapRight: () => void; onRevive?: () => void }) {
   const hasRing = (player.cmdrDamage || []).length > 0;
   return (
     <div style={{
@@ -327,6 +327,30 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight }: { player: any
         transformOrigin:'center center',
       } as React.CSSProperties}>
         <CellInner player={player}/>
+      {(player.counters?.poison || 0) >= 10 && (
+        <div style={{
+          position:'absolute', inset:0, zIndex:20,
+          background:'rgba(10,6,4,0.78)',
+          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
+        }}>
+          <div style={{
+            fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
+            letterSpacing:'0.20em', textTransform:'uppercase',
+            color: DARK.cellRivalryBorder || '#9E2B2B',
+          }}>Defeated · Poison</div>
+          <button onClick={onRevive} style={{
+            display:'inline-flex', alignItems:'center', gap:8,
+            padding:'10px 18px',
+            background: DARK.forest,
+            color: DARK.ink,
+            border:'none', borderRadius:999,
+            fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
+            letterSpacing:'0.16em', textTransform:'uppercase',
+            cursor:'pointer', whiteSpace:'nowrap',
+            boxShadow:'0 4px 14px -4px rgba(63,159,77,0.35)',
+          }}>Revive</button>
+        </div>
+      )}
 
         {/* Tap zones */}
         <div style={{ position:'absolute', inset:0, display:'flex', zIndex:10 }}>
@@ -358,8 +382,54 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight }: { player: any
   );
 }
 
-function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, rotation, onClaimSeat, onTapLeft, onTapRight }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; rotation: number; onClaimSeat: () => void; onTapLeft?: () => void; onTapRight?: () => void }) {
+function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, rotation, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onTapLeft, onTapRight }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; rotation: number; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void }) {
   const counterEntries = Object.entries(cellCounters || {}).filter(([, n]) => (n as number) > 0);
+  if (showQR) {
+    return (
+      <div style={{
+        position:'relative',
+        height:'100%',
+        borderRadius:'20px',
+        background: DARK.bgDeep,
+        border: `2.5px dashed rgba(226,184,88,0.25)`,
+        boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
+        overflow:'hidden',
+        transform: `rotate(${rotation}deg)`,
+      }}>
+        <button onClick={onCloseQR} aria-label="Close" style={{
+          position:'absolute', top:10, right:10, zIndex:30,
+          width:32, height:32, borderRadius:999,
+          background:'rgba(10,6,4,0.55)',
+          border:`1px solid ${DARK.lineStrong}`,
+          color: DARK.ink2, fontSize:18, fontWeight:600,
+          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          lineHeight:1, padding:0,
+        }}>×</button>
+        <div style={{
+          position:'absolute', inset:0, zIndex:20,
+          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
+          padding:20,
+        }}>
+          <div style={{
+            padding:10, background:'#FAF5EA', borderRadius:14,
+            boxShadow:'0 4px 20px -6px rgba(0,0,0,0.35)',
+          }}>
+            {qrCodeUrl ? (
+              <img src={qrCodeUrl} alt="QR code to join pod" width={140} height={140} style={{ imageRendering:'pixelated', display:'block' }}/>
+            ) : (
+              <div style={{ width:140, height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:11 }}>No pod code</div>
+            )}
+          </div>
+          {podShortCode && (
+            <div style={{
+              fontFamily:'var(--font-display)', fontSize:18, letterSpacing:'0.16em',
+              color: DARK.ink, fontVariantNumeric:'tabular-nums',
+            }}>{`${podShortCode.slice(0,3)}—${podShortCode.slice(3)}`}</div>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{
       position:'relative',
@@ -471,7 +541,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
   );
 }
 
-function NormalCell({ player, onTapLeft, onTapRight, lifeSize = 100 }: { player: any; onTapLeft: () => void; onTapRight: () => void; lifeSize?: number }) {
+function NormalCell({ player, onTapLeft, onTapRight, onRevive, lifeSize = 100 }: { player: any; onTapLeft: () => void; onTapRight: () => void; onRevive?: () => void; lifeSize?: number }) {
   const hasRing = (player.cmdrDamage || []).length > 0;
   return (
     <div style={{
@@ -682,16 +752,27 @@ function DicePlaque({ option, active, result, onClick }: { option: { id: string;
         <Icon name={option.icon} size={11} stroke={accent} width={1.6}/>
         <span>{option.label}</span>
       </div>
-      <div style={{
-        position: 'relative',
-        fontFamily: 'var(--font-display)',
-        fontSize: option.large ? 36 : 30, lineHeight: 1,
-        color: DARK.ink,
-        fontVariantNumeric: 'tabular-nums',
-        letterSpacing: '-0.02em',
-        marginTop: 2,
-        textShadow: active ? '0 0 12px rgba(226,184,88,0.25)' : 'none',
-      }}>{result || '—'}</div>
+      {(() => {
+        const baseSize = option.large ? 36 : 30;
+        const len = result ? result.length : 0;
+        const fontSize = !result ? baseSize : (len <= 4 ? baseSize : Math.max(13, Math.floor(baseSize * 5 / len)));
+        return (
+          <div style={{
+            position: 'relative',
+            fontFamily: 'var(--font-display)',
+            fontSize, lineHeight: 1.05,
+            color: DARK.ink,
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-0.02em',
+            marginTop: 2,
+            textShadow: active ? '0 0 12px rgba(226,184,88,0.25)' : 'none',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>{result || '—'}</div>
+        );
+      })()}
       <div style={{
         position: 'relative',
         fontFamily: 'var(--font-ui)', fontSize: 9,
@@ -1560,10 +1641,18 @@ function PageContent() {
     });
   };
 
+  const handleRevive = (playerNum: number) => {
+    setCounters(prev => {
+      const cur = prev[playerNum] ?? { poison: 0, experience: 0, energy: 0 };
+      return { ...prev, [playerNum]: { ...cur, poison: Math.min(9, cur.poison) } };
+    });
+  };
+
   const handleCounterChange = (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => {
     const playerNum = selectedCounterPlayer;
     setCounters(prev => {
-      const newVal = action === 'plus' ? prev[playerNum][type] + 1 : Math.max(0, prev[playerNum][type] - 1);
+      const cap = type === 'poison' ? 10 : 999;
+      const newVal = action === 'plus' ? Math.min(cap, prev[playerNum][type] + 1) : Math.max(0, prev[playerNum][type] - 1);
 
       const userId = playerUserIds[playerNum];
       const seat = playerSeatNumbers[playerNum];
@@ -1753,6 +1842,7 @@ function PageContent() {
                   rotation={90}
                   onTapLeft={() => handleLifeChange(2, -1)}
                   onTapRight={() => handleLifeChange(2, 1)}
+              onRevive={() => handleRevive(2)}
                 />
               ) : (
                 <SidewaysEmptyCell
@@ -1761,8 +1851,13 @@ function PageContent() {
                   counters={counters[2]}
                   rotation={90}
                   onClaimSeat={() => openJoinModal(2)}
+                  showQR={joinModalOpen && joinSlot === 2}
+                  qrCodeUrl={qrCodeUrl}
+                  podShortCode={podShortCode}
+                  onCloseQR={() => setJoinModalOpen(false)}
                   onTapLeft={() => handleLifeChange(2, -1)}
                   onTapRight={() => handleLifeChange(2, 1)}
+              onRevive={() => handleRevive(2)}
                 />
               )}
             </div>
@@ -1773,6 +1868,7 @@ function PageContent() {
                   rotation={-90}
                   onTapLeft={() => handleLifeChange(3, -1)}
                   onTapRight={() => handleLifeChange(3, 1)}
+              onRevive={() => handleRevive(3)}
                 />
               ) : (
                 <SidewaysEmptyCell
@@ -1781,8 +1877,13 @@ function PageContent() {
                   counters={counters[3]}
                   rotation={-90}
                   onClaimSeat={() => openJoinModal(3)}
+                  showQR={joinModalOpen && joinSlot === 3}
+                  qrCodeUrl={qrCodeUrl}
+                  podShortCode={podShortCode}
+                  onCloseQR={() => setJoinModalOpen(false)}
                   onTapLeft={() => handleLifeChange(3, -1)}
                   onTapRight={() => handleLifeChange(3, 1)}
+              onRevive={() => handleRevive(3)}
                 />
               )}
             </div>
@@ -1794,6 +1895,7 @@ function PageContent() {
                 player={enrichPlayer(1, true)}
                 onTapLeft={() => handleLifeChange(1, -1)}
                 onTapRight={() => handleLifeChange(1, 1)}
+              onRevive={() => handleRevive(1)}
                 lifeSize={96}
               />
             </div>
@@ -1846,33 +1948,6 @@ function PageContent() {
         />
       )}
 
-      {joinModalOpen && (
-        <div className="join-modal active">
-          <div className="join-modal-card">
-            <button
-              className="modal-close"
-              onClick={() => setJoinModalOpen(false)}
-            >
-              ✕
-            </button>
-            <div className="join-modal-title">Join Slot {joinSlot}</div>
-            <div className="join-modal-subtitle">Scan to claim this player slot</div>
-            <div style={{ width: 150, height: 150, margin: '0 auto', padding: 10, background: DARK.bgDeep, borderRadius: 12, border: `1px solid ${DARK.cellBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {qrCodeUrl ? (
-                <img src={qrCodeUrl} alt="QR code to join pod" width={130} height={130} style={{ imageRendering: 'pixelated' }} />
-              ) : (
-                <div style={{ color: DARK.ink3, fontSize: 12 }}>No pod code</div>
-              )}
-            </div>
-            <div className="join-slot-code" onClick={copyPodCode} style={{ cursor: 'pointer' }}>
-              <span>{podShortCode ? `${podShortCode.slice(0, 3)}—${podShortCode.slice(3)}` : '------'}</span>
-            </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: DARK.ink3, textAlign: 'center' }}>
-              Tap the code to copy
-            </div>
-          </div>
-        </div>
-      )}
 
       {toast && (
         <div className="toast show">
