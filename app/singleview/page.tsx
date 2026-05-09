@@ -609,7 +609,7 @@ function GameNav({ active = 'single', onNav }: any) {
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0,
-      padding: '10px 16px 32px', zIndex: 8,
+      padding: '10px 16px 24px', zIndex: 8,
       background: 'linear-gradient(180deg, rgba(10,6,4,0) 0%, rgba(10,6,4,0.92) 30%, #0A0604 100%)',
     }}>
       <div style={{
