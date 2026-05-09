@@ -1865,14 +1865,19 @@ function PageContent() {
   };
 
   const handleRevive = (playerNum: number) => {
+    let revivedLife: number | null = null;
+    let revivedPoison: number | null = null;
     setPlayers(prev => {
       const cur = prev[playerNum];
       if (!cur || (cur.life ?? 1) > 0) return prev;
+      revivedLife = 1;
       return { ...prev, [playerNum]: { ...cur, life: 1 } };
     });
     setCounters(prev => {
       const cur = prev[playerNum] ?? { poison: 0, experience: 0, energy: 0 };
-      return { ...prev, [playerNum]: { ...cur, poison: Math.min(9, cur.poison) } };
+      if ((cur.poison ?? 0) < 10) return prev;
+      revivedPoison = Math.min(9, cur.poison);
+      return { ...prev, [playerNum]: { ...cur, poison: revivedPoison } };
     });
     setCmdrDamage(prev => {
       const next: typeof prev = { ...prev };
@@ -1884,8 +1889,41 @@ function PageContent() {
           changed = true;
         }
       }
+      if (changed && gameId) {
+        const seat = playerSeatNumbers[playerNum];
+        const map: Record<string, number> = {};
+        for (const fromN of Object.keys(next).map(Number)) {
+          const v = next[fromN]?.[playerNum] ?? 0;
+          if (v > 0) {
+            const fromSeat = playerSeatNumbers[fromN];
+            if (fromSeat) map[`seat-${fromSeat}`] = v;
+          }
+        }
+        if (seat) {
+          debouncedSync(`cmdr-${playerNum}`, () => {
+            updateCommanderDamageBySeat(gameId, seat, map).catch(() => {});
+          });
+        }
+      }
       return changed ? next : prev;
     });
+    // Sync revived life/poison to Supabase so realtime doesn't revert it
+    if (gameId && revivedLife !== null) {
+      const userId = playerUserIds[playerNum];
+      const seat = playerSeatNumbers[playerNum];
+      debouncedSync(`life-${playerNum}`, () => {
+        if (userId) updateLifeTotal(gameId, userId, revivedLife as number).catch(() => {});
+        else if (seat) updateLifeBySeat(gameId, seat, revivedLife as number).catch(() => {});
+      });
+    }
+    if (gameId && revivedPoison !== null) {
+      const userId = playerUserIds[playerNum];
+      const seat = playerSeatNumbers[playerNum];
+      debouncedSync(`poison-${playerNum}`, () => {
+        if (userId) updatePoisonCounters(gameId, userId, revivedPoison as number).catch(() => {});
+        else if (seat) updatePoisonBySeat(gameId, seat, revivedPoison as number).catch(() => {});
+      });
+    }
   };
 
   const handleCounterChange = (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => {
