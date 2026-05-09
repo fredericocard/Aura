@@ -70,7 +70,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     coin:     <><circle cx="12" cy="12" r="9"/><path d="M9 9h4a2 2 0 0 1 0 4H9V9zm0 4v3"/></>,
     shuffle:  <><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></>,
     arrow:    <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
-    rotate:   <><path d="M3 12a9 9 0 1 0 9-9c2.5 0 4.95.99 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></>,
+    rotate:   <><polyline points="8 9 12 5 16 9"/><polyline points="8 15 12 19 16 15"/><line x1="5" y1="12" x2="19" y2="12"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
