@@ -20,8 +20,8 @@ const DARK = {
   copperDim: 'rgba(226,184,88,0.55)',
   copperGlow:'rgba(201,155,47,0.34)',
   gold:      '#C99B2F',
-  forest:    '#3F9F4D',
-  forestDeep:'#2C7A37',
+  forest:    '#B06B2C',
+  forestDeep:'#8C5422',
   line:      'rgba(226,184,88,0.10)',
   lineStrong:'rgba(226,184,88,0.18)',
   cellBorder:'rgba(226,184,88,0.14)',
@@ -61,7 +61,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     dice:     <><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill={stroke} stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill={stroke} stroke="none"/><circle cx="12" cy="12" r="1.2" fill={stroke} stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill={stroke} stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill={stroke} stroke="none"/></>,
     plus:     <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
     minus:    <line x1="5" y1="12" x2="19" y2="12"/>,
-    sword:    <><path d="m14.5 17.5 4-4-9-9H4v6l9 9z"/><line x1="14.5" y1="17.5" x2="20" y2="23"/><path d="m9.5 4.5 4 4"/></>,
+    shield:   <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
     close:    <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
     skull:    <><path d="M8 21h8v-3a4 4 0 0 0 4-4v-2a8 8 0 1 0-16 0v2a4 4 0 0 0 4 4v3z"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M11 17h2"/></>,
     bolt:     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
@@ -350,7 +350,7 @@ function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive }
             fontFamily:'var(--font-ui)', fontSize:14, fontWeight:800,
             letterSpacing:'0.20em', textTransform:'uppercase',
             cursor:'pointer', whiteSpace:'nowrap',
-            boxShadow:'0 6px 18px -4px rgba(63,159,77,0.55), 0 0 0 2px rgba(63,159,77,0.18)',
+            boxShadow:'0 6px 18px -4px rgba(176,107,44,0.55), 0 0 0 2px rgba(176,107,44,0.18)',
           }}>Revive</button>
         </div>
       )}
@@ -459,7 +459,7 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
           background: DARK.forest,
           color: DARK.ink,
           border:'none', borderRadius:999,
-          boxShadow: '0 2px 6px -2px rgba(63,159,77,0.4)',
+          boxShadow: '0 2px 6px -2px rgba(176,107,44,0.4)',
           fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
           letterSpacing:'0.14em', textTransform:'uppercase',
           cursor:'pointer', whiteSpace:'nowrap',
@@ -537,7 +537,7 @@ function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, p
     { id: 'single', icon: 'user',   label: 'You' },
     { id: 'dice',   icon: 'dice',   label: 'Dice' },
     { id: 'count',  icon: 'plus',   label: 'Counters' },
-    { id: 'cmdr',   icon: 'sword',  label: 'Cmdr Dmg' },
+    { id: 'cmdr',   icon: 'shield',  label: 'Cmdr Dmg' },
   ];
   return (
     <div style={{
@@ -1083,7 +1083,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
           gap: 6, margin: '4px 0', color: DARK.ink4,
         }}>
           <span style={{ width: 36, height: 1, background: DARK.lineStrong }}/>
-          <Icon name="sword" size={11} stroke={DARK.ink3} width={1.6}/>
+          <Icon name="shield" size={11} stroke={DARK.ink3} width={1.6}/>
           <span style={{ width: 36, height: 1, background: DARK.lineStrong }}/>
         </div>
         <div style={{ marginBottom: 12 }}>

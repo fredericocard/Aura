@@ -29,10 +29,10 @@ const TOKENS_CSS = `
   --line-strong:      rgba(240,232,216,0.14);
   --copper:           #B06B2C;
   --copper-deep:      #D4883E;
-  --forest:           #3F9F4D;
-  --forest-deep:      #2F7A3A;
-  --forest-soft:      rgba(63,159,77,0.15);
-  --forest-line:      rgba(63,159,77,0.30);
+  --forest:           #B06B2C;
+  --forest-deep:      #8C5422;
+  --forest-soft:      rgba(176,107,44,0.15);
+  --forest-line:      rgba(176,107,44,0.30);
   --shadow-rest:      0 1px 0 rgba(0,0,0,0.30), 0 6px 18px -8px rgba(0,0,0,0.50);
   --font-display:     'Young Serif', ui-serif, Georgia, serif;
   --font-ui:          'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
@@ -96,7 +96,7 @@ const COUNTER_VOCAB: any = {
   poison:      { label: 'Poison',      tone: '#4F8A4D', soft: '#E2EBDB', glyph: 'skull' },
   energy:      { label: 'Energy',      tone: '#C99B2F', soft: '#F6ECD2', glyph: 'bolt' },
   experience:  { label: 'Experience',  tone: '#7E4E8A', soft: '#EADDEE', glyph: 'star' },
-  commander:   { label: 'Cmdr',        tone: '#B06B2C', soft: '#F3E3D1', glyph: 'sword' },
+  commander:   { label: 'Cmdr',        tone: '#B06B2C', soft: '#F3E3D1', glyph: 'shield' },
 };
 
 // ─── Icon set (24×24 viewBox, stroke-based) ─────────────────────────────────
@@ -117,7 +117,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: any) {
     bolt:            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
     star:            <polygon points="12 2 15.1 8.6 22 9.6 17 14.5 18.2 21.5 12 18.2 5.8 21.5 7 14.5 2 9.6 8.9 8.6 12 2"/>,
     skull:           <><path d="M8 21h8v-3a4 4 0 0 0 4-4v-2a8 8 0 1 0-16 0v2a4 4 0 0 0 4 4v3z"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M11 17h2"/></>,
-    sword:           <><path d="m14.5 17.5 4-4-9-9H4v6l9 9z"/><line x1="14.5" y1="17.5" x2="20" y2="23"/><path d="m9.5 4.5 4 4"/></>,
+    shield:          <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
     flame:           <path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 1 2 3 2 3-3z"/>,
     settings:        <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
     warning:         <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
@@ -598,7 +598,7 @@ function GameNav({ active = 'single', onNav }: any) {
     { id: 'single', icon: 'user',       label: 'You' },
     { id: 'dice',   icon: 'dice',       label: 'Dice' },
     { id: 'count',  icon: 'plus',       label: 'Counters' },
-    { id: 'cmdr',   icon: 'sword',      label: 'Cmdr Dmg' },
+    { id: 'cmdr',   icon: 'shield',      label: 'Cmdr Dmg' },
   ];
   return (
     <div style={{
@@ -619,7 +619,7 @@ function GameNav({ active = 'single', onNav }: any) {
             <button key={it.id} onClick={() => onNav?.(it.id)} style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
               padding: '6px 0', border: 'none',
-              background: on ? '#3F9F4D' : 'transparent',
+              background: on ? '#B06B2C' : 'transparent',
               color: on ? '#F0E8D8' : '#8A7E6F',
               borderRadius: 999,
               fontFamily: 'var(--font-ui)',
@@ -1343,17 +1343,17 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
             }}>{p.cmdrDmg ?? 0}<span style={{ fontSize: 16, color: '#8A7E6F' }}> /21</span></div>
           </div>
           <div style={{
-            background: 'rgba(63,159,77,0.10)',
-            border: '1px solid rgba(63,159,77,0.25)',
+            background: 'rgba(176,107,44,0.10)',
+            border: '1px solid rgba(176,107,44,0.25)',
             borderRadius: 12, padding: '8px 12px',
           }}>
             <div style={{
               fontSize: 9, fontWeight: 700, letterSpacing: '0.2em',
-              textTransform: 'uppercase', color: '#3F9F4D',
+              textTransform: 'uppercase', color: '#B06B2C',
             }}>Dmg from you</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontSize: 38, lineHeight: 1,
-              letterSpacing: '-0.03em', color: '#2F7A3A', marginTop: 2,
+              letterSpacing: '-0.03em', color: '#8C5422', marginTop: 2,
               fontVariantNumeric: 'tabular-nums',
             }}>{p.cmdrDmgFromYou ?? 0}<span style={{ fontSize: 16, color: '#8A7E6F' }}> /21</span></div>
           </div>
@@ -1569,7 +1569,7 @@ function EliminatedPopup({ onRevive, onReview }: any) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: '#3F9F4D', color: '#F0E8D8',
+              background: '#B06B2C', color: '#F0E8D8',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
