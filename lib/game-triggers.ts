@@ -161,6 +161,24 @@ export async function updateEnergyBySeat(gameId: string, seatNumber: number, cou
 }
 
 /**
+ * Update commander damage received by seat_number.
+ * Works for any player type (logged-in, guest, empty).
+ */
+export async function updateCommanderDamageBySeat(
+  gameId: string,
+  seatNumber: number,
+  damageMap: Record<string, number>
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('game_players')
+    .update({ commander_damage_received: damageMap })
+    .eq('game_id', gameId)
+    .eq('seat_number', seatNumber);
+
+  return { error: error?.message ?? null };
+}
+
+/**
  * Mark a player as eliminated. They can now access the review.
  */
 async function eliminatePlayer(gameId: string, userId: string): Promise<void> {
