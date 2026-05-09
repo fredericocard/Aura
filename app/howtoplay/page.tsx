@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 
 const HOWTO_HTML = `<section class="cover cover-dark">
   <svg class="cover-compass" viewBox="0 0 240 240" aria-hidden="true">
@@ -1504,6 +1505,7 @@ section.signoff > .divider-torn .torn-edge { transform: translateY(1px); }
 
 export default function HowToPlay() {
   const router = useRouter();
+  const auth = useAuth();
   const pageRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -1513,7 +1515,14 @@ export default function HowToPlay() {
     const root = pageRef.current;
 
     // Wire CTA buttons by their text content
-    const handleCreateProfile = () => router.push('/landing');
+    const handleCreateProfile = () => {
+      if (auth?.isLoggedIn) {
+        router.push('/profile');
+      } else {
+        try { sessionStorage.setItem('loginRedirect', '/profile'); } catch {}
+        router.push('/landing?login=1');
+      }
+    };
     const handleJoinPod = () => router.push('/join');
 
     type Wired = { btn: HTMLButtonElement; fn: () => void };
@@ -1562,7 +1571,7 @@ export default function HowToPlay() {
       window.removeEventListener('resize', onScroll);
       wired.forEach(({ btn, fn }) => btn.removeEventListener('click', fn));
     };
-  }, [router]);
+  }, [router, auth]);
 
   return (
     <>

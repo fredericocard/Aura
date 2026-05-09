@@ -502,6 +502,16 @@ export default function HomePage() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
+
+  // Auto-open login when ?login=1 is in URL (used by other pages routing to landing for auth)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('login') === '1' && !isLoggedIn) {
+      setShowLogin(true);
+    }
+  }, [isLoggedIn]);
+
   // After any login (email/password, Google OAuth), redirect to saved destination
   useEffect(() => {
     if (!isLoggedIn || loading) return;
