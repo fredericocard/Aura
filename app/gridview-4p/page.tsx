@@ -290,7 +290,7 @@ function CellInner({ player }: { player: any }) {
               background: DARK.copper,
               boxShadow: '0 0 8px rgba(226,184,88,0.7)',
             }}/>}
-            {player.isYou ? 'You' : player.name}
+            {player.name}
           </div>
           <div style={{ fontFamily:'var(--font-display)', fontSize:11, lineHeight:1.1,
             color: DARK.ink,
@@ -911,7 +911,7 @@ function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.
                 whiteSpace: 'nowrap',
                 overflow: 'hidden', textOverflow: 'ellipsis',
                 maxWidth: '100%',
-              }}>{n === 1 ? 'You' : (p.name || `Player ${n}`)}</div>
+              }}>{p.name || `Player ${n}`}</div>
             </button>
           );
         })}
@@ -1218,11 +1218,11 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
             fontFamily: 'var(--font-ui)', fontSize: 11,
           }}>
             <span style={{ color: accent, fontWeight: 700, letterSpacing: '0.04em' }}>
-              {fromNum === 1 ? 'You' : (fromPlayer?.name || `Player ${fromNum}`)}
+              {fromPlayer?.name || `Player ${fromNum}`}
             </span>
             <Icon name="arrow" size={12} stroke={accent} width={2}/>
             <span style={{ color: DARK.ink, fontWeight: 700, letterSpacing: '0.04em' }}>
-              {toNum === 1 ? 'You' : (toPlayer?.name || `Player ${toNum}`)}
+              {toPlayer?.name || `Player ${toNum}`}
             </span>
           </div>
         </div>
@@ -1364,7 +1364,7 @@ function CountersModalLandscape({ open, onClose, players, selectedNum, setSelect
                       fontFamily: 'var(--font-ui)', fontSize: 7, fontWeight: 600,
                       color: on ? DARK.ink : DARK.ink2,
                       letterSpacing: '0.02em',
-                    }}>{n === 1 ? 'You' : (p?.name || `P${n}`)}</div>
+                    }}>{p?.name || `P${n}`}</div>
                   </button>
                 );
               })}
@@ -1449,7 +1449,7 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
             <div style={{
               fontFamily: 'var(--font-ui)', fontSize: 8, fontWeight: 600,
               color: on ? DARK.ink : DARK.ink3,
-            }}>{n === 1 ? 'You' : (p?.name || `P${n}`)}</div>
+            }}>{p?.name || `P${n}`}</div>
           </button>
         );
       })}
@@ -1499,11 +1499,11 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
               fontFamily: 'var(--font-ui)', fontSize: 10,
             }}>
               <span style={{ color: accent, fontWeight: 700, letterSpacing: '0.04em' }}>
-                {fromNum === 1 ? 'You' : (fromPlayer?.name || `P${fromNum}`)}
+                {fromPlayer?.name || `P${fromNum}`}
               </span>
               <Icon name="arrow" size={11} stroke={accent} width={2}/>
               <span style={{ color: DARK.ink, fontWeight: 700, letterSpacing: '0.04em' }}>
-                {toNum === 1 ? 'You' : (toPlayer?.name || `P${toNum}`)}
+                {toPlayer?.name || `P${toNum}`}
               </span>
             </div>
           </div>
@@ -1741,7 +1741,7 @@ function PageContent() {
         Math.floor((amount / 21) * CMDR_DMG_COLORS.length)
       );
       damages.push({
-        from: fromN === 1 ? 'You' : (players[fromN]?.name || `P${fromN}`),
+        from: players[fromN]?.name || `P${fromN}`,
         amount,
         colorIndex: heatIdx,
       });
@@ -1943,7 +1943,7 @@ function PageContent() {
         const pool = claimed.length >= 2 ? claimed : Object.entries(players);
         if (pool.length === 0) return '—';
         const [num, p] = pool[Math.floor(Math.random() * pool.length)];
-        return num === '1' ? 'You' : (p.name || `Player ${num}`);
+        return p.name || `Player ${num}`;
       }
       return '?';
     };
