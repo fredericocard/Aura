@@ -1739,15 +1739,32 @@ function PageContent() {
 
           if (p.user_id === user?.id) {
             currentPlayerData = playerData;
-            setLife(p.life_total ?? 40);
-            setPoison(p.poison_counters ?? 0);
+            const loadedLife = p.life_total ?? 40;
+            const loadedPoison = p.poison_counters ?? 0;
+            const loadedCmdrDmg = (p.commander_damage_received && typeof p.commander_damage_received === 'object')
+              ? p.commander_damage_received as Record<string, number> : {};
+            setLife(loadedLife);
+            setPoison(loadedPoison);
             setExperience(p.experience_counters ?? 0);
             setEnergy(p.energy_counters ?? 0);
-            if (p.commander_damage_received && typeof p.commander_damage_received === 'object') {
-              setCmdrDmg(p.commander_damage_received as Record<string, number>);
-            }
+            setCmdrDmg(loadedCmdrDmg);
             setMyName(displayName);
             setMyColors(colorIdentityArray);
+
+            // Check if player is already eliminated on load
+            if (loadedLife <= 0) {
+              setEliminationReason('life');
+              setShowEliminated(true);
+              setDead(true);
+            } else if (loadedPoison >= 10) {
+              setEliminationReason('poison');
+              setShowEliminated(true);
+              setDead(true);
+            } else if (Object.values(loadedCmdrDmg).some((v: any) => v >= 21)) {
+              setEliminationReason('cmdr');
+              setShowEliminated(true);
+              setDead(true);
+            }
           } else {
             opponentsList.push(playerData);
           }
