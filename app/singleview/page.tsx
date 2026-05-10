@@ -2076,6 +2076,35 @@ function PageContent() {
     }, 400);
   }, [adjustLife]);
 
+  const adjustCounter = useCallback((kind: string, delta: number) => {
+    const setters: any = { poison: setPoison, energy: setEnergy, experience: setExperience };
+    const setter = setters[kind];
+    if (setter) {
+      setter((prev: number) => {
+        let newVal = Math.max(0, prev + delta);
+        if (kind === 'poison') newVal = Math.min(10, newVal);
+        if (kind === 'poison' && newVal >= 10) {
+          setEliminationReason('poison');
+          setShowEliminated(true);
+          setDead(true);
+        }
+        if (gameId && user?.id) {
+          const updateFn = {
+            poison: updatePoisonCounters,
+            energy: updateEnergyCounters,
+            experience: updateExperienceCounters,
+          }[kind];
+          if (updateFn) {
+            debouncedSync(kind, () => {
+              updateFn(gameId, user.id, newVal).catch(() => {});
+            });
+          }
+        }
+        return newVal;
+      });
+    }
+  }, [gameId, user?.id]);
+
   // Loading screen
   if (!gameLoaded) {
     return (
@@ -2177,35 +2206,6 @@ function PageContent() {
       }
     }
   };
-
-  const adjustCounter = useCallback((kind: string, delta: number) => {
-    const setters: any = { poison: setPoison, energy: setEnergy, experience: setExperience };
-    const setter = setters[kind];
-    if (setter) {
-      setter((prev: number) => {
-        let newVal = Math.max(0, prev + delta);
-        if (kind === 'poison') newVal = Math.min(10, newVal);
-        if (kind === 'poison' && newVal >= 10) {
-          setEliminationReason('poison');
-          setShowEliminated(true);
-          setDead(true);
-        }
-        if (gameId && user?.id) {
-          const updateFn = {
-            poison: updatePoisonCounters,
-            energy: updateEnergyCounters,
-            experience: updateExperienceCounters,
-          }[kind];
-          if (updateFn) {
-            debouncedSync(kind, () => {
-              updateFn(gameId, user.id, newVal).catch(() => {});
-            });
-          }
-        }
-        return newVal;
-      });
-    }
-  }, [gameId, user?.id]);
 
   const handleAbandon = () => {
     if (gameId && user?.id) {
