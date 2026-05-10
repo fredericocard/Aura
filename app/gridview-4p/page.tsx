@@ -70,6 +70,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     coin:     <><circle cx="12" cy="12" r="9"/><path d="M9 9h4a2 2 0 0 1 0 4H9V9zm0 4v3"/></>,
     shuffle:  <><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></>,
     arrow:    <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
+    rotate:   <><polyline points="8 9 12 5 16 9"/><polyline points="8 15 12 19 16 15"/><line x1="5" y1="12" x2="19" y2="12"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -432,43 +433,55 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       <div style={{
         position:'relative',
         height:'100%',
+        containerType:'size',
         borderRadius:'20px',
         background: DARK.bgDeep,
         border: `2.5px dashed rgba(226,184,88,0.25)`,
         boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
         overflow:'hidden',
-        transform: `rotate(${rotation}deg)`,
-      }}>
-        <button onClick={onCloseQR} aria-label="Close" style={{
-          position:'absolute', top:10, right:10, zIndex:30,
-          width:32, height:32, borderRadius:999,
-          background:'rgba(10,6,4,0.55)',
-          border:`1px solid ${DARK.lineStrong}`,
-          color: DARK.ink2, fontSize:18, fontWeight:600,
-          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-          lineHeight:1, padding:0,
-        }}>×</button>
+      } as React.CSSProperties}>
         <div style={{
-          position:'absolute', inset:0, zIndex:20,
-          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
-          padding:20,
-        }}>
+          position:'absolute',
+          top:'50%',
+          left:'50%',
+          width:'100cqh',
+          height:'100cqw',
+          transform:`translate(-50%, -50%) rotate(${rotation}deg)`,
+          transformOrigin:'center center',
+        } as React.CSSProperties}>
+          <button onClick={onCloseQR} aria-label="Close" style={{
+            position:'absolute', top:10, right:10, zIndex:30,
+            width:32, height:32, borderRadius:999,
+            background:'rgba(10,6,4,0.55)',
+            border:`1px solid ${DARK.lineStrong}`,
+            color: DARK.ink2, fontSize:18, fontWeight:600,
+            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+            lineHeight:1, padding:0,
+          }}>×</button>
           <div style={{
-            padding:10, background:'#FAF5EA', borderRadius:14,
-            boxShadow:'0 4px 20px -6px rgba(0,0,0,0.35)',
+            position:'absolute', inset:0, zIndex:20,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
+            padding:20,
           }}>
-            {qrCodeUrl ? (
-              <img src={qrCodeUrl} alt="QR code to join pod" width={140} height={140} style={{ imageRendering:'pixelated', display:'block' }}/>
-            ) : (
-              <div style={{ width:140, height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:11 }}>No pod code</div>
+            <div style={{
+              padding:8, background:'#FAF5EA', borderRadius:12,
+              boxShadow:'0 4px 20px -6px rgba(0,0,0,0.35)',
+              maxWidth:'80%', maxHeight:'70%',
+              display:'flex', alignItems:'center', justifyContent:'center',
+            }}>
+              {qrCodeUrl ? (
+                <img src={qrCodeUrl} alt="QR code to join pod" style={{ imageRendering:'pixelated', display:'block', width:'100%', height:'auto', maxHeight:'100%', aspectRatio:'1 / 1' }}/>
+              ) : (
+                <div style={{ width:100, height:100, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:11 }}>No pod code</div>
+              )}
+            </div>
+            {podShortCode && (
+              <div style={{
+                fontFamily:'var(--font-display)', fontSize:18, letterSpacing:'0.16em',
+                color: DARK.ink, fontVariantNumeric:'tabular-nums',
+              }}>{`${podShortCode.slice(0,3)}—${podShortCode.slice(3)}`}</div>
             )}
           </div>
-          {podShortCode && (
-            <div style={{
-              fontFamily:'var(--font-display)', fontSize:18, letterSpacing:'0.16em',
-              color: DARK.ink, fontVariantNumeric:'tabular-nums',
-            }}>{`${podShortCode.slice(0,3)}—${podShortCode.slice(3)}`}</div>
-          )}
         </div>
       </div>
     );
@@ -486,50 +499,6 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       overflow:'hidden',
     } as React.CSSProperties}>
       {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
-      {(() => {
-        const isLifeZero = (life ?? 1) <= 0;
-        const isPoisoned = (cellCounters?.poison || 0) >= 10;
-        const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
-        if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
-        const causes: string[] = [];
-        if (isLifeZero) causes.push('Life');
-        if (isPoisoned) causes.push('Poison');
-        if (isCmdrLethal) causes.push('Commander');
-        const reason = causes.join(' + ');
-        return (
-          <div style={{
-            position:'absolute', inset:0, zIndex:25,
-            background:'rgba(10,6,4,0.88)',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
-          }}>
-            <div style={{
-              fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
-              letterSpacing:'0.20em', textTransform:'uppercase',
-              color: DARK.ink2,
-            }}>Defeated · {reason}</div>
-            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-              <button onClick={onRevive} style={{
-                padding:'10px 22px',
-                background: DARK.forest,
-                color: DARK.ink,
-                border:'none', borderRadius:999,
-                fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
-                letterSpacing:'0.16em', textTransform:'uppercase',
-                cursor:'pointer', whiteSpace:'nowrap',
-              }}>Revive</button>
-              <button onClick={onClaimSeat} style={{
-                padding:'8px 18px',
-                background:'transparent',
-                color: DARK.ink2,
-                border:`1px solid ${DARK.lineStrong}`, borderRadius:999,
-                fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
-                letterSpacing:'0.16em', textTransform:'uppercase',
-                cursor:'pointer', whiteSpace:'nowrap',
-              }}>Review Game</button>
-            </div>
-          </div>
-        );
-      })()}
       <div style={{
         position:'absolute',
         top:'50%',
@@ -540,6 +509,51 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
         transformOrigin:'center center',
       } as React.CSSProperties}>
         <div style={{ position:'absolute', inset:0, borderRadius:'20px', overflow:'hidden' }}>
+        {(() => {
+          const isLifeZero = (life ?? 1) <= 0;
+          const isPoisoned = (cellCounters?.poison || 0) >= 10;
+          const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
+          if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
+          const causes: string[] = [];
+          if (isLifeZero) causes.push('Life');
+          if (isPoisoned) causes.push('Poison');
+          if (isCmdrLethal) causes.push('Commander');
+          const reason = causes.join(' + ');
+          return (
+            <div style={{
+              position:'absolute', inset:0, zIndex:25,
+              background:'rgba(10,6,4,0.88)',
+              display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12,
+              padding:'8px 12px',
+            }}>
+              <div style={{
+                fontFamily:'var(--font-ui)', fontSize:10, fontWeight:700,
+                letterSpacing:'0.20em', textTransform:'uppercase',
+                color: DARK.ink2, textAlign:'center',
+              }}>Defeated · {reason}</div>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                <button onClick={onRevive} style={{
+                  padding:'8px 18px',
+                  background: DARK.forest,
+                  color: DARK.ink,
+                  border:'none', borderRadius:999,
+                  fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
+                  letterSpacing:'0.14em', textTransform:'uppercase',
+                  cursor:'pointer', whiteSpace:'nowrap',
+                }}>Revive</button>
+                <button onClick={onClaimSeat} style={{
+                  padding:'6px 14px',
+                  background:'transparent',
+                  color: DARK.ink2,
+                  border:`1px solid ${DARK.lineStrong}`, borderRadius:999,
+                  fontFamily:'var(--font-ui)', fontSize:10, fontWeight:700,
+                  letterSpacing:'0.14em', textTransform:'uppercase',
+                  cursor:'pointer', whiteSpace:'nowrap',
+                }}>Review Game</button>
+              </div>
+            </div>
+          );
+        })()}
           {/* Header: seat label + compact Claim button (replaces the old Empty pill) */}
           <div style={{
             position:'absolute', top:10, left:12, right:12, zIndex:10,
@@ -773,7 +787,7 @@ function ModalCompass({ size = 300, opacity = 0.10 }: { size?: number; opacity?:
   );
 }
 
-function ModalCard({ width = 320, onClose, children, showCompass = true }: { width?: number; onClose: () => void; children: React.ReactNode; showCompass?: boolean }) {
+function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, showCompass = true }: { width?: number; onClose: () => void; onRotate?: () => void; rotated?: boolean; children: React.ReactNode; showCompass?: boolean }) {
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
@@ -787,6 +801,8 @@ function ModalCard({ width = 320, onClose, children, showCompass = true }: { wid
         background: '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
+        transform: rotated ? 'rotate(180deg)' : 'none',
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {showCompass && <ModalCompass/>}
         <button onClick={onClose} style={{
@@ -799,6 +815,18 @@ function ModalCard({ width = 320, onClose, children, showCompass = true }: { wid
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
+        {onRotate && (
+          <button onClick={onRotate} aria-label="Rotate" style={{
+            position: 'absolute', top: 10, right: 10, zIndex: 2,
+            width: 36, height: 36, borderRadius: 999,
+            background: 'rgba(226,184,88,0.12)',
+            border: '1.5px solid rgba(226,184,88,0.30)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          }}>
+            <Icon name="rotate" size={18} stroke={DARK.ink2} width={2}/>
+          </button>
+        )}
         <div style={{ position: 'relative' }}>{children}</div>
       </div>
     </div>
@@ -1110,6 +1138,7 @@ function DiceModal({ open, onClose, players, selectedDiceOpt, diceResults, onRol
   diceResults: Record<string, string>;
   onRoll: (id: string) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   return (
     <div onClick={onClose} style={{
@@ -1117,7 +1146,7 @@ function DiceModal({ open, onClose, players, selectedDiceOpt, diceResults, onRol
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={320} onClose={onClose}>
+      <ModalCard width={320} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated}>
         <ModalTitle kicker="Roll" title="Dice & Random"/>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
           {DICE_OPTS.map(opt => (
@@ -1142,6 +1171,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
   counters: Record<number, { poison: number; experience: number; energy: number }>;
   onChange: (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const playerCounts = counters[selectedNum] ?? { poison: 0, energy: 0, experience: 0 };
   return (
@@ -1150,7 +1180,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={326} onClose={onClose} showCompass={false}>
+      <ModalCard width={326} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Adjust" title="Counters"/>
         <div style={{ marginBottom: 18 }}>
           <PlayerAvatarRow players={players} selectedNum={selectedNum}
@@ -1190,6 +1220,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   damage: Record<number, Record<number, number>>;
   onChange: (delta: number) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const amount = damage[fromNum]?.[toNum] ?? 0;
   const lethal = 21;
@@ -1204,7 +1235,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={332} onClose={onClose} showCompass={false}>
+      <ModalCard width={332} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Track" title="Commander Damage"/>
         <div style={{ marginBottom: 10 }}>
           <PlayerAvatarRow players={players} selectedNum={fromNum} onSelect={setFromNum}

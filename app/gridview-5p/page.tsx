@@ -407,43 +407,55 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       <div style={{
         position:'relative',
         height:'100%',
+        containerType:'size',
         borderRadius:'20px',
         background: DARK.bgDeep,
         border: `2.5px dashed rgba(226,184,88,0.25)`,
         boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
         overflow:'hidden',
-        transform: `rotate(${rotation}deg)`,
-      }}>
-        <button onClick={onCloseQR} aria-label="Close" style={{
-          position:'absolute', top:10, right:10, zIndex:30,
-          width:32, height:32, borderRadius:999,
-          background:'rgba(10,6,4,0.55)',
-          border:`1px solid ${DARK.lineStrong}`,
-          color: DARK.ink2, fontSize:18, fontWeight:600,
-          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-          lineHeight:1, padding:0,
-        }}>×</button>
+      } as React.CSSProperties}>
         <div style={{
-          position:'absolute', inset:0, zIndex:20,
-          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
-          padding:20,
-        }}>
+          position:'absolute',
+          top:'50%',
+          left:'50%',
+          width:'100cqh',
+          height:'100cqw',
+          transform:`translate(-50%, -50%) rotate(${rotation}deg)`,
+          transformOrigin:'center center',
+        } as React.CSSProperties}>
+          <button onClick={onCloseQR} aria-label="Close" style={{
+            position:'absolute', top:10, right:10, zIndex:30,
+            width:32, height:32, borderRadius:999,
+            background:'rgba(10,6,4,0.55)',
+            border:`1px solid ${DARK.lineStrong}`,
+            color: DARK.ink2, fontSize:18, fontWeight:600,
+            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+            lineHeight:1, padding:0,
+          }}>×</button>
           <div style={{
-            padding:10, background:'#FAF5EA', borderRadius:14,
-            boxShadow:'0 4px 20px -6px rgba(0,0,0,0.35)',
+            position:'absolute', inset:0, zIndex:20,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
+            padding:20,
           }}>
-            {qrCodeUrl ? (
-              <img src={qrCodeUrl} alt="QR code to join pod" width={140} height={140} style={{ imageRendering:'pixelated', display:'block' }}/>
-            ) : (
-              <div style={{ width:140, height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:11 }}>No pod code</div>
+            <div style={{
+              padding:8, background:'#FAF5EA', borderRadius:12,
+              boxShadow:'0 4px 20px -6px rgba(0,0,0,0.35)',
+              maxWidth:'80%', maxHeight:'70%',
+              display:'flex', alignItems:'center', justifyContent:'center',
+            }}>
+              {qrCodeUrl ? (
+                <img src={qrCodeUrl} alt="QR code to join pod" style={{ imageRendering:'pixelated', display:'block', width:'100%', height:'auto', maxHeight:'100%', aspectRatio:'1 / 1' }}/>
+              ) : (
+                <div style={{ width:100, height:100, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:11 }}>No pod code</div>
+              )}
+            </div>
+            {podShortCode && (
+              <div style={{
+                fontFamily:'var(--font-display)', fontSize:18, letterSpacing:'0.16em',
+                color: DARK.ink, fontVariantNumeric:'tabular-nums',
+              }}>{`${podShortCode.slice(0,3)}—${podShortCode.slice(3)}`}</div>
             )}
           </div>
-          {podShortCode && (
-            <div style={{
-              fontFamily:'var(--font-display)', fontSize:18, letterSpacing:'0.16em',
-              color: DARK.ink, fontVariantNumeric:'tabular-nums',
-            }}>{`${podShortCode.slice(0,3)}—${podShortCode.slice(3)}`}</div>
-          )}
         </div>
       </div>
     );
@@ -461,50 +473,6 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
       overflow:'hidden',
     } as React.CSSProperties}>
       {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
-      {(() => {
-        const isLifeZero = (life ?? 1) <= 0;
-        const isPoisoned = (cellCounters?.poison || 0) >= 10;
-        const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
-        if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
-        const causes: string[] = [];
-        if (isLifeZero) causes.push('Life');
-        if (isPoisoned) causes.push('Poison');
-        if (isCmdrLethal) causes.push('Commander');
-        const reason = causes.join(' + ');
-        return (
-          <div style={{
-            position:'absolute', inset:0, zIndex:25,
-            background:'rgba(10,6,4,0.88)',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
-          }}>
-            <div style={{
-              fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
-              letterSpacing:'0.20em', textTransform:'uppercase',
-              color: DARK.ink2,
-            }}>Defeated · {reason}</div>
-            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-              <button onClick={onRevive} style={{
-                padding:'10px 22px',
-                background: DARK.forest,
-                color: DARK.ink,
-                border:'none', borderRadius:999,
-                fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
-                letterSpacing:'0.16em', textTransform:'uppercase',
-                cursor:'pointer', whiteSpace:'nowrap',
-              }}>Revive</button>
-              <button onClick={onClaimSeat} style={{
-                padding:'8px 18px',
-                background:'transparent',
-                color: DARK.ink2,
-                border:`1px solid ${DARK.lineStrong}`, borderRadius:999,
-                fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
-                letterSpacing:'0.16em', textTransform:'uppercase',
-                cursor:'pointer', whiteSpace:'nowrap',
-              }}>Review Game</button>
-            </div>
-          </div>
-        );
-      })()}
       <div style={{
         position:'absolute',
         top:'50%',
@@ -515,6 +483,51 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
         transformOrigin:'center center',
       } as React.CSSProperties}>
         <div style={{ position:'absolute', inset:0, borderRadius:'20px', overflow:'hidden' }}>
+        {(() => {
+          const isLifeZero = (life ?? 1) <= 0;
+          const isPoisoned = (cellCounters?.poison || 0) >= 10;
+          const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
+          if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
+          const causes: string[] = [];
+          if (isLifeZero) causes.push('Life');
+          if (isPoisoned) causes.push('Poison');
+          if (isCmdrLethal) causes.push('Commander');
+          const reason = causes.join(' + ');
+          return (
+            <div style={{
+              position:'absolute', inset:0, zIndex:25,
+              background:'rgba(10,6,4,0.88)',
+              display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12,
+              padding:'8px 12px',
+            }}>
+              <div style={{
+                fontFamily:'var(--font-ui)', fontSize:10, fontWeight:700,
+                letterSpacing:'0.20em', textTransform:'uppercase',
+                color: DARK.ink2, textAlign:'center',
+              }}>Defeated · {reason}</div>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                <button onClick={onRevive} style={{
+                  padding:'8px 18px',
+                  background: DARK.forest,
+                  color: DARK.ink,
+                  border:'none', borderRadius:999,
+                  fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
+                  letterSpacing:'0.14em', textTransform:'uppercase',
+                  cursor:'pointer', whiteSpace:'nowrap',
+                }}>Revive</button>
+                <button onClick={onClaimSeat} style={{
+                  padding:'6px 14px',
+                  background:'transparent',
+                  color: DARK.ink2,
+                  border:`1px solid ${DARK.lineStrong}`, borderRadius:999,
+                  fontFamily:'var(--font-ui)', fontSize:10, fontWeight:700,
+                  letterSpacing:'0.14em', textTransform:'uppercase',
+                  cursor:'pointer', whiteSpace:'nowrap',
+                }}>Review Game</button>
+              </div>
+            </div>
+          );
+        })()}
           {/* Header: seat label + compact Claim button (replaces the old Empty pill) */}
           <div style={{
             position:'absolute', top:10, left:12, right:12, zIndex:10,
