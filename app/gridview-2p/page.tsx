@@ -1633,7 +1633,7 @@ function PageContent() {
 
   useEffect(() => {
     const uid = auth?.user?.id;
-    if (!uid || victoryDismissed) return;
+    if (!uid) return;
     const mySeatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
     if (!mySeatEntry) return;
     const mySeat = Number(mySeatEntry[0]);
@@ -1650,8 +1650,16 @@ function PageContent() {
       const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
       return (opp?.life ?? 40) <= 0 || oppPoison >= 10 || oppCmdrLethal;
     });
-    if (allDead) setShowVictory(true);
-  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed]);
+    if (allDead) {
+      // Show the popup unless the user already dismissed THIS death wave
+      if (!victoryDismissed) setShowVictory(true);
+    } else {
+      // At least one opponent is alive — clear the dismiss flag so the popup
+      // re-fires next time everyone dies again
+      if (victoryDismissed) setVictoryDismissed(false);
+      if (showVictory) setShowVictory(false);
+    }
+  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
 
   // ── Track death order (so VictoryPopup can revive only the last-dead seat) ──
   const deathOrderRef = useRef<number[]>([]);
