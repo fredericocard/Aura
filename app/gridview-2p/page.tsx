@@ -118,8 +118,9 @@ function DarkCompassBg({ centered = false }: { centered?: boolean } = {}) {
     <svg viewBox="0 0 320 320" style={{
       position: 'absolute',
       top: centered ? '8%' : '22%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
+      left: 0, right: 0,
+      marginLeft: 'auto', marginRight: 'auto',
+      transform: 'translateY(-50%)',
       width: centered ? 'min(85vw, 360px)' : '520px',
       height: centered ? 'min(85vw, 360px)' : '520px',
       opacity: centered ? 0.28 : 0.18,
@@ -1420,7 +1421,8 @@ function PageContent() {
   // Loading screen — dark bg + compass pattern + gold Aura mark
   if (!gameLoaded) {
     return (
-      <div style={{ position: 'fixed', inset: 0, overflow: 'hidden',
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: `radial-gradient(ellipse 80% 40% at 50% 0%, rgba(176,107,44,0.18) 0%, transparent 100%),
           radial-gradient(ellipse 50% 35% at 0% 35%, rgba(176,107,44,0.12) 0%, transparent 100%),
           radial-gradient(ellipse 50% 35% at 100% 55%, rgba(176,107,44,0.12) 0%, transparent 100%),
@@ -1433,9 +1435,9 @@ function PageContent() {
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
           background: 'linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 40%, transparent 100%)',
           pointerEvents: 'none' }}/>
-        {/* Aura logo — dead center */}
+        {/* Aura logo — centered via flex parent */}
         <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
-          style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2, opacity: 0.55 }}>
+          style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
           <defs>
             <clipPath id="aura-gv-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
           </defs>
