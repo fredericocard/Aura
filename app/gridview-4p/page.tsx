@@ -1490,6 +1490,7 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
   damage: Record<number, Record<number, number>>;
   onChange: (delta: number) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const amount = damage[fromNum]?.[toNum] ?? 0;
   const lethal = 21;
@@ -1500,8 +1501,11 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
   const toPlayer = players[toNum];
   const playerNums = Object.keys(players).map(Number).sort();
   const handleLandscapeFrom = (n: number) => {
-    if (n === toNum) return;
     setFromNum(n);
+    if (n === toNum) {
+      const next = playerNums.find(p => p !== n);
+      if (next !== undefined) setToNum(next);
+    }
   };
   const handleLandscapeTo = (n: number) => {
     if (n === fromNum) return;
@@ -1562,11 +1566,11 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <LandscapeModalShell width={530} height={290} onClose={onClose} showCompass={false}>
+      <LandscapeModalShell width={530} height={290} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Track" title="Commander Damage"/>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            {renderColumn('From', fromNum, handleLandscapeFrom, accent, toNum)}
+            {renderColumn('From', fromNum, handleLandscapeFrom, accent)}
             {/* Sword divider */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
