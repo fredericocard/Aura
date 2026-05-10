@@ -1301,12 +1301,14 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   );
 }
 
-function LandscapeModalShell({ children, rotation = 90, width = 540, height = 310, onClose, showCompass = true }: {
+function LandscapeModalShell({ children, rotation = 90, width = 540, height = 310, onClose, onRotate, rotated = false, showCompass = true }: {
   children: React.ReactNode;
   rotation?: number;
   width?: number;
   height?: number;
   onClose: () => void;
+  onRotate?: () => void;
+  rotated?: boolean;
   showCompass?: boolean;
 }) {
   return (
@@ -1323,6 +1325,8 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
         background: '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
+        transform: rotated ? 'rotate(180deg)' : 'none',
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {showCompass && <ModalCompass size={260} opacity={0.08}/>}
         <button onClick={onClose} style={{
@@ -1335,6 +1339,18 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
+        {onRotate && (
+          <button onClick={onRotate} aria-label="Rotate" style={{
+            position: 'absolute', top: 6, right: 10, zIndex: 2,
+            width: 36, height: 36, borderRadius: 999,
+            background: 'rgba(226,184,88,0.12)',
+            border: '1.5px solid rgba(226,184,88,0.30)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          }}>
+            <Icon name="rotate" size={18} stroke={DARK.ink2} width={2}/>
+          </button>
+        )}
         <div style={{ position: 'relative', height: '100%' }}>{children}</div>
       </div>
     </div>
@@ -1349,6 +1365,7 @@ function DiceModalLandscape({ open, onClose, players, selectedDiceOpt, diceResul
   diceResults: Record<string, string>;
   onRoll: (id: string) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   return (
     <div onClick={onClose} style={{
@@ -1356,11 +1373,11 @@ function DiceModalLandscape({ open, onClose, players, selectedDiceOpt, diceResul
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <LandscapeModalShell width={500} height={240} onClose={onClose}>
+      <LandscapeModalShell width={500} height={240} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated}>
         <ModalTitle kicker="Roll" title="Dice & Random"/>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
           {DICE_OPTS.map(opt => (
-            <div key={opt.id} style={{ flex: 1 }}>
+            <div key={opt.id} style={{ flex: 1, maxWidth: 110 }}>
               <DicePlaque option={opt}
                 active={selectedDiceOpt === opt.id}
                 result={diceResults[opt.id] || null}
@@ -1383,6 +1400,7 @@ function CountersModalLandscape({ open, onClose, players, selectedNum, setSelect
   counters: Record<number, { poison: number; experience: number; energy: number }>;
   onChange: (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const playerCounts = counters[selectedNum] ?? { poison: 0, energy: 0, experience: 0 };
   const playerNums = Object.keys(players).map(Number).sort();
@@ -1392,7 +1410,7 @@ function CountersModalLandscape({ open, onClose, players, selectedNum, setSelect
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <LandscapeModalShell width={460} height={300} onClose={onClose} showCompass={false}>
+      <LandscapeModalShell width={460} height={300} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Adjust" title="Counters"/>
         <div style={{ display: 'flex', gap: 12 }}>
           {/* Player picker — small grid */}
@@ -1706,6 +1724,93 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
             marginTop: 14, lineHeight: 1.4,
           }}>
             Closing this popup keeps you in the game.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EliminatedPopupGV({ onDismiss, onReview }: { onDismiss: () => void; onReview: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      display: 'flex', flexDirection: 'column',
+      fontFamily: 'var(--font-ui)',
+    }}>
+      <div onClick={onDismiss} style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(0,0,0,0.60)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+      }}/>
+      <div style={{
+        marginTop: 'auto', position: 'relative',
+        maxWidth: 430, width: '100%', alignSelf: 'center',
+      }}>
+        <TornEdgeMiniGV/>
+        <div style={{
+          position: 'relative',
+          background: '#1A1410',
+          padding: '8px 22px 32px',
+        }}>
+          <button onClick={onDismiss} aria-label="Close" style={{
+            position: 'absolute', top: 14, right: 16,
+            width: 32, height: 32, borderRadius: 999,
+            border: '1px solid rgba(240,232,216,0.08)',
+            background: '#100C08',
+            color: '#5C5043', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
+          }}>×</button>
+          <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+              <svg width={28} height={28} viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="36" r="2.4" fill="#B06B2C"/>
+                <defs><clipPath id="elim-clip-gv"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
+                <g clipPath="url(#elim-clip-gv)">
+                  <polygon points="8,60 30,4 31,4 24,60" fill="#B06B2C"/>
+                  <polygon points="40,60 33,4 34,4 56,60" fill="#B06B2C"/>
+                </g>
+              </svg>
+            </div>
+            <div style={{
+              fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
+              textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6,
+            }}>Out of the Game</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 26, letterSpacing: '-0.02em',
+              color: '#F0E8D8', lineHeight: 1.1,
+            }}>You have been eliminated</div>
+            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+              Head to review to rate the game, or close this to keep watching.
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button onClick={onReview} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#B06B2C', color: '#F0E8D8',
+              border: 'none', borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+              </svg>
+              Go to Review
+            </button>
+            <button onClick={onDismiss} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#1A1410', color: '#C5B9A5',
+              border: '1px solid rgba(226,184,88,0.25)',
+              borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>Continue Watching</button>
           </div>
         </div>
       </div>
@@ -2039,6 +2144,41 @@ function PageContent() {
     });
     if (allDead) setShowVictory(true);
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed]);
+
+  // ── Elimination popup detection (logged-in user, last-2 scenario) ──
+  const [showEliminatedGV, setShowEliminatedGV] = useState(false);
+  const [elimDismissed, setElimDismissed] = useState(false);
+
+  useEffect(() => {
+    const uid = auth?.user?.id;
+    if (!uid) return;
+    const mySeatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
+    if (!mySeatEntry) return;
+    const mySeat = Number(mySeatEntry[0]);
+    const me = players[mySeat];
+    if (!me) return;
+    const myPoison = counters[mySeat]?.poison ?? 0;
+    const myCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[mySeat] ?? 0) >= 21);
+    const iAmDead = (me.life ?? 40) <= 0 || myPoison >= 10 || myCmdrLethal;
+    if (!iAmDead) {
+      // I'm alive — reset the dismiss flag so future deaths can re-pop the popup
+      if (elimDismissed) setElimDismissed(false);
+      if (showEliminatedGV) setShowEliminatedGV(false);
+      return;
+    }
+    if (elimDismissed) return;
+    // Count alive claimed opponents
+    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat && players[n]?.claimed);
+    if (otherSeats.length === 0) return;
+    const aliveOpps = otherSeats.filter(n => {
+      const opp = players[n];
+      const oppPoison = counters[n]?.poison ?? 0;
+      const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+      return (opp?.life ?? 40) > 0 && oppPoison < 10 && !oppCmdrLethal;
+    });
+    // Only 1 alive opponent left — game over for me, they win
+    if (aliveOpps.length === 1) setShowEliminatedGV(true);
+  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, elimDismissed, showEliminatedGV]);
 
   const handleLifeChange = (playerNum: number, delta: number) => {
     setPlayers(prev => {
@@ -2475,6 +2615,13 @@ function PageContent() {
         <VictoryPopup
           onContinue={() => { setShowVictory(false); setVictoryDismissed(true); }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
+        />
+      )}
+
+      {showEliminatedGV && (
+        <EliminatedPopupGV
+          onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}
+          onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
       )}
 
