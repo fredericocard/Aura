@@ -1,7 +1,8 @@
 'use client';
 
 import React, { Suspense, useState, useRef, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
@@ -1594,8 +1595,127 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
   );
 }
 
+function TornEdgeMiniGV() {
+  const teeth = 24, w = 430, h = 14;
+  const seg = w / teeth;
+  let d = `M 0 ${h} `;
+  for (let i = 0; i <= teeth; i++) {
+    const x = i * seg;
+    const jitter = (Math.sin(i * 12.9898) * 43758.5453 % 1 + 1) % 1;
+    const y = i % 2 === 0 ? 2 + jitter * 3 : 6 + jitter * 4;
+    d += `L ${x.toFixed(1)} ${y.toFixed(1)} `;
+  }
+  d += `L ${w} ${h} Z`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+      style={{ display: 'block', width: '100%', marginBottom: -1 }} aria-hidden="true">
+      <path d={d} fill="#1A1410"/>
+    </svg>
+  );
+}
+
+function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onReview: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      display: 'flex', flexDirection: 'column',
+      fontFamily: 'var(--font-ui)',
+    }}>
+      <div onClick={onContinue} style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(0,0,0,0.60)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+      }}/>
+      <div style={{
+        marginTop: 'auto', position: 'relative',
+        maxWidth: 430, width: '100%', alignSelf: 'center',
+      }}>
+        <TornEdgeMiniGV/>
+        <div style={{
+          position: 'relative',
+          background: '#1A1410',
+          padding: '8px 22px 32px',
+        }}>
+          <button onClick={onContinue} aria-label="Close" style={{
+            position: 'absolute', top: 14, right: 16,
+            width: 32, height: 32, borderRadius: 999,
+            border: '1px solid rgba(240,232,216,0.08)',
+            background: '#100C08',
+            color: '#5C5043', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
+          }}>×</button>
+          <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+              <svg width={32} height={32} viewBox="0 0 64 64" aria-hidden="true">
+                <defs>
+                  <linearGradient id="vict-crown-grad-gv" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#E2B858"/>
+                    <stop offset="100%" stopColor="#C99B2F"/>
+                  </linearGradient>
+                </defs>
+                <path d="M10 48 L16 22 L24 36 L32 16 L40 36 L48 22 L54 48 Z"
+                  fill="url(#vict-crown-grad-gv)" stroke="#8C5A28" strokeWidth="1.5" strokeLinejoin="round"/>
+                <rect x="10" y="48" width="44" height="6" rx="1" fill="#C99B2F" stroke="#8C5A28" strokeWidth="1.5"/>
+                <circle cx="16" cy="22" r="2.5" fill="#F0E8D8"/>
+                <circle cx="32" cy="16" r="2.8" fill="#F0E8D8"/>
+                <circle cx="48" cy="22" r="2.5" fill="#F0E8D8"/>
+              </svg>
+            </div>
+            <div style={{
+              fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
+              textTransform: 'uppercase', color: '#E2B858', marginBottom: 6,
+            }}>Last One Standing</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 26, letterSpacing: '-0.02em',
+              color: '#F0E8D8', lineHeight: 1.1,
+            }}>Victory is yours</div>
+            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+              All opponents have been defeated. Head to review to celebrate the win and rate the game.
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button onClick={onReview} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#B06B2C', color: '#F0E8D8',
+              border: 'none', borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+              </svg>
+              Go to Review
+            </button>
+            <button onClick={onContinue} style={{
+              width: '100%', cursor: 'pointer',
+              background: '#1A1410', color: '#C5B9A5',
+              border: '1px solid rgba(226,184,88,0.25)',
+              borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>Continue Playing</button>
+          </div>
+          <div style={{
+            textAlign: 'center', fontSize: 11, color: '#8A7E6F',
+            marginTop: 14, lineHeight: 1.4,
+          }}>
+            Closing this popup keeps you in the game.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PageContent() {
   useWakeLock();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
@@ -1892,6 +2012,33 @@ function PageContent() {
     if (holdTimersRef.current[playerNum]) { clearTimeout(holdTimersRef.current[playerNum]); delete holdTimersRef.current[playerNum]; }
     if (repeatTimersRef.current[playerNum]) { clearInterval(repeatTimersRef.current[playerNum]); delete repeatTimersRef.current[playerNum]; }
   };
+
+  // ── Victory detection (logged-in user only) ──
+  const auth = useAuth();
+  const [showVictory, setShowVictory] = useState(false);
+  const [victoryDismissed, setVictoryDismissed] = useState(false);
+
+  useEffect(() => {
+    const uid = auth?.user?.id;
+    if (!uid || victoryDismissed) return;
+    const mySeatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
+    if (!mySeatEntry) return;
+    const mySeat = Number(mySeatEntry[0]);
+    const me = players[mySeat];
+    if (!me) return;
+    const myPoison = counters[mySeat]?.poison ?? 0;
+    const myCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[mySeat] ?? 0) >= 21);
+    if ((me.life ?? 40) <= 0 || myPoison >= 10 || myCmdrLethal) return; // I'm not alive
+    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat && players[n]?.claimed);
+    if (otherSeats.length === 0) return;
+    const allDead = otherSeats.every(n => {
+      const opp = players[n];
+      const oppPoison = counters[n]?.poison ?? 0;
+      const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+      return (opp?.life ?? 40) <= 0 || oppPoison >= 10 || oppCmdrLethal;
+    });
+    if (allDead) setShowVictory(true);
+  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed]);
 
   const handleLifeChange = (playerNum: number, delta: number) => {
     setPlayers(prev => {
@@ -2323,6 +2470,13 @@ function PageContent() {
         />
       )}
 
+
+      {showVictory && (
+        <VictoryPopup
+          onContinue={() => { setShowVictory(false); setVictoryDismissed(true); }}
+          onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
+        />
+      )}
 
       {toast && (
         <div className="toast show">
