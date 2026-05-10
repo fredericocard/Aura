@@ -1358,12 +1358,14 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   );
 }
 
-function LandscapeModalShell({ children, rotation = 90, width = 540, height = 310, onClose, showCompass = true }: {
+function LandscapeModalShell({ children, rotation = 90, width = 540, height = 310, onClose, onRotate, rotated = false, showCompass = true }: {
   children: React.ReactNode;
   rotation?: number;
   width?: number;
   height?: number;
   onClose: () => void;
+  onRotate?: () => void;
+  rotated?: boolean;
   showCompass?: boolean;
 }) {
   return (
@@ -1380,6 +1382,8 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
         background: '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
+        transform: rotated ? 'rotate(180deg)' : 'none',
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {showCompass && <ModalCompass size={260} opacity={0.08}/>}
         <button onClick={onClose} style={{
@@ -1392,6 +1396,18 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
+        {onRotate && (
+          <button onClick={onRotate} aria-label="Rotate" style={{
+            position: 'absolute', top: 6, right: 10, zIndex: 2,
+            width: 36, height: 36, borderRadius: 999,
+            background: 'rgba(226,184,88,0.12)',
+            border: '1.5px solid rgba(226,184,88,0.30)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          }}>
+            <Icon name="rotate" size={18} stroke={DARK.ink2} width={2}/>
+          </button>
+        )}
         <div style={{ position: 'relative', height: '100%' }}>{children}</div>
       </div>
     </div>
@@ -1406,6 +1422,7 @@ function DiceModalLandscape({ open, onClose, players, selectedDiceOpt, diceResul
   diceResults: Record<string, string>;
   onRoll: (id: string) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   return (
     <div onClick={onClose} style={{
@@ -1413,11 +1430,11 @@ function DiceModalLandscape({ open, onClose, players, selectedDiceOpt, diceResul
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <LandscapeModalShell width={500} height={240} onClose={onClose}>
+      <LandscapeModalShell width={500} height={240} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated}>
         <ModalTitle kicker="Roll" title="Dice & Random"/>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
           {DICE_OPTS.map(opt => (
-            <div key={opt.id} style={{ flex: 1 }}>
+            <div key={opt.id} style={{ flex: 1, maxWidth: 110 }}>
               <DicePlaque option={opt}
                 active={selectedDiceOpt === opt.id}
                 result={diceResults[opt.id] || null}
@@ -1440,6 +1457,7 @@ function CountersModalLandscape({ open, onClose, players, selectedNum, setSelect
   counters: Record<number, { poison: number; experience: number; energy: number }>;
   onChange: (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const playerCounts = counters[selectedNum] ?? { poison: 0, energy: 0, experience: 0 };
   const playerNums = Object.keys(players).map(Number).sort();
@@ -1449,7 +1467,7 @@ function CountersModalLandscape({ open, onClose, players, selectedNum, setSelect
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <LandscapeModalShell width={460} height={300} onClose={onClose} showCompass={false}>
+      <LandscapeModalShell width={460} height={300} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Adjust" title="Counters"/>
         <div style={{ display: 'flex', gap: 12 }}>
           {/* Player picker — small grid */}
@@ -1529,6 +1547,7 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
   damage: Record<number, Record<number, number>>;
   onChange: (delta: number) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const amount = damage[fromNum]?.[toNum] ?? 0;
   const lethal = 21;
@@ -1539,8 +1558,11 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
   const toPlayer = players[toNum];
   const playerNums = Object.keys(players).map(Number).sort();
   const handleLandscapeFrom = (n: number) => {
-    if (n === toNum) return;
     setFromNum(n);
+    if (n === toNum) {
+      const next = playerNums.find(p => p !== n);
+      if (next !== undefined) setToNum(next);
+    }
   };
   const handleLandscapeTo = (n: number) => {
     if (n === fromNum) return;
@@ -1601,11 +1623,11 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <LandscapeModalShell width={530} height={290} onClose={onClose} showCompass={false}>
+      <LandscapeModalShell width={530} height={290} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Track" title="Commander Damage"/>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            {renderColumn('From', fromNum, handleLandscapeFrom, accent, toNum)}
+            {renderColumn('From', fromNum, handleLandscapeFrom, accent)}
             {/* Sword divider */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -1859,6 +1881,7 @@ function EliminatedPopupGV({ onDismiss, onReview }: { onDismiss: () => void; onR
 
 function PageContent() {
   useWakeLock();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const gameId = searchParams.get('gameId') ?? '';
   const podId = searchParams.get('podId') ?? '';
