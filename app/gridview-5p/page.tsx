@@ -2105,7 +2105,7 @@ function PageContent() {
     const myPoison = counters[mySeat]?.poison ?? 0;
     const myCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[mySeat] ?? 0) >= 21);
     if ((me.life ?? 40) <= 0 || myPoison >= 10 || myCmdrLethal) return; // I'm not alive
-    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat && players[n]?.claimed);
+    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat);
     if (otherSeats.length === 0) return;
     const allDead = otherSeats.every(n => {
       const opp = players[n];
@@ -2138,8 +2138,8 @@ function PageContent() {
       return;
     }
     if (elimDismissed) return;
-    // Count alive claimed opponents
-    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat && players[n]?.claimed);
+    // Count alive opponents (any seat besides mine)
+    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat);
     if (otherSeats.length === 0) return;
     const aliveOpps = otherSeats.filter(n => {
       const opp = players[n];
