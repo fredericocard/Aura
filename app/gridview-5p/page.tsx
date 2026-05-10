@@ -1796,7 +1796,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
   );
 }
 
-function EliminatedPopupGV({ onDismiss, onReview }: { onDismiss: () => void; onReview: () => void }) {
+function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () => void; onContinue: () => void; onReview: () => void }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -1867,7 +1867,7 @@ function EliminatedPopupGV({ onDismiss, onReview }: { onDismiss: () => void; onR
               </svg>
               Go to Review
             </button>
-            <button onClick={onDismiss} style={{
+            <button onClick={onContinue} style={{
               width: '100%', cursor: 'pointer',
               background: '#1A1410', color: '#C5B9A5',
               border: '1px solid rgba(226,184,88,0.25)',
@@ -1875,7 +1875,7 @@ function EliminatedPopupGV({ onDismiss, onReview }: { onDismiss: () => void; onR
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>Continue Watching</button>
+            }}>Continue Playing</button>
           </div>
         </div>
       </div>
@@ -2744,6 +2744,15 @@ function PageContent() {
       {showEliminatedGV && (
         <EliminatedPopupGV
           onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}
+          onContinue={() => {
+            const uid = auth?.user?.id;
+            if (uid) {
+              const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
+              if (seatEntry) handleRevive(Number(seatEntry[0]));
+            }
+            setShowEliminatedGV(false);
+            setElimDismissed(true);
+          }}
           onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
       )}
