@@ -112,11 +112,18 @@ function CounterChip({ kind, count }: { kind: string; count: number }) {
 }
 
 function DarkCompassBg({ centered = false }: { centered?: boolean } = {}) {
+  const color = centered ? '#B06B2C' : DARK.copper;
   return (
-    <svg width="520" height="520" viewBox="0 0 320 320" style={{
-      position: 'absolute', top: centered ? '8%' : '22%', left: '50%',
+    <svg viewBox="0 0 320 320" style={{
+      position: 'absolute',
+      top: centered ? '8%' : '22%',
+      left: '50%',
       transform: 'translate(-50%, -50%)',
-      opacity: centered ? 0.30 : 0.18,
+      width: centered ? '130vw' : '520px',
+      height: centered ? '130vw' : '520px',
+      maxWidth: centered ? '520px' : undefined,
+      maxHeight: centered ? '520px' : undefined,
+      opacity: centered ? 0.28 : 0.18,
       pointerEvents: 'none',
       zIndex: 0,
       ...(centered ? {} : {
@@ -124,10 +131,10 @@ function DarkCompassBg({ centered = false }: { centered?: boolean } = {}) {
         maskImage: 'linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.15) 75%, rgba(0,0,0,0) 95%)',
       }),
     } as React.CSSProperties}>
-      <g stroke={DARK.copper} strokeWidth="0.8" fill="none">
+      <g stroke={color} strokeWidth="0.8" fill="none">
         {Array.from({ length: 24 }).map((_, i) => {
           const a = (i / 24) * Math.PI * 2;
-          const r1 = 40, r2 = 170;
+          const r1 = 40, r2 = 150;
           const cx = 160, cy = 160;
           return <line key={i}
             x1={cx + Math.cos(a) * r1} y1={cy + Math.sin(a) * r1}
@@ -135,8 +142,8 @@ function DarkCompassBg({ centered = false }: { centered?: boolean } = {}) {
         })}
         <circle cx="160" cy="160" r="40"/>
         <circle cx="160" cy="160" r="60" strokeDasharray="1 3"/>
-        <circle cx="160" cy="160" r="110" strokeDasharray="1 4"/>
-        <circle cx="160" cy="160" r="170"/>
+        <circle cx="160" cy="160" r="100" strokeDasharray="1 4"/>
+        <circle cx="160" cy="160" r="150"/>
       </g>
     </svg>
   );

@@ -2089,10 +2089,12 @@ function PageContent() {
           #0A0604`,
       }}>
         {/* Compass rose — top of screen */}
-        <svg width={520} height={520} viewBox="0 0 320 320" style={{
+        <svg viewBox="0 0 320 320" style={{
           position: 'absolute', top: '8%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          opacity: 0.30, pointerEvents: 'none',
+          width: '130vw', height: '130vw',
+          maxWidth: '520px', maxHeight: '520px',
+          opacity: 0.28, pointerEvents: 'none',
         }}>
           <g stroke="#B06B2C" strokeWidth="0.8" fill="none">
             {Array.from({ length: 24 }).map((_, i) => {
