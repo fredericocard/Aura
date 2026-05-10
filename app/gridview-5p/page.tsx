@@ -1782,13 +1782,13 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>Continue Playing</button>
+            }}>Revive Players</button>
           </div>
           <div style={{
             textAlign: 'center', fontSize: 11, color: '#8A7E6F',
             marginTop: 14, lineHeight: 1.4,
           }}>
-            Closing this popup keeps you in the game.
+            Revive Players resets defeated seats to 1 life so the game can continue.
           </div>
         </div>
       </div>
@@ -2254,64 +2254,76 @@ function PageContent() {
   };
 
   const handleRevive = (playerNum: number) => {
-    let revivedLife: number | null = null;
-    let revivedPoison: number | null = null;
-    setPlayers(prev => {
-      const cur = prev[playerNum];
-      if (!cur || (cur.life ?? 1) > 0) return prev;
-      revivedLife = 1;
-      return { ...prev, [playerNum]: { ...cur, life: 1 } };
-    });
-    setCounters(prev => {
-      const cur = prev[playerNum] ?? { poison: 0, experience: 0, energy: 0 };
-      if ((cur.poison ?? 0) < 10) return prev;
-      revivedPoison = Math.min(9, cur.poison);
-      return { ...prev, [playerNum]: { ...cur, poison: revivedPoison } };
-    });
-    setCmdrDamage(prev => {
-      const next: typeof prev = { ...prev };
-      let changed = false;
-      for (const fromN of Object.keys(next).map(Number)) {
-        const dmgFromN = next[fromN] ?? {};
-        if ((dmgFromN[playerNum] ?? 0) >= 21) {
-          next[fromN] = { ...dmgFromN, [playerNum]: 20 };
-          changed = true;
-        }
-      }
-      if (changed && gameId) {
+    // Read CURRENT closure state to decide what to revive (synchronous, reliable)
+    const cur = players[playerNum];
+    if (!cur) return;
+    const isDead = (cur.life ?? 40) <= 0;
+    const poisonNow = counters[playerNum]?.poison ?? 0;
+    const isPoisoned = poisonNow >= 10;
+    let hasCmdrLethal = false;
+    for (const m of Object.values(cmdrDamage)) {
+      if (((m as any)?.[playerNum] ?? 0) >= 21) { hasCmdrLethal = true; break; }
+    }
+    if (!isDead && !isPoisoned && !hasCmdrLethal) return;
+
+    if (isDead) {
+      setPlayers(prev => {
+        const c = prev[playerNum];
+        if (!c) return prev;
+        return { ...prev, [playerNum]: { ...c, life: 1 } };
+      });
+      if (gameId) {
+        const userId = playerUserIds[playerNum];
         const seat = playerSeatNumbers[playerNum];
-        const map: Record<string, number> = {};
+        debouncedSync(`life-${playerNum}`, () => {
+          if (userId) updateLifeTotal(gameId, userId, 1).catch(() => {});
+          else if (seat) updateLifeBySeat(gameId, seat, 1).catch(() => {});
+        });
+      }
+    }
+
+    if (isPoisoned) {
+      setCounters(prev => {
+        const c = prev[playerNum] ?? { poison: 0, experience: 0, energy: 0 };
+        return { ...prev, [playerNum]: { ...c, poison: 9 } };
+      });
+      if (gameId) {
+        const userId = playerUserIds[playerNum];
+        const seat = playerSeatNumbers[playerNum];
+        debouncedSync(`poison-${playerNum}`, () => {
+          if (userId) updatePoisonCounters(gameId, userId, 9).catch(() => {});
+          else if (seat) updatePoisonBySeat(gameId, seat, 9).catch(() => {});
+        });
+      }
+    }
+
+    if (hasCmdrLethal) {
+      setCmdrDamage(prev => {
+        const next: typeof prev = { ...prev };
         for (const fromN of Object.keys(next).map(Number)) {
-          const v = next[fromN]?.[playerNum] ?? 0;
-          if (v > 0) {
-            const fromSeat = playerSeatNumbers[fromN];
-            if (fromSeat) map[`seat-${fromSeat}`] = v;
+          const dmgFromN = next[fromN] ?? {};
+          if ((dmgFromN[playerNum] ?? 0) >= 21) {
+            next[fromN] = { ...dmgFromN, [playerNum]: 20 };
           }
         }
+        return next;
+      });
+      if (gameId) {
+        const seat = playerSeatNumbers[playerNum];
         if (seat) {
+          const newMap: Record<string, number> = {};
+          for (const [fromN, m] of Object.entries(cmdrDamage)) {
+            const v = (m as any)?.[playerNum] ?? 0;
+            if (v > 0) {
+              const fromSeat = playerSeatNumbers[Number(fromN)];
+              if (fromSeat) newMap[`seat-${fromSeat}`] = v >= 21 ? 20 : v;
+            }
+          }
           debouncedSync(`cmdr-${playerNum}`, () => {
-            updateCommanderDamageBySeat(gameId, seat, map).catch(() => {});
+            updateCommanderDamageBySeat(gameId, seat, newMap).catch(() => {});
           });
         }
       }
-      return changed ? next : prev;
-    });
-    // Sync revived life/poison to Supabase so realtime doesn't revert it
-    if (gameId && revivedLife !== null) {
-      const userId = playerUserIds[playerNum];
-      const seat = playerSeatNumbers[playerNum];
-      debouncedSync(`life-${playerNum}`, () => {
-        if (userId) updateLifeTotal(gameId, userId, revivedLife as number).catch(() => {});
-        else if (seat) updateLifeBySeat(gameId, seat, revivedLife as number).catch(() => {});
-      });
-    }
-    if (gameId && revivedPoison !== null) {
-      const userId = playerUserIds[playerNum];
-      const seat = playerSeatNumbers[playerNum];
-      debouncedSync(`poison-${playerNum}`, () => {
-        if (userId) updatePoisonCounters(gameId, userId, revivedPoison as number).catch(() => {});
-        else if (seat) updatePoisonBySeat(gameId, seat, revivedPoison as number).catch(() => {});
-      });
     }
   };
 
