@@ -714,22 +714,22 @@ function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, p
 
 function ModalTitle({ kicker, title }: { kicker: string; title: string }) {
   return (
-    <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+    <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 12 }}>
       <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        fontFamily: 'var(--font-ui)', fontSize: 7, fontWeight: 700,
         letterSpacing: '0.32em', textTransform: 'uppercase',
         color: DARK.copper,
       }}>
-        <span style={{ width: 18, height: 1, background: DARK.copper, opacity: 0.5 }}/>
-        <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
+        <span style={{ width: 14, height: 1, background: DARK.copper, opacity: 0.5 }}/>
+        <span style={{ fontSize: 6, opacity: 0.7 }}>✦</span>
         <span>{kicker}</span>
-        <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
-        <span style={{ width: 18, height: 1, background: DARK.copper, opacity: 0.5 }}/>
+        <span style={{ fontSize: 6, opacity: 0.7 }}>✦</span>
+        <span style={{ width: 14, height: 1, background: DARK.copper, opacity: 0.5 }}/>
       </div>
       <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 26, lineHeight: 1.05,
-        color: DARK.ink, marginTop: 4, letterSpacing: '-0.01em',
+        fontFamily: 'var(--font-display)', fontSize: 18, lineHeight: 1.05,
+        color: DARK.ink, marginTop: 3, letterSpacing: '-0.01em',
       }}>{title}</div>
     </div>
   );
