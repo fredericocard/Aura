@@ -2651,7 +2651,20 @@ function PageContent() {
 
       {showVictory && (
         <VictoryPopup
-          onContinue={() => { setShowVictory(false); setVictoryDismissed(true); }}
+          onContinue={() => {
+            // Revive every dead seat so the game can continue
+            Object.keys(players).map(Number).forEach(n => {
+              const cur = players[n];
+              if (!cur) return;
+              const oppPoison = counters[n]?.poison ?? 0;
+              const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+              if ((cur.life ?? 40) <= 0 || oppPoison >= 10 || oppCmdrLethal) {
+                handleRevive(n);
+              }
+            });
+            setShowVictory(false);
+            setVictoryDismissed(true);
+          }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
       )}
