@@ -1725,13 +1725,13 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>Revive Players</button>
+            }}>Revive Last Player</button>
           </div>
           <div style={{
             textAlign: 'center', fontSize: 11, color: '#8A7E6F',
             marginTop: 14, lineHeight: 1.4,
           }}>
-            Revive Players resets defeated seats to 1 life so the game can continue.
+            Revive Last Player brings the most recent defeated opponent back at 1 life.
           </div>
         </div>
       </div>
@@ -2078,6 +2078,36 @@ function PageContent() {
     });
     if (allDead) setShowVictory(true);
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed]);
+
+  // ── Track death order (so VictoryPopup can revive only the last-dead seat) ──
+  const deathOrderRef = useRef<number[]>([]);
+  const prevDeadSeatsRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    const currentDead = new Set<number>();
+    for (const seatStr of Object.keys(players)) {
+      const n = Number(seatStr);
+      const opp = players[n];
+      if (!opp) continue;
+      const oppPoison = counters[n]?.poison ?? 0;
+      const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+      if ((opp.life ?? 40) <= 0 || oppPoison >= 10 || oppCmdrLethal) {
+        currentDead.add(n);
+      }
+    }
+    // Newly dead → append in order
+    for (const n of currentDead) {
+      if (!prevDeadSeatsRef.current.has(n) && !deathOrderRef.current.includes(n)) {
+        deathOrderRef.current.push(n);
+      }
+    }
+    // Revived → remove from death order
+    for (const n of prevDeadSeatsRef.current) {
+      if (!currentDead.has(n)) {
+        deathOrderRef.current = deathOrderRef.current.filter(x => x !== n);
+      }
+    }
+    prevDeadSeatsRef.current = currentDead;
+  }, [players, counters, cmdrDamage]);
 
   // ── Elimination popup detection (logged-in user, last-2 scenario) ──
   const [showEliminatedGV, setShowEliminatedGV] = useState(false);
@@ -2640,16 +2670,14 @@ function PageContent() {
       {showVictory && (
         <VictoryPopup
           onContinue={() => {
-            // Revive every dead seat so the game can continue
-            Object.keys(players).map(Number).forEach(n => {
-              const cur = players[n];
-              if (!cur) return;
-              const oppPoison = counters[n]?.poison ?? 0;
-              const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
-              if ((cur.life ?? 40) <= 0 || oppPoison >= 10 || oppCmdrLethal) {
-                handleRevive(n);
-              }
-            });
+            // Revive only the LAST player who died (the second-to-last alive opponent)
+            const uid = auth?.user?.id;
+            const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
+            const mySeat = mySeatEntry ? Number(mySeatEntry[0]) : -1;
+            // Find the most recent dead seat that isn't me
+            const deathOrder = deathOrderRef.current;
+            const lastDeadOpponent = [...deathOrder].reverse().find(n => n !== mySeat);
+            if (lastDeadOpponent != null) handleRevive(lastDeadOpponent);
             setShowVictory(false);
             setVictoryDismissed(true);
           }}
