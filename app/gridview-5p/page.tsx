@@ -1431,17 +1431,21 @@ function DiceModalLandscape({ open, onClose, players, selectedDiceOpt, diceResul
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
       <LandscapeModalShell width={500} height={240} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated}>
-        <ModalTitle kicker="Roll" title="Dice & Random"/>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-          {DICE_OPTS.map(opt => (
-            <div key={opt.id} style={{ flex: 1, maxWidth: 110 }}>
-              <DicePlaque option={opt}
-                active={selectedDiceOpt === opt.id}
-                result={diceResults[opt.id] || null}
-                onClick={() => onRoll(opt.id)}
-              />
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <ModalTitle kicker="Roll" title="Dice & Random"/>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', width: '100%' }}>
+              {DICE_OPTS.map(opt => (
+                <div key={opt.id} style={{ flex: 1, maxWidth: 110 }}>
+                  <DicePlaque option={opt}
+                    active={selectedDiceOpt === opt.id}
+                    result={diceResults[opt.id] || null}
+                    onClick={() => onRoll(opt.id)}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </LandscapeModalShell>
     </div>
@@ -1570,11 +1574,11 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
   };
 
   const renderColumn = (label: string, selectedN: number, setN: (n: number) => void, colAccent: string, disabledN?: number) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
       <div style={{
         fontFamily: 'var(--font-ui)', fontSize: 8, fontWeight: 700,
         letterSpacing: '0.18em', textTransform: 'uppercase',
-        color: DARK.ink3,
+        color: DARK.ink3, alignSelf: 'center',
       }}>{label}</div>
       {playerNums.map(n => {
         const p = players[n];
@@ -2203,6 +2207,11 @@ function PageContent() {
     };
   };
 
+  // Players with commander art for modals
+  const playersWithArt = Object.fromEntries(
+    Object.entries(players).map(([k, p]) => [k, { ...p, art: p.commander ? commanderArt[p.commander] : undefined }])
+  ) as typeof players;
+
   const startLifeHold = (playerNum: number, delta: number) => {
     if (holdTimersRef.current[playerNum]) clearTimeout(holdTimersRef.current[playerNum]);
     if (repeatTimersRef.current[playerNum]) clearInterval(repeatTimersRef.current[playerNum]);
@@ -2691,7 +2700,7 @@ function PageContent() {
         <DiceModalLandscape
           open={diceModalOpen}
           onClose={() => setDiceModalOpen(false)}
-          players={players}
+          players={playersWithArt}
           selectedDiceOpt={diceTab}
           diceResults={diceResults}
           onRoll={handleDiceRoll}
@@ -2702,7 +2711,7 @@ function PageContent() {
         <CountersModalLandscape
           open={countersModalOpen}
           onClose={() => setCountersModalOpen(false)}
-          players={players}
+          players={playersWithArt}
           selectedNum={selectedCounterPlayer}
           setSelectedNum={setSelectedCounterPlayer}
           counters={counters}
@@ -2714,7 +2723,7 @@ function PageContent() {
         <CmdrDmgModalLandscape
           open={cmdrModalOpen}
           onClose={() => setCmdrModalOpen(false)}
-          players={players}
+          players={playersWithArt}
           fromNum={cmdrFrom}
           toNum={cmdrTo}
           setFromNum={setCmdrFrom}
