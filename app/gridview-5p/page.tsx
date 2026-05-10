@@ -785,22 +785,22 @@ function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, p
 
 function ModalTitle({ kicker, title }: { kicker: string; title: string }) {
   return (
-    <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 12 }}>
+    <div style={{ textAlign: 'center', marginTop: -8, marginBottom: 6 }}>
       <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
+        display: 'inline-flex', alignItems: 'center', gap: 5,
         fontFamily: 'var(--font-ui)', fontSize: 7, fontWeight: 700,
         letterSpacing: '0.32em', textTransform: 'uppercase',
         color: DARK.copper,
       }}>
-        <span style={{ width: 14, height: 1, background: DARK.copper, opacity: 0.5 }}/>
+        <span style={{ width: 12, height: 1, background: DARK.copper, opacity: 0.5 }}/>
         <span style={{ fontSize: 6, opacity: 0.7 }}>✦</span>
         <span>{kicker}</span>
         <span style={{ fontSize: 6, opacity: 0.7 }}>✦</span>
-        <span style={{ width: 14, height: 1, background: DARK.copper, opacity: 0.5 }}/>
+        <span style={{ width: 12, height: 1, background: DARK.copper, opacity: 0.5 }}/>
       </div>
       <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 18, lineHeight: 1.05,
-        color: DARK.ink, marginTop: 3, letterSpacing: '-0.01em',
+        fontFamily: 'var(--font-display)', fontSize: 17, lineHeight: 1.05,
+        color: DARK.ink, marginTop: 1, letterSpacing: '-0.01em',
       }}>{title}</div>
     </div>
   );
@@ -854,7 +854,7 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
     }}>
       <div style={{
         position: 'relative',
-        width, padding: '22px 22px 20px',
+        width, padding: '14px 22px 20px',
         background: '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
@@ -863,7 +863,7 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
       }}>
         {showCompass && <ModalCompass/>}
         <button onClick={onClose} style={{
-          position: 'absolute', top: 10, left: 10, zIndex: 2,
+          position: 'absolute', top: 6, left: 10, zIndex: 2,
           width: 36, height: 36, borderRadius: 999,
           background: 'rgba(226,184,88,0.12)',
           border: '1.5px solid rgba(226,184,88,0.30)',
@@ -874,7 +874,7 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
         </button>
         {onRotate && (
           <button onClick={onRotate} aria-label="Rotate" style={{
-            position: 'absolute', top: 10, right: 10, zIndex: 2,
+            position: 'absolute', top: 6, right: 10, zIndex: 2,
             width: 36, height: 36, borderRadius: 999,
             background: 'rgba(226,184,88,0.12)',
             border: '1.5px solid rgba(226,184,88,0.30)',
@@ -950,13 +950,14 @@ function DicePlaque({ option, active, result, onClick }: { option: { id: string;
   );
 }
 
-function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.copper, size = 42 }: {
+function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.copper, size = 42, disabledNum }: {
   players: Record<number, { name: string; commander: string | null; claimed: boolean; colors: string[]; art?: string }>;
   selectedNum: number;
   onSelect: (n: number) => void;
   label: string;
   accent?: string;
   size?: number;
+  disabledNum?: number;
 }) {
   const playerNums = Object.keys(players).map(Number).sort();
   return (
@@ -971,14 +972,17 @@ function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.
         {playerNums.map(n => {
           const p = players[n];
           const on = n === selectedNum;
+          const disabled = n === disabledNum;
           const initial = `P${n}`;
           return (
-            <button key={n} onClick={() => onSelect(n)} style={{
+            <button key={n} onClick={() => !disabled && onSelect(n)} style={{
               flex: 1, minWidth: 0,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
               padding: '4px 2px',
               background: 'transparent', border: 'none',
-              cursor: 'pointer',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              opacity: disabled ? 0.3 : 1,
+              transition: 'opacity 160ms ease',
             }}>
               <div style={{ position: 'relative' }}>
                 <div style={{
@@ -1239,7 +1243,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
     }}>
       <ModalCard width={326} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Adjust" title="Counters"/>
-        <div style={{ marginBottom: 18 }}>
+        <div style={{ marginBottom: 12 }}>
           <PlayerAvatarRow players={players} selectedNum={selectedNum}
             onSelect={setSelectedNum} label="Whose counters?"/>
         </div>
@@ -1279,6 +1283,21 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
 }) {
   const [rotated, setRotated] = useState(false);
   if (!open) return null;
+  const playerNums = Object.keys(players).map(Number).sort();
+  const handleFromSelect = (n: number) => {
+    setFromNum(n);
+    if (n === toNum) {
+      const next = playerNums.find(p => p !== n);
+      if (next !== undefined) setToNum(next);
+    }
+  };
+  const handleToSelect = (n: number) => {
+    setToNum(n);
+    if (n === fromNum) {
+      const next = playerNums.find(p => p !== n);
+      if (next !== undefined) setFromNum(next);
+    }
+  };
   const amount = damage[fromNum]?.[toNum] ?? 0;
   const lethal = 21;
   const pct = Math.min(1, amount / lethal);
@@ -1295,8 +1314,8 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
       <ModalCard width={332} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Track" title="Commander Damage"/>
         <div style={{ marginBottom: 10 }}>
-          <PlayerAvatarRow players={players} selectedNum={fromNum} onSelect={setFromNum}
-            label="Damage from" accent={accent} size={38}/>
+          <PlayerAvatarRow players={players} selectedNum={fromNum} onSelect={handleFromSelect}
+            label="Damage from" accent={accent} size={38} disabledNum={toNum}/>
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1307,8 +1326,8 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
           <span style={{ width: 36, height: 1, background: DARK.lineStrong }}/>
         </div>
         <div style={{ marginBottom: 12 }}>
-          <PlayerAvatarRow players={players} selectedNum={toNum} onSelect={setToNum}
-            label="Damage to" accent={DARK.ink} size={38}/>
+          <PlayerAvatarRow players={players} selectedNum={toNum} onSelect={handleToSelect}
+            label="Damage to" accent={DARK.ink} size={38} disabledNum={fromNum}/>
         </div>
         <div style={{
           background: '#140E08',
@@ -1363,7 +1382,7 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
       }}>
         {showCompass && <ModalCompass size={260} opacity={0.08}/>}
         <button onClick={onClose} style={{
-          position: 'absolute', top: 10, left: 10, zIndex: 2,
+          position: 'absolute', top: 6, left: 10, zIndex: 2,
           width: 36, height: 36, borderRadius: 999,
           background: 'rgba(226,184,88,0.12)',
           border: '1.5px solid rgba(226,184,88,0.30)',
@@ -1518,8 +1537,16 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
   const fromPlayer = players[fromNum];
   const toPlayer = players[toNum];
   const playerNums = Object.keys(players).map(Number).sort();
+  const handleLandscapeFrom = (n: number) => {
+    if (n === toNum) return;
+    setFromNum(n);
+  };
+  const handleLandscapeTo = (n: number) => {
+    if (n === fromNum) return;
+    setToNum(n);
+  };
 
-  const renderColumn = (label: string, selectedN: number, setN: (n: number) => void, colAccent: string) => (
+  const renderColumn = (label: string, selectedN: number, setN: (n: number) => void, colAccent: string, disabledN?: number) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <div style={{
         fontFamily: 'var(--font-ui)', fontSize: 8, fontWeight: 700,
@@ -1529,11 +1556,15 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
       {playerNums.map(n => {
         const p = players[n];
         const on = n === selectedN;
+        const disabled = n === disabledN;
         const initial = `P${n}`;
         return (
-          <button key={n} onClick={() => setN(n)} style={{
+          <button key={n} onClick={() => !disabled && setN(n)} style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            background: 'transparent', border: 'none', cursor: 'pointer', padding: 2,
+            background: 'transparent', border: 'none',
+            cursor: disabled ? 'not-allowed' : 'pointer', padding: 2,
+            opacity: disabled ? 0.3 : 1,
+            transition: 'opacity 160ms ease',
           }}>
             <div style={{ position: 'relative' }}>
               <div style={{
@@ -1573,7 +1604,7 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
         <ModalTitle kicker="Track" title="Commander Damage"/>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            {renderColumn('From', fromNum, setFromNum, accent)}
+            {renderColumn('From', fromNum, handleLandscapeFrom, accent, toNum)}
             {/* Sword divider */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -1583,7 +1614,7 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
               <Icon name="shield" size={12} stroke={DARK.ink3} width={1.4}/>
               <div style={{ flex: 1, width: 1, background: 'rgba(226,184,88,0.18)' }}/>
             </div>
-            {renderColumn('To', toNum, setToNum, DARK.ink)}
+            {renderColumn('To', toNum, handleLandscapeTo, DARK.ink, fromNum)}
           </div>
           {/* Vertical divider */}
           <div style={{ width: 1, background: 'rgba(226,184,88,0.28)', alignSelf: 'stretch' }}/>

@@ -668,7 +668,7 @@ function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, p
 
 function ModalTitle({ kicker, title }: { kicker: string; title: string }) {
   return (
-    <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+    <div style={{ textAlign: 'center', marginTop: -2, marginBottom: 10 }}>
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
         fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
@@ -778,12 +778,13 @@ function DicePlaque({ option, active, result, onClick }: { option: { id: string;
   return (
     <button onClick={onClick} style={{
       width: '100%', minWidth: 0,
+      height: 90,
       position: 'relative',
       background: active ? `radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)` : '#1A120A',
       border: `1px solid ${active ? `${DARK.copper}88` : 'rgba(226,184,88,0.22)'}`,
       borderRadius: 16,
-      padding: '16px 14px 12px',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      padding: '12px 10px 10px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
       cursor: 'pointer',
       textAlign: 'center',
       boxShadow: active
@@ -802,18 +803,18 @@ function DicePlaque({ option, active, result, onClick }: { option: { id: string;
         <span>{option.label}</span>
       </div>
       {(() => {
-        const baseSize = option.large ? 36 : 30;
         const len = result ? result.length : 0;
-        const fontSize = !result ? baseSize : (len <= 4 ? baseSize : Math.max(13, Math.floor(baseSize * 5 / len)));
+        const fontSize = !result ? 30 : (len <= 4 ? 30 : Math.max(13, Math.floor(30 * 5 / len)));
         return (
           <div style={{
             position: 'relative',
             fontFamily: 'var(--font-display)',
             fontSize, lineHeight: 1.05,
+            height: 34,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: DARK.ink,
             fontVariantNumeric: 'tabular-nums',
             letterSpacing: '-0.02em',
-            marginTop: 2,
             textShadow: active ? '0 0 12px rgba(226,184,88,0.25)' : 'none',
             maxWidth: '100%',
             overflow: 'hidden',
@@ -827,7 +828,6 @@ function DicePlaque({ option, active, result, onClick }: { option: { id: string;
         fontFamily: 'var(--font-ui)', fontSize: 9,
         color: DARK.ink4,
         letterSpacing: '0.04em',
-        marginTop: 2,
       }}>{result ? 'Last roll' : 'Tap to roll'}</div>
     </button>
   );
