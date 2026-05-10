@@ -1626,6 +1626,68 @@ function PageContent() {
   ) as typeof players;
 
   // Loading screen — dark bg + compass pattern + gold Aura mark
+  // ── Victory detection (logged-in user only) ──
+  const auth = useAuth();
+  const [showVictory, setShowVictory] = useState(false);
+  const [victoryDismissed, setVictoryDismissed] = useState(false);
+
+  useEffect(() => {
+    const uid = auth?.user?.id;
+    if (!uid || victoryDismissed) return;
+    const mySeatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
+    if (!mySeatEntry) return;
+    const mySeat = Number(mySeatEntry[0]);
+    const me = players[mySeat];
+    if (!me) return;
+    const myPoison = counters[mySeat]?.poison ?? 0;
+    const myCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[mySeat] ?? 0) >= 21);
+    if ((me.life ?? 40) <= 0 || myPoison >= 10 || myCmdrLethal) return; // I'm not alive
+    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat && players[n]?.claimed);
+    if (otherSeats.length === 0) return;
+    const allDead = otherSeats.every(n => {
+      const opp = players[n];
+      const oppPoison = counters[n]?.poison ?? 0;
+      const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+      return (opp?.life ?? 40) <= 0 || oppPoison >= 10 || oppCmdrLethal;
+    });
+    if (allDead) setShowVictory(true);
+  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed]);
+
+  // ── Elimination popup detection (logged-in user, last-2 scenario) ──
+  const [showEliminatedGV, setShowEliminatedGV] = useState(false);
+  const [elimDismissed, setElimDismissed] = useState(false);
+
+  useEffect(() => {
+    const uid = auth?.user?.id;
+    if (!uid) return;
+    const mySeatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
+    if (!mySeatEntry) return;
+    const mySeat = Number(mySeatEntry[0]);
+    const me = players[mySeat];
+    if (!me) return;
+    const myPoison = counters[mySeat]?.poison ?? 0;
+    const myCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[mySeat] ?? 0) >= 21);
+    const iAmDead = (me.life ?? 40) <= 0 || myPoison >= 10 || myCmdrLethal;
+    if (!iAmDead) {
+      // I'm alive — reset the dismiss flag so future deaths can re-pop the popup
+      if (elimDismissed) setElimDismissed(false);
+      if (showEliminatedGV) setShowEliminatedGV(false);
+      return;
+    }
+    if (elimDismissed) return;
+    // Count alive claimed opponents
+    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat && players[n]?.claimed);
+    if (otherSeats.length === 0) return;
+    const aliveOpps = otherSeats.filter(n => {
+      const opp = players[n];
+      const oppPoison = counters[n]?.poison ?? 0;
+      const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+      return (opp?.life ?? 40) > 0 && oppPoison < 10 && !oppCmdrLethal;
+    });
+    // Only 1 alive opponent left — game over for me, they win
+    if (aliveOpps.length === 1) setShowEliminatedGV(true);
+  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, elimDismissed, showEliminatedGV]);
+
   if (!gameLoaded) {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden',
@@ -1701,67 +1763,6 @@ function PageContent() {
     if (repeatTimersRef.current[playerNum]) { clearInterval(repeatTimersRef.current[playerNum]); delete repeatTimersRef.current[playerNum]; }
   };
 
-  // ── Victory detection (logged-in user only) ──
-  const auth = useAuth();
-  const [showVictory, setShowVictory] = useState(false);
-  const [victoryDismissed, setVictoryDismissed] = useState(false);
-
-  useEffect(() => {
-    const uid = auth?.user?.id;
-    if (!uid || victoryDismissed) return;
-    const mySeatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
-    if (!mySeatEntry) return;
-    const mySeat = Number(mySeatEntry[0]);
-    const me = players[mySeat];
-    if (!me) return;
-    const myPoison = counters[mySeat]?.poison ?? 0;
-    const myCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[mySeat] ?? 0) >= 21);
-    if ((me.life ?? 40) <= 0 || myPoison >= 10 || myCmdrLethal) return; // I'm not alive
-    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat && players[n]?.claimed);
-    if (otherSeats.length === 0) return;
-    const allDead = otherSeats.every(n => {
-      const opp = players[n];
-      const oppPoison = counters[n]?.poison ?? 0;
-      const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
-      return (opp?.life ?? 40) <= 0 || oppPoison >= 10 || oppCmdrLethal;
-    });
-    if (allDead) setShowVictory(true);
-  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed]);
-
-  // ── Elimination popup detection (logged-in user, last-2 scenario) ──
-  const [showEliminatedGV, setShowEliminatedGV] = useState(false);
-  const [elimDismissed, setElimDismissed] = useState(false);
-
-  useEffect(() => {
-    const uid = auth?.user?.id;
-    if (!uid) return;
-    const mySeatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
-    if (!mySeatEntry) return;
-    const mySeat = Number(mySeatEntry[0]);
-    const me = players[mySeat];
-    if (!me) return;
-    const myPoison = counters[mySeat]?.poison ?? 0;
-    const myCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[mySeat] ?? 0) >= 21);
-    const iAmDead = (me.life ?? 40) <= 0 || myPoison >= 10 || myCmdrLethal;
-    if (!iAmDead) {
-      // I'm alive — reset the dismiss flag so future deaths can re-pop the popup
-      if (elimDismissed) setElimDismissed(false);
-      if (showEliminatedGV) setShowEliminatedGV(false);
-      return;
-    }
-    if (elimDismissed) return;
-    // Count alive claimed opponents
-    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat && players[n]?.claimed);
-    if (otherSeats.length === 0) return;
-    const aliveOpps = otherSeats.filter(n => {
-      const opp = players[n];
-      const oppPoison = counters[n]?.poison ?? 0;
-      const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
-      return (opp?.life ?? 40) > 0 && oppPoison < 10 && !oppCmdrLethal;
-    });
-    // Only 1 alive opponent left — game over for me, they win
-    if (aliveOpps.length === 1) setShowEliminatedGV(true);
-  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, elimDismissed, showEliminatedGV]);
 
   const handleLifeChange = (playerNum: number, delta: number) => {
     setPlayers(prev => {
