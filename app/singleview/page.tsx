@@ -2214,6 +2214,19 @@ function PageContent() {
     }
   }, [gameId, user?.id]);
 
+  // Victory detection — fires when all real opponents are dead and user is alive
+  useEffect(() => {
+    if (dead) return;                 // user is dead — no victory
+    if (victoryDismissed) return;     // user dismissed it; don't re-show
+    if (opponents.length === 0) return;
+    const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
+    if (realOpponents.length === 0) return; // solo / placeholder game
+    const allDead = realOpponents.every((o: any) => (o.life ?? 40) <= 0);
+    if (allDead && life > 0) {
+      setShowVictory(true);
+    }
+  }, [opponents, life, dead, victoryDismissed]);
+
   // Loading screen
   if (!gameLoaded) {
     return (
@@ -2304,19 +2317,6 @@ function PageContent() {
   if (poison > 0) counterChips.push({ kind: 'poison', value: poison });
   if (energy > 0) counterChips.push({ kind: 'energy', value: energy });
   if (experience > 0) counterChips.push({ kind: 'experience', value: experience });
-
-  // Victory detection — fires when all real opponents are dead and user is alive
-  useEffect(() => {
-    if (dead) return;                 // user is dead — no victory
-    if (victoryDismissed) return;     // user dismissed it; don't re-show
-    if (opponents.length === 0) return;
-    const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
-    if (realOpponents.length === 0) return; // solo / placeholder game
-    const allDead = realOpponents.every((o: any) => (o.life ?? 40) <= 0);
-    if (allDead && life > 0) {
-      setShowVictory(true);
-    }
-  }, [opponents, life, dead, victoryDismissed]);
 
   const handleNav = (id: string) => {
     if (id === 'dice') { setShowDice(prev => !prev); setShowCounters(false); setShowCmdrDmg(false); }
