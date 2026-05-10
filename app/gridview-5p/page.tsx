@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Suspense, useState, useRef, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getGame } from '@/lib/games';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
@@ -70,6 +70,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     coin:     <><circle cx="12" cy="12" r="9"/><path d="M9 9h4a2 2 0 0 1 0 4H9V9zm0 4v3"/></>,
     shuffle:  <><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></>,
     arrow:    <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
+    rotate:   <><polyline points="8 9 12 5 16 9"/><polyline points="8 15 12 19 16 15"/><line x1="5" y1="12" x2="19" y2="12"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -676,6 +677,7 @@ function NormalCell({ player, onTapLeft, onTapRight, onRevive, lifeSize = 72, on
 }
 
 function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, podId, gameId }: { active?: string; onDiceClick: () => void; onCountersClick: () => void; onCmdrClick: () => void; podId: string; gameId: string }) {
+  const router = useRouter();
   const [sliding, setSliding] = useState(false);
   const actions = [
     { id: 'dice',   icon: 'dice',   label: 'Dice' },
@@ -686,7 +688,7 @@ function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, p
     if (target === active || sliding) return;
     if (target === 'single') {
       setSliding(true);
-      setTimeout(() => { window.location.href = `/singleview?podId=${podId}&gameId=${gameId}`; }, 280);
+      setTimeout(() => { router.push(`/singleview?podId=${podId}&gameId=${gameId}`); }, 280);
     }
   };
   const thumbLeft = (active === 'grid' && !sliding) || (active === 'single' && sliding);
@@ -820,7 +822,7 @@ function ModalCompass({ size = 300, opacity = 0.10 }: { size?: number; opacity?:
   );
 }
 
-function ModalCard({ width = 320, onClose, children, showCompass = true }: { width?: number; onClose: () => void; children: React.ReactNode; showCompass?: boolean }) {
+function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, showCompass = true }: { width?: number; onClose: () => void; onRotate?: () => void; rotated?: boolean; children: React.ReactNode; showCompass?: boolean }) {
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
@@ -834,6 +836,8 @@ function ModalCard({ width = 320, onClose, children, showCompass = true }: { wid
         background: '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
+        transform: rotated ? 'rotate(180deg)' : 'none',
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {showCompass && <ModalCompass/>}
         <button onClick={onClose} style={{
@@ -846,6 +850,18 @@ function ModalCard({ width = 320, onClose, children, showCompass = true }: { wid
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
+        {onRotate && (
+          <button onClick={onRotate} aria-label="Rotate" style={{
+            position: 'absolute', top: 10, right: 10, zIndex: 2,
+            width: 36, height: 36, borderRadius: 999,
+            background: 'rgba(226,184,88,0.12)',
+            border: '1.5px solid rgba(226,184,88,0.30)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          }}>
+            <Icon name="rotate" size={18} stroke={DARK.ink2} width={2}/>
+          </button>
+        )}
         <div style={{ position: 'relative' }}>{children}</div>
       </div>
     </div>
@@ -1157,6 +1173,7 @@ function DiceModal({ open, onClose, players, selectedDiceOpt, diceResults, onRol
   diceResults: Record<string, string>;
   onRoll: (id: string) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   return (
     <div onClick={onClose} style={{
@@ -1164,7 +1181,7 @@ function DiceModal({ open, onClose, players, selectedDiceOpt, diceResults, onRol
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={320} onClose={onClose}>
+      <ModalCard width={320} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated}>
         <ModalTitle kicker="Roll" title="Dice & Random"/>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
           {DICE_OPTS.map(opt => (
@@ -1189,6 +1206,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
   counters: Record<number, { poison: number; experience: number; energy: number }>;
   onChange: (type: 'poison' | 'experience' | 'energy', action: 'plus' | 'minus') => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const playerCounts = counters[selectedNum] ?? { poison: 0, energy: 0, experience: 0 };
   return (
@@ -1197,7 +1215,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={326} onClose={onClose} showCompass={false}>
+      <ModalCard width={326} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Adjust" title="Counters"/>
         <div style={{ marginBottom: 18 }}>
           <PlayerAvatarRow players={players} selectedNum={selectedNum}
@@ -1237,6 +1255,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   damage: Record<number, Record<number, number>>;
   onChange: (delta: number) => void;
 }) {
+  const [rotated, setRotated] = useState(false);
   if (!open) return null;
   const amount = damage[fromNum]?.[toNum] ?? 0;
   const lethal = 21;
@@ -1251,7 +1270,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
-      <ModalCard width={332} onClose={onClose} showCompass={false}>
+      <ModalCard width={332} onClose={onClose} onRotate={() => setRotated(r => !r)} rotated={rotated} showCompass={false}>
         <ModalTitle kicker="Track" title="Commander Damage"/>
         <div style={{ marginBottom: 10 }}>
           <PlayerAvatarRow players={players} selectedNum={fromNum} onSelect={setFromNum}
