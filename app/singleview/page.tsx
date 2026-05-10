@@ -2092,8 +2092,7 @@ function PageContent() {
         <svg viewBox="0 0 320 320" style={{
           position: 'absolute', top: '8%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '130vw', height: '130vw',
-          maxWidth: '520px', maxHeight: '520px',
+          width: 'min(85vw, 360px)', height: 'min(85vw, 360px)',
           opacity: 0.28, pointerEvents: 'none',
         }}>
           <g stroke="#B06B2C" strokeWidth="0.8" fill="none">
