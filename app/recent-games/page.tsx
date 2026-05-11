@@ -1078,6 +1078,8 @@ function formatDate(iso: string): string {
 function RecentGamesPageInner() {
   const router = useRouter();
   const [games, setGames] = useState<Game[]>([]);
+  const [memoryCardOpen, setMemoryCardOpen] = useState(false);
+  const [memoryCard, setMemoryCard] = useState<GameCard | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [commanders, setCommanders] = useState<CommanderItem[]>([]);
   const [youId, setYouId] = useState<string>('');
@@ -1213,23 +1215,19 @@ function RecentGamesPageInner() {
   }
 
   return (
+    <>
     <RecentGamesScreen
       games={games}
       players={players}
       myCommanders={commanders}
       youId={youId}
       onOpenMemoryCard={(game: any) => {
-        // Always navigate to the live memory-card page. previewGameCard there
-        // returns the persisted card if it exists, else composes a live one
-        // from current metadata. Hard-redirect fallback in case soft nav fails.
         if (!game?.id) return;
-        const url = `/memory-card?gameId=${game.id}`;
-        try { router.push(url); } catch { /* swallow */ }
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/memory-card')) {
-            window.location.href = url;
-          }
-        }, 250);
+        setMemoryCardOpen(true);
+        setMemoryCard(null);
+        previewGameCard(game.id)
+          .then((card) => setMemoryCard(card))
+          .catch(() => setMemoryCard(null));
       }}
       onNavigate={(tabId: string) => {
         if (tabId === 'profile') router.push('/profile');
@@ -1237,6 +1235,48 @@ function RecentGamesPageInner() {
         // 'recent' is already this page
       }}
     />
+    {memoryCardOpen && (
+      <div
+        onClick={() => setMemoryCardOpen(false)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(10,6,4,0.72)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '24px 16px',
+          overflowY: 'auto',
+        }}
+      >
+        <button
+          onClick={(e) => { e.stopPropagation(); setMemoryCardOpen(false); }}
+          aria-label="Close"
+          style={{
+            position: 'absolute', top: 16, right: 16,
+            width: 40, height: 40, borderRadius: 999,
+            background: 'rgba(10,6,4,0.55)',
+            border: '1px solid rgba(226,184,88,0.35)',
+            color: '#E2B858',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 22, fontWeight: 600, lineHeight: 1, padding: 0,
+            zIndex: 1001,
+          }}
+        >×</button>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: 430, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+        >
+          {memoryCard ? (
+            <KeepsakeCard card={memoryCard} />
+          ) : (
+            <div style={{ color: '#E2B858', fontSize: 14, padding: 40, textAlign: 'center' }}>Loading your Game Card…</div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
