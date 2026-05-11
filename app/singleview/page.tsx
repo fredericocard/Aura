@@ -379,11 +379,11 @@ function SVBackdrop({ src, patternIdx = 0, lightMode = false }: { src: string; p
       {/* Digital mat mesh overlay */}
       {!lightMode && <DigitalMatMesh patternIdx={patternIdx}/>}
 
-      {/* Gradient veil */}
+      {/* Gradient veil — in light mode use opaque parchment so art doesn't bleed */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 2,
         background: lightMode
-          ? 'linear-gradient(180deg, rgba(245,239,226,0.05) 0%, rgba(245,239,226,0.45) 35%, #F5EFE2 85%)'
+          ? '#F5EFE2'
           : 'linear-gradient(180deg, rgba(10,6,4,0.30) 0%, rgba(10,6,4,0.60) 35%, #0A0604 85%)',
       }}/>
 
@@ -1088,13 +1088,13 @@ function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: an
           position: 'relative',
           width: iconSize, height: iconSize, borderRadius: 999,
           background: lightMode
-            ? `radial-gradient(circle at 35% 30%, ${counter.tone}55 0%, ${counter.tone}38 60%, ${counter.tone}44 100%)`
+            ? `radial-gradient(circle at 35% 30%, ${counter.tone}77 0%, ${counter.tone}55 60%, ${counter.tone}66 100%)`
             : `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
-          border: `1.5px solid ${lightMode ? counter.tone + 'DD' : counter.tone + 'BB'}`,
+          border: `1.5px solid ${lightMode ? counter.tone : counter.tone + 'BB'}`,
           color: counter.tone,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: lightMode
-            ? `0 0 14px -2px ${counter.tone}70, inset 0 0 8px ${counter.tone}30`
+            ? `0 0 14px -2px ${counter.tone}99, inset 0 0 8px ${counter.tone}44`
             : `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
           flexShrink: 0,
         }}>
@@ -1123,7 +1123,7 @@ function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: an
           {counter.lethal && (
             <div style={{
               marginTop: 6, height: 3, borderRadius: 999,
-              background: `${counter.tone}${lightMode ? '55' : '33'}`,
+              background: `${counter.tone}${lightMode ? '77' : '33'}`,
               overflow: 'hidden', maxWidth: 120,
             }}>
               <div style={{
@@ -1138,7 +1138,7 @@ function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: an
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button onClick={() => onAdjust(counter.key, -1)} style={{
             width: 38, height: 38, borderRadius: 999,
-            background: `${counter.tone}${lightMode ? '40' : '25'}`,
+            background: `${counter.tone}${lightMode ? '55' : '25'}`,
             color: counter.tone,
             border: `1.5px solid ${counter.tone}AA`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
