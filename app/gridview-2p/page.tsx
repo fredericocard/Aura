@@ -9,7 +9,8 @@ import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
-import { DefeatedOverlay } from '@/app/components/DefeatedOverlay';
+import AuraLoaderF from '@/app/components/AuraLoaderF';
+import { DefeatedOverlay, DefeatedButtonsLayer, useDefeatAnimation } from '@/app/components/DefeatedOverlay';
 
 const DARK_THEME = {
   bg:        '#0A0604',
@@ -265,7 +266,8 @@ function CommanderArt({ colors = ['C'], art = null, opacity = 0.4 }: { colors?: 
   );
 }
 
-function CellInner({ player }: { player: any }) {
+function CellInner({ player, defeated = false, defeatTrigger = 0 }: { player: any; defeated?: boolean; defeatTrigger?: string | number }) {
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(defeated, defeatTrigger, { pulseSize: 200 });
   const counters = player.counters || {};
   const counterEntries = Object.entries(counters).filter(([, n]) => (n as number) > 0);
   const hasRing = (player.cmdrDamage || []).length > 0;
@@ -282,18 +284,21 @@ function CellInner({ player }: { player: any }) {
 
   return (
     <div style={{ position:'absolute', inset:0, borderRadius:'20px', overflow:'hidden' }}>
-      <CommanderArt colors={player.colors} art={player.art} opacity={0.4}/>
-      <div style={{ position:'absolute', inset:0,
-        background: 'linear-gradient(180deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.35) 22%, rgba(10,6,4,0.25) 50%, rgba(10,6,4,0.45) 78%, rgba(10,6,4,0.90) 100%)',
-      }}/>
-      <div style={{ position:'absolute', inset:0,
-        background: `radial-gradient(ellipse 80% 60% at 50% 50%, ${darkWash} 0%, transparent 70%)`,
-      }}/>
+      {keyframesNode}
+      <div style={{ position:'absolute', inset:0, ...fadeStyle }}>
+        <CommanderArt colors={player.colors} art={player.art} opacity={0.4}/>
+        <div style={{ position:'absolute', inset:0,
+          background: 'linear-gradient(180deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.35) 22%, rgba(10,6,4,0.25) 50%, rgba(10,6,4,0.45) 78%, rgba(10,6,4,0.90) 100%)',
+        }}/>
+        <div style={{ position:'absolute', inset:0,
+          background: `radial-gradient(ellipse 80% 60% at 50% 50%, ${darkWash} 0%, transparent 70%)`,
+        }}/>
+      </div>
 
       {hasRing && <CmdrDamageRing damages={player.cmdrDamage || []} radius={20} strokeWidth={3}/>}
 
       <div style={{ position:'absolute', top:14, left:16, right:16,
-        display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
+        display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, ...fadeStyle }}>
         <div style={{ display:'flex', flexDirection:'column', gap:3, minWidth:0 }}>
           <div style={{ fontFamily:'var(--font-ui)', fontSize:10, fontWeight:700, letterSpacing:'0.20em', textTransform:'uppercase',
             color: player.isYou ? DARK.copper : DARK.ink3,
@@ -316,13 +321,14 @@ function CellInner({ player }: { player: any }) {
         alignItems:'center', justifyContent:'center', gap:16 }}>
         <div style={{ fontFamily:'var(--font-display)', fontWeight:400,
           fontSize:120, lineHeight:1, letterSpacing:'-0.04em',
-          color: DARK.ink,
+          color: defeated ? undefined : DARK.ink,
           fontVariantNumeric:'tabular-nums',
-          textShadow: '0 0 40px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
+          textShadow: defeated ? undefined : '0 0 40px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
+          ...lifeAnimationStyle,
         }}>{player.life}</div>
 
         {counterEntries.length > 0 && (
-          <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', maxWidth:'90%' }}>
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', maxWidth:'90%', ...fadeStyle }}>
             {counterEntries.map(([k, n]) => (
               <CounterChip key={k} kind={k} count={n as number}/>
             ))}
@@ -337,9 +343,12 @@ function CellInner({ player }: { player: any }) {
         color: DARK.ink3,
         fontFamily:'var(--font-display)', fontSize:22, lineHeight:1,
         pointerEvents:'none',
+        ...fadeStyle,
       }}>
         <span>−</span><span>+</span>
       </div>
+
+      {pulseAndWispsNode}
 
     </div>
   );
@@ -347,6 +356,11 @@ function CellInner({ player }: { player: any }) {
 
 function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { player: any; flipped?: boolean; onTapLeft: () => void; onTapRight: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
   const hasRing = (player.cmdrDamage || []).length > 0;
+  const isLifeZero = (player.life ?? 1) <= 0;
+  const isPoisoned = (player.counters?.poison || 0) >= 10;
+  const isCmdrLethal = (player.cmdrDamage || []).some((d: any) => d.amount >= 21);
+  const isDefeated = isLifeZero || isPoisoned || isCmdrLethal;
+  const trig = `${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`;
   return (
     <div style={{
       position:'relative',
@@ -358,23 +372,16 @@ function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive, 
       overflow:'hidden',
       transform: flipped ? 'rotate(180deg)' : 'none',
     }}>
-      <CellInner player={player}/>
-      {(() => {
-        const isLifeZero = (player.life ?? 1) <= 0;
-        const isPoisoned = (player.counters?.poison || 0) >= 10;
-        const isCmdrLethal = (player.cmdrDamage || []).some((d: any) => d.amount >= 21);
-        if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
-        return (
-          <DefeatedOverlay
-            bgColor={DARK.bgCard}
-            reviveColor={DARK.forest}
-            reviveTextColor={DARK.ink}
-            onRevive={onRevive}
-            zIndex={20}
-            triggerKey={`${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`}
-          />
-        );
-      })()}
+      <CellInner player={player} defeated={isDefeated} defeatTrigger={trig}/>
+      {isDefeated && (
+        <DefeatedButtonsLayer
+          reviveColor={DARK.forest}
+          reviveTextColor={DARK.ink}
+          onRevive={onRevive}
+          zIndex={20}
+          triggerKey={trig}
+        />
+      )}
 
       {/* Tap zones */}
       <div style={{ position:'absolute', inset:0, display:'flex', zIndex:10 }}>
@@ -405,6 +412,12 @@ function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive, 
 
 function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, cmdrDamage = [], flipped = false, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onRevive, onTapLeft, onTapRight, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; cmdrDamage?: { from: string; amount: number; colorIndex: number }[]; flipped?: boolean; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
   const counterEntries = Object.entries(cellCounters || {}).filter(([, n]) => (n as number) > 0);
+  const isLifeZero = (life ?? 1) <= 0;
+  const isPoisoned = (cellCounters?.poison || 0) >= 10;
+  const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
+  const isDefeated = isLifeZero || isPoisoned || isCmdrLethal;
+  const defeatTrigger = `${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`;
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 200 });
   if (showQR) {
     return (
       <div style={{
@@ -464,30 +477,25 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
       transform: flipped ? 'rotate(180deg)' : 'none',
     }}>
       {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
-      {(() => {
-        const isLifeZero = (life ?? 1) <= 0;
-        const isPoisoned = (cellCounters?.poison || 0) >= 10;
-        const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
-        if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
-        return (
-          <DefeatedOverlay
-            bgColor={DARK.bgDeep}
-            reviveColor={DARK.forest}
-            reviveTextColor={DARK.ink}
-            reviewBorder={DARK.lineStrong}
-            reviewTextColor={DARK.ink2}
-            onRevive={onRevive}
-            onReview={onClaimSeat}
-            showReviewButton={true}
-            zIndex={25}
-            triggerKey={`${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`}
-          />
-        );
-      })()}
+      {keyframesNode}
+      {isDefeated && (
+        <DefeatedButtonsLayer
+          reviveColor={DARK.forest}
+          reviveTextColor={DARK.ink}
+          reviewBorder={DARK.lineStrong}
+          reviewTextColor={DARK.ink2}
+          onRevive={onRevive}
+          onReview={onClaimSeat}
+          showReviewButton={true}
+          zIndex={25}
+          triggerKey={defeatTrigger}
+        />
+      )}
       {/* Header: seat label + compact Claim button */}
       <div style={{
         position:'absolute', top:14, left:16, right:16, zIndex:10,
         display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
+        ...fadeStyle,
       }}>
         <div style={{
           fontFamily:'var(--font-ui)', fontSize:10, fontWeight:700,
@@ -518,13 +526,14 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
         <div style={{
           fontFamily:'var(--font-display)', fontWeight:400,
           fontSize:120, lineHeight:1, letterSpacing:'-0.04em',
-          color: DARK.ink,
+          color: isDefeated ? undefined : DARK.ink,
           fontVariantNumeric:'tabular-nums',
-          textShadow: '0 0 40px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
+          textShadow: isDefeated ? undefined : '0 0 40px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
+          ...lifeAnimationStyle,
         }}>{life}</div>
 
         {counterEntries.length > 0 && (
-          <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', maxWidth:'90%' }}>
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', maxWidth:'90%', ...fadeStyle }}>
             {counterEntries.map(([k, n]) => (
               <CounterChip key={k} kind={k} count={n as number}/>
             ))}
@@ -541,9 +550,11 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
         color: DARK.ink3,
         fontFamily:'var(--font-display)', fontSize:22, lineHeight:1,
         pointerEvents:'none',
+        ...fadeStyle,
       }}>
         <span>−</span><span>+</span>
       </div>
+      {pulseAndWispsNode}
 
       {/* Tap zones for life +/- */}
       <div style={{ position:'absolute', inset:0, display:'flex', zIndex:6 }}>
@@ -1733,7 +1744,7 @@ function PageContent() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: DARK.bg,
       }}>
-        <AuraLoaderG size={180} />
+        {DARK === LIGHT_THEME ? <AuraLoaderF size={180} /> : <AuraLoaderG size={180} />}
       </div>
     );
   }
