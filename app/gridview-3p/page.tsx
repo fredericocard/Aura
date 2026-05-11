@@ -10,7 +10,7 @@ import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
 
-const DARK = {
+const DARK_THEME = {
   bg:        '#0A0604',
   bgCard:    '#150E08',
   bgDeep:    '#050302',
@@ -32,6 +32,31 @@ const DARK = {
   navPill:   '#150E08',
   navBorder: 'rgba(226,184,88,0.18)',
 };
+
+const LIGHT_THEME = {
+  bg:        '#F5EFE2',
+  bgCard:    '#FAF5EA',
+  bgDeep:    '#EDE4D0',
+  ink:       '#2B2118',
+  ink2:      '#5C5043',
+  ink3:      '#8A7E6F',
+  ink4:      '#B8AE9E',
+  copper:    '#B06B2C',
+  copperDim: 'rgba(176,107,44,0.55)',
+  copperGlow:'rgba(140,84,34,0.18)',
+  gold:      '#8C5A28',
+  forest:    '#B06B2C',
+  forestDeep:'#8C5422',
+  line:      'rgba(43,33,24,0.08)',
+  lineStrong:'rgba(43,33,24,0.14)',
+  cellBorder:'rgba(43,33,24,0.10)',
+  shadowRest:'0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.10)',
+  navBg:     'linear-gradient(180deg, rgba(245,239,226,0) 0%, rgba(245,239,226,0.92) 30%, #F5EFE2 100%)',
+  navPill:   '#FAF5EA',
+  navBorder: 'rgba(43,33,24,0.08)',
+};
+
+let DARK = DARK_THEME;
 
 const MANA = {
   W: '#F8E7B9', U: '#A6C8E6', B: '#3F3A36',
@@ -158,14 +183,16 @@ function ScreenBg({ children }: { children: React.ReactNode }) {
       background: DARK.bg,
       backgroundImage:
         `radial-gradient(ellipse at 50% 12%, ${DARK.copperGlow}, transparent 50%), ` +
-        `radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.6), transparent 50%), ` +
-        `linear-gradient(180deg, #140C07 0%, #0A0604 45%, #050302 100%)`,
+        `radial-gradient(ellipse at 50% 100%, ${DARK === LIGHT_THEME ? 'rgba(237,228,208,0.6)' : 'rgba(0,0,0,0.6)'}, transparent 50%), ` +
+        `linear-gradient(180deg, ${DARK.bgCard} 0%, ${DARK.bg} 45%, ${DARK.bgDeep} 100%)`,
       fontFamily: 'var(--font-ui)',
     }}>
       <DarkCompassBg/>
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
-        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(201,155,47,0.12)',
+        boxShadow: DARK === LIGHT_THEME
+          ? 'inset 0 0 60px rgba(237,228,208,0.4), inset 0 0 0 1px rgba(43,33,24,0.06)'
+          : 'inset 0 0 60px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(201,155,47,0.12)',
       }}/>
       {children}
     </div>
@@ -1875,6 +1902,13 @@ function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () 
 }
 
 function PageContent() {
+  // Theme swap: read light mode preference from localStorage
+  const [lightMode] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('aura-light-mode') === '1';
+    return false;
+  });
+  DARK = lightMode ? LIGHT_THEME : DARK_THEME;
+
   useWakeLock();
   const router = useRouter();
   const searchParams = useSearchParams();
