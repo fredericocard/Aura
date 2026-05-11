@@ -121,18 +121,19 @@ function ManaDots({ colors = [], size = 7 }: { colors?: string[]; size?: number 
 
 function CounterChip({ kind, count }: { kind: string; count: number }) {
   const v = COUNTER_VOCAB[kind as keyof typeof COUNTER_VOCAB] || COUNTER_VOCAB.poison;
+  const light = DARK === LIGHT_THEME;
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       height: 22, padding: '0 9px',
-      background: `${v.tone}22`,
-      color: v.soft,
-      border: `1px solid ${v.tone}44`,
+      background: light ? '#FFFFFF' : `${v.tone}22`,
+      color: light ? v.tone : v.soft,
+      border: `1px solid ${light ? v.tone + '44' : v.tone + '44'}`,
       borderRadius: 999,
       fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
       letterSpacing: '0.02em', whiteSpace: 'nowrap',
     }}>
-      <Icon name={v.glyph} size={12} stroke={v.soft} width={1.9}/>
+      <Icon name={v.glyph} size={12} stroke={light ? v.tone : v.soft} width={1.9}/>
       <span style={{
         fontFamily: 'var(--font-display)', fontWeight: 400,
         fontSize: 13, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
@@ -289,7 +290,7 @@ function CellInner({ player, defeated = false, defeatTrigger = 0 }: { player: an
         <CommanderArt colors={player.colors} art={player.art} opacity={0.4}/>
         <div style={{ position:'absolute', inset:0,
           background: DARK === LIGHT_THEME
-            ? 'linear-gradient(180deg, rgba(245,239,226,0.82) 0%, rgba(245,239,226,0.30) 22%, rgba(245,239,226,0.20) 50%, rgba(245,239,226,0.40) 78%, rgba(245,239,226,0.85) 100%)'
+            ? 'linear-gradient(180deg, rgba(245,239,226,0.55) 0%, rgba(245,239,226,0.15) 22%, rgba(245,239,226,0.10) 50%, rgba(245,239,226,0.20) 78%, rgba(245,239,226,0.60) 100%)'
             : 'linear-gradient(180deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.35) 22%, rgba(10,6,4,0.25) 50%, rgba(10,6,4,0.45) 78%, rgba(10,6,4,0.90) 100%)',
         }}/>
         <div style={{ position:'absolute', inset:0,

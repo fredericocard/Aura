@@ -151,9 +151,9 @@ function CounterChip({ kind, count }: { kind: string; count: number }) {
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       height: 22, padding: '0 9px',
-      background: `${v.tone}${light ? '55' : '22'}`,
+      background: light ? '#FFFFFF' : `${v.tone}22`,
       color: light ? v.tone : v.soft,
-      border: `1px solid ${v.tone}${light ? '88' : '44'}`,
+      border: `1px solid ${light ? v.tone + '44' : v.tone + '44'}`,
       borderRadius: 999,
       fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
       letterSpacing: '0.02em', whiteSpace: 'nowrap',
