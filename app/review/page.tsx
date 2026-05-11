@@ -247,7 +247,7 @@ function KeepsakeCard({ card }: { card: GameCard }) {
             <AuraMark size={16} color="#E2B858" />
             <span style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, letterSpacing: '-0.01em', color: '#E2B858', lineHeight: 1 }}>Aura</span>
           </div>
-          <span style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(226,184,88,0.6)' }}>{dateStr}</span>
+          <span style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(226,184,88,0.6)' }}>{dateStr}{card.game_time ? ` · ${card.game_time}` : ''}</span>
         </div>
 
         <div style={{ position: 'relative', marginBottom: 12, textAlign: 'center', fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.34em', textTransform: 'uppercase', color: 'rgba(226,184,88,0.85)', textShadow: '0 0 12px rgba(201,155,47,0.45)' }}>

@@ -1221,8 +1221,15 @@ function RecentGamesPageInner() {
       onOpenMemoryCard={(game: any) => {
         // Always navigate to the live memory-card page. previewGameCard there
         // returns the persisted card if it exists, else composes a live one
-        // from current metadata.
-        if (game?.id) router.push(`/memory-card?gameId=${game.id}`);
+        // from current metadata. Hard-redirect fallback in case soft nav fails.
+        if (!game?.id) return;
+        const url = `/memory-card?gameId=${game.id}`;
+        try { router.push(url); } catch { /* swallow */ }
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/memory-card')) {
+            window.location.href = url;
+          }
+        }, 250);
       }}
       onNavigate={(tabId: string) => {
         if (tabId === 'profile') router.push('/profile');

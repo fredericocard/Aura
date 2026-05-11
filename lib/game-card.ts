@@ -13,8 +13,9 @@ import { getGameBadgeAttributions } from "@/lib/badge-attribution";
 // ── Types ──────────────────────────────────────────────
 
 export interface CommanderCardData {
-  deck_id: string;
-  user_id: string;
+  deck_id: string | null;
+  user_id: string | null;
+  seat_number?: number;
   commander_name: string;
   art_url: string | null;
   archetype: string;
@@ -27,6 +28,7 @@ export interface GameCardData {
   podId: string;
   narrative: string;
   gameDate: string;
+  gameTime: string;  // HH:MM (local) — empty string for persisted rows without time
   podSize: number;
   // Winner
   winnerUserId: string | null;
@@ -58,6 +60,7 @@ export interface GameCard {
   pod_id: string;
   narrative: string;
   game_date: string;
+  game_time?: string;
   pod_size: number;
   winner_commander_name: string | null;
   winner_archetype: string | null;
@@ -163,8 +166,9 @@ export async function composeGameCard(
 
   const { data: players, error: playersErr } = await supabase
     .from("game_players")
-    .select("user_id, deck_id, is_winner, decks!inner(commander_name, commander_art_url)")
-    .eq("game_id", gameId) as { data: any; error: any };
+    .select("user_id, deck_id, seat_number, is_winner, decks(commander_name, commander_art_url)")
+    .eq("game_id", gameId)
+    .order("seat_number", { ascending: true }) as { data: any; error: any };
 
   if (playersErr || !players) {
     throw new Error(`Failed to load players: ${playersErr?.message}`);
@@ -181,7 +185,9 @@ export async function composeGameCard(
   const deckToCommander = new Map<string, string>();
   const deckToArt = new Map<string, string | null>();
   for (const p of players) {
-    const deck = p.decks as { commander_name: string; commander_art_url: string | null };
+    if (!p.deck_id) continue; // skip empty seats
+    const deck = p.decks as { commander_name: string; commander_art_url: string | null } | null;
+    if (!deck) continue;
     deckToCommander.set(p.deck_id, deck.commander_name);
     deckToArt.set(p.deck_id, deck.commander_art_url);
   }
@@ -212,13 +218,27 @@ export async function composeGameCard(
   // 7. Build bracket check summary
   const bracketResult = await buildBracketSummary(gameId, deckToCommander);
 
-  // 8. Build commanders array
+  // 8. Build commanders array (LEFT JOIN means empty seats also show up)
   const commanders: CommanderCardData[] = players.map((p: any) => {
+    const deck = p.decks as { commander_name: string; commander_art_url: string | null } | null;
+    if (!deck || !p.deck_id) {
+      // Empty seat — render as P{seat}
+      return {
+        deck_id: null,
+        user_id: p.user_id ?? null,
+        seat_number: p.seat_number ?? undefined,
+        commander_name: `P${p.seat_number ?? "?"}`,
+        art_url: null,
+        archetype: "Empty seat",
+        brewed_badge: "none",
+        is_winner: false,
+      };
+    }
     const attr = attrMap.get(p.deck_id);
-    const deck = p.decks as { commander_name: string; commander_art_url: string | null };
     return {
       deck_id: p.deck_id,
-      user_id: p.user_id,
+      user_id: p.user_id ?? null,
+      seat_number: p.seat_number ?? undefined,
       commander_name: deck.commander_name,
       art_url: deck.commander_art_url,
       archetype: attr?.archetype_name ?? "The Unknown",
@@ -241,6 +261,14 @@ export async function composeGameCard(
     podId: game.pod_id,
     narrative,
     gameDate: game.created_at.split("T")[0],
+    gameTime: (() => {
+      try {
+        const d = new Date(game.created_at);
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+      } catch { return ""; }
+    })(),
     podSize: game.pod_size,
     winnerUserId: game.winner_player_id,
     winnerDeckId: game.winner_deck_id,
@@ -360,6 +388,7 @@ export async function previewGameCard(gameId: string): Promise<GameCard | null> 
       pod_id: data.podId,
       narrative: data.narrative,
       game_date: data.gameDate,
+      game_time: data.gameTime,
       pod_size: data.podSize,
       winner_commander_name: data.winnerCommanderName,
       winner_archetype: data.winnerArchetype,
