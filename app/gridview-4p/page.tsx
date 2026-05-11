@@ -1291,10 +1291,10 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
             label="Damage to" accent={DARK.ink} size={38} disabledNum={fromNum}/>
         </div>
         <div style={{
-          background: '#140E08',
+          background: DARK === LIGHT_THEME ? DARK.bgDeep : '#140E08',
           border: `1px solid ${accent}44`,
           borderRadius: 18, padding: '4px 14px 8px',
-          boxShadow: 'inset 0 0 24px rgba(0,0,0,0.2)',
+          boxShadow: DARK === LIGHT_THEME ? 'inset 0 0 24px rgba(0,0,0,0.04)' : 'inset 0 0 24px rgba(0,0,0,0.2)',
         }}>
           <DamageSeal amount={amount} lethal={lethal} accent={accent}
             onMinus={() => onChange(-1)} onPlus={() => onChange(1)}/>
@@ -1616,10 +1616,10 @@ function CmdrDmgModalLandscape({ open, onClose, players, fromNum, setFromNum, to
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
           }}>
             <div style={{
-              background: '#140E08',
+              background: DARK === LIGHT_THEME ? DARK.bgDeep : '#140E08',
               border: `1px solid ${accent}44`,
               borderRadius: 18, padding: '4px 10px 8px',
-              boxShadow: 'inset 0 0 24px rgba(0,0,0,0.2)',
+              boxShadow: DARK === LIGHT_THEME ? 'inset 0 0 24px rgba(0,0,0,0.04)' : 'inset 0 0 24px rgba(0,0,0,0.2)',
             }}>
               <DamageSeal amount={amount} lethal={lethal} accent={accent}
                 onMinus={() => onChange(-1)} onPlus={() => onChange(1)}/>
