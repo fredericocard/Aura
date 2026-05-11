@@ -2507,7 +2507,7 @@ function PageContent() {
     .roll-button { width: 100%; padding: 14px; background: ${DARK.copper}; border: none; border-radius: 12px; color: ${DARK.bgDeep}; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.02em; }
     .roll-button:active { transform: scale(0.98); }
 
-    .counters-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .counters-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)'}; display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
     .counters-overlay.active { display: flex; }
 
     .counters-modal { width: 320px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
@@ -2533,7 +2533,7 @@ function PageContent() {
 
     .counter-value { font-weight: 700; font-size: 26px; color: ${DARK.copper}; min-width: 32px; text-align: center; font-family: 'Courier New', monospace; }
 
-    .join-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .join-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)'}; display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
     .join-modal.active { display: flex; }
 
     .join-modal-card { width: calc(100% - 40px); max-width: 340px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; text-align: center; }

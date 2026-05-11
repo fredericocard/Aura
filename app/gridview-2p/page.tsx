@@ -731,17 +731,22 @@ function ModalCompass({ size = 300, opacity = 0.10 }: { size?: number; opacity?:
 }
 
 function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, showCompass = true }: { width?: number; onClose: () => void; onRotate?: () => void; rotated?: boolean; children: React.ReactNode; showCompass?: boolean }) {
+  const light = DARK === LIGHT_THEME;
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
-      background: 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
+      background: light
+        ? 'linear-gradient(135deg, #C99B2F 0%, #B06B2C 22%, #8C5A28 50%, #B06B2C 78%, #C99B2F 100%)'
+        : 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
       borderRadius: 26,
-      boxShadow: '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
+      boxShadow: light
+        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(176,107,44,0.2)'
+        : '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
     }}>
       <div style={{
         position: 'relative',
-        width, padding: '22px 22px 20px',
-        background: '#1C140C',
+        width, padding: '14px 22px 20px',
+        background: light ? DARK.bgCard : '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
         transform: rotated ? 'rotate(180deg)' : 'none',
@@ -749,23 +754,23 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
       }}>
         {showCompass && <ModalCompass/>}
         <button onClick={onClose} style={{
-          position: 'absolute', top: 10, left: 10, zIndex: 2,
+          position: 'absolute', top: 6, left: 10, zIndex: 2,
           width: 36, height: 36, borderRadius: 999,
-          background: 'rgba(226,184,88,0.12)',
-          border: '1.5px solid rgba(226,184,88,0.30)',
+          background: light ? 'rgba(43,33,24,0.06)' : 'rgba(226,184,88,0.12)',
+          border: `1.5px solid ${light ? 'rgba(43,33,24,0.14)' : 'rgba(226,184,88,0.30)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-          boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          boxShadow: light ? 'none' : '0 0 8px -2px rgba(226,184,88,0.15)',
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
         {onRotate && (
           <button onClick={onRotate} aria-label="Rotate" style={{
-            position: 'absolute', top: 10, right: 10, zIndex: 2,
+            position: 'absolute', top: 6, right: 10, zIndex: 2,
             width: 36, height: 36, borderRadius: 999,
-            background: 'rgba(226,184,88,0.12)',
-            border: '1.5px solid rgba(226,184,88,0.30)',
+            background: light ? 'rgba(43,33,24,0.06)' : 'rgba(226,184,88,0.12)',
+            border: `1.5px solid ${light ? 'rgba(43,33,24,0.14)' : 'rgba(226,184,88,0.30)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+            boxShadow: light ? 'none' : '0 0 8px -2px rgba(226,184,88,0.15)',
           }}>
             <Icon name="rotate" size={18} stroke={DARK.ink2} width={2}/>
           </button>
@@ -777,22 +782,29 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
 }
 
 function DicePlaque({ option, active, result, onClick }: { option: { id: string; label: string; icon: string; large?: boolean }; active: boolean; result: string | null; onClick: () => void }) {
+  const light = DARK === LIGHT_THEME;
   const accent = active ? DARK.copper : DARK.ink3;
   return (
     <button onClick={onClick} style={{
       width: '100%', minWidth: 0,
       height: 90,
       position: 'relative',
-      background: active ? `radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)` : '#1A120A',
-      border: `1px solid ${active ? `${DARK.copper}88` : 'rgba(226,184,88,0.22)'}`,
+      background: light
+        ? (active ? `radial-gradient(circle at 30% 20%, ${DARK.bgDeep} 0%, ${DARK.bgCard} 65%)` : DARK.bgDeep)
+        : (active ? `radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)` : '#1A120A'),
+      border: `1px solid ${active ? `${DARK.copper}88` : (light ? DARK.lineStrong : 'rgba(226,184,88,0.22)')}`,
       borderRadius: 16,
       padding: '12px 10px 10px',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
       cursor: 'pointer',
       textAlign: 'center',
       boxShadow: active
-        ? `0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)`
-        : `inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)`,
+        ? (light
+          ? `0 0 0 3px rgba(176,107,44,0.10), 0 4px 14px -4px rgba(176,107,44,0.15)`
+          : `0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)`)
+        : (light
+          ? `0 1px 3px rgba(0,0,0,0.06)`
+          : `inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)`),
       overflow: 'hidden',
     }}>
       <div style={{
@@ -2053,7 +2065,7 @@ function PageContent() {
     .roll-button { width: 100%; padding: 14px; background: ${DARK.copper}; border: none; border-radius: 12px; color: ${DARK.bgDeep}; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.02em; }
     .roll-button:active { transform: scale(0.98); }
 
-    .counters-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .counters-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)'}; display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
     .counters-overlay.active { display: flex; }
 
     .counters-modal { width: 320px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
@@ -2079,7 +2091,7 @@ function PageContent() {
 
     .counter-value { font-weight: 700; font-size: 26px; color: ${DARK.copper}; min-width: 32px; text-align: center; font-family: 'Courier New', monospace; }
 
-    .join-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .join-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)'}; display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
     .join-modal.active { display: flex; }
 
     .join-modal-card { width: calc(100% - 40px); max-width: 340px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; text-align: center; }
