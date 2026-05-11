@@ -387,13 +387,11 @@ function SVBackdrop({ src, patternIdx = 0, lightMode = false }: { src: string; p
           : 'linear-gradient(180deg, rgba(10,6,4,0.30) 0%, rgba(10,6,4,0.60) 35%, #0A0604 85%)',
       }}/>
 
-      {/* Warm glow at top — hidden in light mode */}
-      {!lightMode && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-          backgroundImage: `radial-gradient(ellipse 80% 40% at 50% 15%, var(--copper-glow), transparent 60%)`,
-        }}/>
-      )}
+      {/* Warm glow at top */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
+        backgroundImage: `radial-gradient(ellipse 80% 40% at 50% 15%, var(--copper-glow), transparent 60%)`,
+      }}/>
 
       {/* Inner border glow */}
       {!lightMode && (
@@ -1073,7 +1071,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
 }
 
 // ─── Counter Row (KeepsakeCard) ─────────────────────────────────────────────
-function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: any) {
+function CounterRow({ counter, count, isFirst, onAdjust }: any) {
   const iconSize = 44;
   const fillPct = counter.lethal ? Math.min(100, (count / counter.lethal) * 100) : 0;
 
@@ -1087,15 +1085,11 @@ function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: an
         <div style={{
           position: 'relative',
           width: iconSize, height: iconSize, borderRadius: 999,
-          background: lightMode
-            ? `radial-gradient(circle at 35% 30%, ${counter.tone}55 0%, ${counter.tone}38 60%, ${counter.tone}44 100%)`
-            : `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
-          border: `1.5px solid ${lightMode ? counter.tone + 'DD' : counter.tone + 'BB'}`,
+          background: `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
+          border: `1.5px solid ${counter.tone}BB`,
           color: counter.tone,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: lightMode
-            ? `0 0 14px -2px ${counter.tone}70, inset 0 0 8px ${counter.tone}30`
-            : `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
+          boxShadow: `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
           flexShrink: 0,
         }}>
           <Icon name={counter.glyph} size={20} stroke={counter.tone} width={1.8}/>
@@ -1123,7 +1117,7 @@ function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: an
           {counter.lethal && (
             <div style={{
               marginTop: 6, height: 3, borderRadius: 999,
-              background: `${counter.tone}${lightMode ? '55' : '33'}`,
+              background: `${counter.tone}33`,
               overflow: 'hidden', maxWidth: 120,
             }}>
               <div style={{
@@ -1138,7 +1132,7 @@ function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: an
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button onClick={() => onAdjust(counter.key, -1)} style={{
             width: 38, height: 38, borderRadius: 999,
-            background: `${counter.tone}${lightMode ? '40' : '25'}`,
+            background: `${counter.tone}25`,
             color: counter.tone,
             border: `1.5px solid ${counter.tone}AA`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1162,7 +1156,7 @@ function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: an
 }
 
 // ─── Counter bottom sheet (KeepsakeCard) ───────────────────────────────────
-function CounterSheet({ onClose, counters, onAdjust, lightMode = false }: any) {
+function CounterSheet({ onClose, counters, onAdjust }: any) {
   const COUNTERS = [
     { key: 'poison',     label: 'Poison',     glyph: 'skull', tone: '#4F8A4D', lethal: 10 },
     { key: 'energy',     label: 'Energy',     glyph: 'bolt',  tone: '#C99B2F', lethal: null },
@@ -1190,8 +1184,7 @@ function CounterSheet({ onClose, counters, onAdjust, lightMode = false }: any) {
           <CounterRow key={c.key} counter={c}
             count={counters[c.key] || 0}
             isFirst={i === 0}
-            onAdjust={onAdjust}
-            lightMode={lightMode}/>
+            onAdjust={onAdjust}/>
         ))}
       </div>
     </BottomSheet>
@@ -2504,8 +2497,7 @@ function PageContent() {
         <CounterSheet
           onClose={() => setShowCounters(false)}
           counters={{ poison, energy, experience, commander: 0 }}
-          onAdjust={adjustCounter}
-          lightMode={lightMode}/>
+          onAdjust={adjustCounter}/>
       )}
 
       {/* Commander damage sheet */}

@@ -1021,15 +1021,11 @@ function CounterRow({ counter, count, isFirst, onMinus, onPlus }: {
         <div style={{
           position: 'relative',
           width: 44, height: 44, borderRadius: 999,
-          background: DARK === LIGHT_THEME
-            ? `radial-gradient(circle at 35% 30%, ${counter.tone}55 0%, ${counter.tone}38 60%, ${counter.tone}44 100%)`
-            : `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
-          border: `1.5px solid ${DARK === LIGHT_THEME ? counter.tone + 'DD' : counter.tone + 'BB'}`,
+          background: `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
+          border: `1.5px solid ${counter.tone}BB`,
           color: counter.tone,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: DARK === LIGHT_THEME
-            ? `0 0 14px -2px ${counter.tone}70, inset 0 0 8px ${counter.tone}30`
-            : `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
+          boxShadow: `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
           flexShrink: 0,
         }}>
           <Icon name={counter.glyph} size={20} stroke={counter.tone} width={1.8}/>
@@ -1058,7 +1054,7 @@ function CounterRow({ counter, count, isFirst, onMinus, onPlus }: {
           {counter.lethal && (
             <div style={{
               marginTop: 6, height: 3, borderRadius: 999,
-              background: `${counter.tone}${DARK === LIGHT_THEME ? '55' : '33'}`,
+              background: `${counter.tone}33`,
               overflow: 'hidden',
               maxWidth: 120,
             }}>
@@ -1075,7 +1071,7 @@ function CounterRow({ counter, count, isFirst, onMinus, onPlus }: {
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button onClick={onMinus} style={{
             ...stepBase,
-            background: `${counter.tone}${DARK === LIGHT_THEME ? '40' : '25'}`,
+            background: `${counter.tone}25`,
             color: counter.tone,
             border: `1.5px solid ${counter.tone}AA`,
             boxShadow: `0 0 8px -2px ${counter.tone}30`,
