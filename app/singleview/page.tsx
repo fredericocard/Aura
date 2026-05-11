@@ -31,6 +31,7 @@ const TOKENS_CSS = `
   --line-strong:      rgba(240,232,216,0.14);
   --copper:           #B06B2C;
   --copper-deep:      #D4883E;
+  --copper-ink:       #F0E8D8;
   --forest:           #B06B2C;
   --forest-deep:      #8C5422;
   --forest-soft:      rgba(176,107,44,0.15);
@@ -88,6 +89,8 @@ const TOKENS_CSS = `
   --border-accent:    rgba(43,33,24,0.08);
   --border-accent-subtle: rgba(43,33,24,0.06);
   --overlay-dim:      rgba(43,33,24,0.45);
+  --copper:           #2F5D3A;
+  --copper-ink:       #FAF5EA;
   --gold:             #2F5D3A;
   --gold-muted:       #1E3D25;
   --gold-deep:        #15291A;
@@ -705,13 +708,13 @@ function GameNav({ active = 'single', onNav }: any) {
               <button key={it.id} onClick={() => handleToggle(it.id as any)} style={{
                 flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
                 padding: '6px 0', border: 'none', background: 'transparent',
-                color: on ? 'var(--ink)' : 'var(--ink-3)',
+                color: on ? 'var(--copper-ink)' : 'var(--ink-3)',
                 borderRadius: 999, position: 'relative', zIndex: 1,
                 fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
                 letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
                 cursor: 'pointer', transition: 'color 0.28s ease',
               }}>
-                <Icon name={it.icon} size={16} stroke={on ? 'var(--ink)' : 'var(--ink-3)'}/>
+                <Icon name={it.icon} size={16} stroke={on ? 'var(--copper-ink)' : 'var(--ink-3)'}/>
                 <span>{it.label}</span>
               </button>
             );
