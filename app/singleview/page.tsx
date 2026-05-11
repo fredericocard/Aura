@@ -38,6 +38,69 @@ const TOKENS_CSS = `
   --font-display:     'Young Serif', ui-serif, Georgia, serif;
   --font-ui:          'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   --r-card:           20px;
+
+  --bg-elevated:      #150E08;
+  --bg-surface:       #1C140C;
+  --bg-well:          #050302;
+  --border-accent:    rgba(226,184,88,0.18);
+  --border-accent-subtle: rgba(226,184,88,0.12);
+  --overlay-dim:      rgba(5,3,2,0.72);
+  --gold:             #E2B858;
+  --gold-muted:       #C99B2F;
+  --gold-deep:        #8C5A28;
+  --danger:           #9E2B2B;
+  --danger-border:    rgba(158,43,43,0.2);
+  --shadow-btn:       0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35);
+  --ring-active:      #E2B858;
+  --ring-dead:        #5C5043;
+  --tick-stroke:      #8A7E6F;
+  --dial-ring-stroke: #8A7E6F;
+  --nav-fade-start:   rgba(10,6,4,0);
+  --nav-fade-mid:     rgba(10,6,4,0.92);
+  --nav-fade-end:     #0A0604;
+  --backdrop-top:     rgba(10,6,4,0.30);
+  --backdrop-mid:     rgba(10,6,4,0.60);
+  --backdrop-end:     #0A0604;
+  --copper-glow:      rgba(201,155,47,0.18);
+  --sheet-gold-edge:  linear-gradient(90deg, #8C5A28 0%, #E2B858 25%, #C99B2F 50%, #E2B858 75%, #8C5A28 100%);
+}
+
+.aura-light {
+  --parchment:        #FAF5EA;
+  --parchment-card:   #FFFFFF;
+  --parchment-deep:   #EDE6D6;
+  --ink:              #2B2118;
+  --ink-2:            #5C5043;
+  --ink-3:            #8A7E6F;
+  --ink-4:            #B5ADA0;
+  --line:             rgba(43,33,24,0.10);
+  --line-strong:      rgba(43,33,24,0.16);
+  --forest-soft:      rgba(176,107,44,0.10);
+  --forest-line:      rgba(176,107,44,0.22);
+  --shadow-rest:      0 1px 2px rgba(0,0,0,.06), 0 2px 8px -2px rgba(0,0,0,.10);
+
+  --bg-elevated:      #FFFFFF;
+  --bg-surface:       #FFFFFF;
+  --bg-well:          #EDE6D6;
+  --border-accent:    rgba(43,33,24,0.14);
+  --border-accent-subtle: rgba(43,33,24,0.08);
+  --overlay-dim:      rgba(43,33,24,0.45);
+  --gold:             #B06B2C;
+  --gold-muted:       #8C5A28;
+  --gold-deep:        #5C3D1A;
+  --shadow-btn:       0 1px 2px rgba(0,0,0,.06), 0 2px 8px -2px rgba(0,0,0,.10);
+  --ring-active:      #B06B2C;
+  --ring-dead:        #B5ADA0;
+  --tick-stroke:      #B5ADA0;
+  --dial-ring-stroke: #B5ADA0;
+  --nav-fade-start:   rgba(250,245,234,0);
+  --nav-fade-mid:     rgba(250,245,234,0.92);
+  --nav-fade-end:     #FAF5EA;
+  --backdrop-top:     rgba(250,245,234,0.05);
+  --backdrop-mid:     rgba(250,245,234,0.45);
+  --backdrop-end:     #FAF5EA;
+  --copper-glow:      rgba(176,107,44,0.12);
+  --sheet-gold-edge:  linear-gradient(90deg, #C99B2F 0%, #B06B2C 25%, #8C5A28 50%, #B06B2C 75%, #C99B2F 100%);
 }
 
 @keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
@@ -133,18 +196,18 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: any) {
 function kicker(size = 10): any {
   return {
     fontSize: size, fontWeight: 700, letterSpacing: '0.22em',
-    textTransform: 'uppercase', color: '#8A7E6F',
+    textTransform: 'uppercase', color: 'var(--ink-3)',
     fontFamily: 'var(--font-ui)',
   };
 }
 function iconBtn() {
   return {
     width: 36, height: 36, borderRadius: 999,
-    background: '#150E08',
-    border: '1px solid rgba(226,184,88,0.18)',
+    background: 'var(--bg-elevated)',
+    border: '1px solid var(--border-accent)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', padding: 0,
-    boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
+    boxShadow: 'var(--shadow-btn)',
   };
 }
 
@@ -153,7 +216,7 @@ function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = fals
   return (
     <div style={{
       width: size, height: size, borderRadius: 999, flexShrink: 0,
-      background: '#050302',
+      background: 'var(--bg-well)',
       boxShadow: `0 0 0 1.5px ${ring}, 0 0 0 4px #0A0604`,
       overflow: 'hidden', position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -164,7 +227,7 @@ function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = fals
           opacity: dim ? 0.5 : 1, filter: dim ? 'grayscale(0.4)' : 'none',
         }}/>
       ) : (
-        <Icon name="user" size={size * 0.5} stroke="#5C5043" width={1.5}/>
+        <Icon name="user" size={size * 0.5} stroke="var(--ink-4)" width={1.5}/>
       )}
     </div>
   );
@@ -304,7 +367,7 @@ function DigitalMatMesh({ patternIdx = 0 }: { patternIdx?: number }) {
 }
 
 // ─── Backdrop — commander art + mesh + veil ────────────────────────────────
-function SVBackdrop({ src, patternIdx = 0 }: { src: string; patternIdx?: number }) {
+function SVBackdrop({ src, patternIdx = 0, lightMode = false }: { src: string; patternIdx?: number; lightMode?: boolean }) {
   return (
     <>
       {src ? <img src={src} alt="" style={{
@@ -313,25 +376,29 @@ function SVBackdrop({ src, patternIdx = 0 }: { src: string; patternIdx?: number 
       }}/> : null}
 
       {/* Digital mat mesh overlay */}
-      <DigitalMatMesh patternIdx={patternIdx}/>
+      {!lightMode && <DigitalMatMesh patternIdx={patternIdx}/>}
 
-      {/* Dark gradient veil */}
+      {/* Gradient veil */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 2,
-        background: 'linear-gradient(180deg, rgba(10,6,4,0.30) 0%, rgba(10,6,4,0.60) 35%, #0A0604 85%)',
+        background: lightMode
+          ? 'linear-gradient(180deg, rgba(250,245,234,0.05) 0%, rgba(250,245,234,0.45) 35%, #FAF5EA 85%)'
+          : 'linear-gradient(180deg, rgba(10,6,4,0.30) 0%, rgba(10,6,4,0.60) 35%, #0A0604 85%)',
       }}/>
 
-      {/* Copper warm glow at top */}
+      {/* Warm glow at top */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-        backgroundImage: 'radial-gradient(ellipse 80% 40% at 50% 15%, rgba(201,155,47,0.18), transparent 60%)',
+        backgroundImage: `radial-gradient(ellipse 80% 40% at 50% 15%, var(--copper-glow), transparent 60%)`,
       }}/>
 
       {/* Inner border glow */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2,
-        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(201,155,47,0.12)',
-      }}/>
+      {!lightMode && (
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2,
+          boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(201,155,47,0.12)',
+        }}/>
+      )}
     </>
   );
 }
@@ -346,12 +413,12 @@ function SVHeader({ onSettings }: { onSettings: () => void }) {
     }}>
       <button style={{
         width: 32, height: 32, borderRadius: 10,
-        background: 'rgba(21,14,8,0.6)',
-        border: '1px solid rgba(226,184,88,0.12)',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-accent-subtle)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', padding: 0,
       }} onClick={onSettings}>
-        <Icon name="settings" size={16} stroke="#C8BCA8" width={1.5}/>
+        <Icon name="settings" size={16} stroke="var(--ink-2)" width={1.5}/>
       </button>
     </div>
   );
@@ -404,7 +471,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
 
         {/* Outer ring — neutral gray so it doesn't clash with cmdr damage arcs */}
         <circle cx={cx} cy={cx} r={radius}
-          fill="none" stroke="#8A7E6F" strokeWidth="2" strokeOpacity="0.35"/>
+          fill="none" stroke="var(--ink-3)" strokeWidth="2" strokeOpacity="0.35"/>
 
         {/* Commander damage segments */}
         {segments.map((seg: any, i: number) => (
@@ -424,7 +491,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
 
         {/* Inner decorative ring */}
         <circle cx={cx} cy={cx} r="65"
-          fill="none" stroke="#8A7E6F" strokeWidth="0.4" strokeOpacity="0.3"
+          fill="none" stroke="var(--ink-3)" strokeWidth="0.4" strokeOpacity="0.3"
           strokeDasharray="1 3"/>
 
       </svg>
@@ -455,12 +522,12 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
           <>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 48, lineHeight: 1, color: '#E2B858',
+              fontSize: 48, lineHeight: 1, color: 'var(--gold)',
             }}>×</div>
             <div style={{
               marginTop: 10, fontSize: 11, fontWeight: 700,
               letterSpacing: '0.24em', textTransform: 'uppercase',
-              color: '#C99B2F',
+              color: 'var(--gold-muted)',
             }}>Eliminated</div>
           </>
         )}
@@ -479,13 +546,13 @@ function RoundBtn({ glyph, onTap, onLongStart, onLongEnd }: any) {
       onPointerLeave={onLongEnd}
       style={{
         width: 44, height: 44, borderRadius: 999,
-        background: '#150E08',
-        border: '1px solid rgba(226,184,88,0.18)',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-accent)',
         color: 'var(--ink)',
         fontFamily: 'var(--font-display)', fontSize: 26, lineHeight: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', padding: 0,
-        boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
+        boxShadow: 'var(--shadow-btn)',
       }}
     >{glyph}</button>
   );
@@ -538,23 +605,23 @@ function OpponentRow({ p, onTap }: any) {
   return (
     <button onClick={() => onTap(p)} style={{
       width: '100%', padding: '8px 10px',
-      background: '#150E08',
-      border: '1px solid rgba(226,184,88,0.18)',
+      background: 'var(--bg-elevated)',
+      border: '1px solid var(--border-accent)',
       borderRadius: 14,
       display: 'flex', alignItems: 'center', gap: 10,
       cursor: 'pointer', textAlign: 'left',
     }}>
       <CommAvatar src={p.art} size={32}
-        ring={p.dead ? '#5C5043' : '#E2B858'} dim={p.dead}/>
+        ring={p.dead ? 'var(--ring-dead)' : 'var(--ring-active)'} dim={p.dead}/>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
           fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
           letterSpacing: '0.22em', textTransform: 'uppercase',
-          color: '#8A7E6F',
+          color: 'var(--ink-3)',
         }}>{p.name}</div>
         <div style={{
           fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
-          color: p.dead ? '#8A7E6F' : 'var(--ink)',
+          color: p.dead ? 'var(--ink-3)' : 'var(--ink)',
           letterSpacing: '-0.01em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{p.commander}</div>
@@ -576,7 +643,7 @@ function OpponentRow({ p, onTap }: any) {
         <div style={{
           fontFamily: 'var(--font-display)',
           fontSize: 22, lineHeight: 1, letterSpacing: '-0.02em',
-          color: p.dead ? '#5C5043' : 'var(--ink)',
+          color: p.dead ? 'var(--ink-4)' : 'var(--ink)',
           fontVariantNumeric: 'tabular-nums',
           minWidth: 30, textAlign: 'right',
         }}>{p.dead ? '—' : p.life}</div>
@@ -604,13 +671,13 @@ function GameNav({ active = 'single', onNav }: any) {
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0,
       padding: '10px 16px 24px', zIndex: 8,
-      background: 'linear-gradient(180deg, rgba(10,6,4,0) 0%, rgba(10,6,4,0.92) 30%, #0A0604 100%)',
+      background: `linear-gradient(180deg, var(--nav-fade-start) 0%, var(--nav-fade-mid) 30%, var(--nav-fade-end) 100%)`,
     }}>
       <div style={{
-        background: '#150E08',
-        border: '1px solid rgba(226,184,88,0.18)',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-accent)',
         borderRadius: 999,
-        boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
+        boxShadow: 'var(--shadow-btn)',
         padding: 6, display: 'flex', gap: 4,
       }}>
         {/* ── View toggle (Grid / You) ── */}
@@ -622,7 +689,7 @@ function GameNav({ active = 'single', onNav }: any) {
           <div style={{
             position: 'absolute', top: 0, bottom: 0,
             width: '50%', borderRadius: 999,
-            background: '#B06B2C',
+            background: 'var(--copper)',
             transform: thumbLeft ? 'translateX(0%)' : 'translateX(100%)',
             transition: 'transform 0.28s cubic-bezier(.4,.0,.2,1)',
           }}/>
@@ -632,13 +699,13 @@ function GameNav({ active = 'single', onNav }: any) {
               <button key={it.id} onClick={() => handleToggle(it.id as any)} style={{
                 flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
                 padding: '6px 0', border: 'none', background: 'transparent',
-                color: on ? '#F0E8D8' : '#8A7E6F',
+                color: on ? 'var(--ink)' : 'var(--ink-3)',
                 borderRadius: 999, position: 'relative', zIndex: 1,
                 fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
                 letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
                 cursor: 'pointer', transition: 'color 0.28s ease',
               }}>
-                <Icon name={it.icon} size={16} stroke={on ? '#F0E8D8' : '#8A7E6F'}/>
+                <Icon name={it.icon} size={16} stroke={on ? 'var(--ink)' : 'var(--ink-3)'}/>
                 <span>{it.label}</span>
               </button>
             );
@@ -646,19 +713,19 @@ function GameNav({ active = 'single', onNav }: any) {
         </div>
 
         {/* ── Separator ── */}
-        <div style={{ width: 1, alignSelf: 'stretch', margin: '4px 2px', background: 'rgba(226,184,88,0.12)', borderRadius: 1 }}/>
+        <div style={{ width: 1, alignSelf: 'stretch', margin: '4px 2px', background: 'var(--border-accent-subtle)', borderRadius: 1 }}/>
 
         {/* ── Action buttons (Dice, Counters, Cmdr Dmg) ── */}
         {actions.map(it => (
           <button key={it.id} onClick={() => onNav?.(it.id)} style={{
             flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
             padding: '6px 0', border: 'none', background: 'transparent',
-            color: '#8A7E6F', borderRadius: 999,
+            color: 'var(--ink-3)', borderRadius: 999,
             fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
             cursor: 'pointer',
           }}>
-            <Icon name={it.icon} size={16} stroke="#8A7E6F"/>
+            <Icon name={it.icon} size={16} stroke="var(--ink-3)"/>
             <span>{it.label}</span>
           </button>
         ))}
@@ -735,12 +802,12 @@ function MiniRoundBtn({ glyph, onClick }: any) {
   return (
     <button onClick={onClick} style={{
       width: 36, height: 36, borderRadius: 999,
-      background: '#150E08', border: '1px solid rgba(226,184,88,0.18)',
+      background: 'var(--bg-elevated)', border: '1px solid var(--border-accent)',
       color: 'var(--ink)', fontFamily: 'var(--font-display)',
       fontSize: 22, lineHeight: 1,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       cursor: 'pointer', padding: 0,
-      boxShadow: '0 1px 0 rgba(0,0,0,.15), 0 6px 18px -8px rgba(0,0,0,.35)',
+      boxShadow: 'var(--shadow-btn)',
     }}>{glyph}</button>
   );
 }
@@ -779,13 +846,13 @@ function ModalTitle({ kickerText, title }: any) {
         display: 'inline-flex', alignItems: 'center', gap: 8,
         fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
         letterSpacing: '0.32em', textTransform: 'uppercase',
-        color: '#E2B858',
+        color: 'var(--gold)',
       }}>
-        <span style={{ width: 18, height: 1, background: '#E2B858', opacity: 0.5 }}/>
+        <span style={{ width: 18, height: 1, background: 'var(--gold)', opacity: 0.5 }}/>
         <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
         <span>{kickerText}</span>
         <span style={{ fontSize: 8, opacity: 0.7 }}>✦</span>
-        <span style={{ width: 18, height: 1, background: '#E2B858', opacity: 0.5 }}/>
+        <span style={{ width: 18, height: 1, background: 'var(--gold)', opacity: 0.5 }}/>
       </div>
       <div style={{
         fontFamily: 'var(--font-display)', fontSize: 26, lineHeight: 1.05,
@@ -833,7 +900,7 @@ function BottomSheet({ children, onClose }: any) {
       {/* Backdrop */}
       <div onClick={onClose} style={{
         position: 'absolute', inset: 0, zIndex: 28,
-        background: 'rgba(5,3,2,0.72)',
+        background: 'var(--overlay-dim)',
         backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
       }}/>
 
@@ -843,7 +910,7 @@ function BottomSheet({ children, onClose }: any) {
         transform: 'translateX(-50%)',
         width: 300, height: 300,
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(226,184,88,0.10) 0%, transparent 65%)',
+        background: `radial-gradient(circle, var(--copper-glow) 0%, transparent 65%)`,
         pointerEvents: 'none', zIndex: 29,
       }}/>
 
@@ -856,13 +923,13 @@ function BottomSheet({ children, onClose }: any) {
         {/* Gold top edge — follows rounded corners */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-          background: 'linear-gradient(90deg, #8C5A28 0%, #E2B858 25%, #C99B2F 50%, #E2B858 75%, #8C5A28 100%)',
+          background: 'var(--sheet-gold-edge)',
           borderTopLeftRadius: 24, borderTopRightRadius: 24,
           zIndex: 1,
         }}/>
         <div style={{
           position: 'relative',
-          background: '#1C140C',
+          background: 'var(--bg-surface)',
           padding: '14px 18px 32px',
           boxShadow: '0 -20px 40px -10px rgba(0,0,0,0.50)',
         }}>
@@ -882,7 +949,7 @@ function BottomSheet({ children, onClose }: any) {
           >
             <div style={{
               width: 40, height: 4, borderRadius: 999,
-              background: 'rgba(226,184,88,0.18)', margin: '0 auto',
+              background: 'var(--border-accent)', margin: '0 auto',
             }}/>
           </div>
 
@@ -954,7 +1021,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
         {dice.map((d) => {
           const isLast = lastRolled === d.key;
           const val = (results as any)[d.key];
-          const accent = isLast ? '#E2B858' : '#8A7E6F';
+          const accent = isLast ? 'var(--gold)' : 'var(--ink-3)';
           const bgFill = isLast
             ? 'radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)'
             : '#1A120A';
@@ -991,7 +1058,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
               }}>{val ?? '—'}</div>
               <div style={{
                 fontFamily: 'var(--font-ui)', fontSize: 9,
-                color: '#5C5043',
+                color: 'var(--ink-4)',
                 letterSpacing: '0.04em', marginTop: 2,
               }}>{rollingKey === d.key ? 'Rolling...' : val ? (isLast ? 'Last roll' : 'Previous') : 'Tap to roll'}</div>
             </button>
@@ -1106,7 +1173,7 @@ function CounterSheet({ onClose, counters, onAdjust }: any) {
         <span style={{
           fontFamily: 'var(--font-ui)', fontSize: 8, fontWeight: 700,
           letterSpacing: '0.28em', textTransform: 'uppercase',
-          color: '#8A7E6F',
+          color: 'var(--ink-3)',
         }}>Track</span>
         <div style={{ flex: 1, height: 1, background: 'rgba(226,184,88,0.18)' }}/>
       </div>
@@ -1139,7 +1206,7 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
           const accent = dmg > 0 ? CMDR_HEAT_COLORS[heatIdx] : '#8A7E6F';
           return (
             <div key={opp.id} style={{
-              background: '#150E08',
+              background: 'var(--bg-elevated)',
               border: dmg > 0 ? `1.5px solid ${accent}66` : '1px solid rgba(226,184,88,0.18)',
               borderRadius: 16, padding: '12px 14px',
               display: 'flex', alignItems: 'center', gap: 12,
@@ -1149,7 +1216,7 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
                 <div style={{
                   fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
                   letterSpacing: '0.22em', textTransform: 'uppercase',
-                  color: '#8A7E6F',
+                  color: 'var(--ink-3)',
                 }}>{opp.name}</div>
                 <div style={{
                   fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1,
@@ -1176,14 +1243,14 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <button onClick={() => onAdjust(opp.id, 1)} style={{
                   width: 32, height: 32, borderRadius: 10,
-                  background: '#0A0604', border: '1px solid rgba(226,184,88,0.18)',
+                  background: 'var(--parchment)', border: '1px solid var(--border-accent)',
                   fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', padding: 0,
                 }}>+</button>
                 <button onClick={() => onAdjust(opp.id, -1)} style={{
                   width: 32, height: 32, borderRadius: 10,
-                  background: '#0A0604', border: '1px solid rgba(226,184,88,0.18)',
+                  background: 'var(--parchment)', border: '1px solid var(--border-accent)',
                   fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', padding: 0,
@@ -1287,7 +1354,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 40,
-      background: 'rgba(5,3,2,0.72)',
+      background: 'var(--overlay-dim)',
       backdropFilter: 'blur(2px)',
       display: 'flex', flexDirection: 'column',
       animation: 'overlayFadeIn 0.25s ease-out',
@@ -1305,8 +1372,8 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
       {showSelector && (
         <div style={{
           margin: '10px 14px 0',
-          background: '#150E08',
-          border: '1px solid rgba(226,184,88,0.18)',
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border-accent)',
           borderRadius: 12, padding: '6px 8px',
           display: 'flex', justifyContent: 'space-between', gap: 6,
         }}>
@@ -1320,10 +1387,10 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
                 cursor: 'pointer',
                 outline: isActive ? '1.5px solid #E2B858' : 'none',
               }}>
-                <CommAvatar src={m.art} size={18} ring={isActive ? '#E2B858' : 'rgba(226,184,88,0.18)'} dim={m.dead}/>
+                <CommAvatar src={m.art} size={18} ring={isActive ? 'var(--ring-active)' : 'var(--border-accent)'} dim={m.dead}/>
                 <div style={{
                   fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1,
-                  color: m.dead ? '#5C5043' : 'var(--ink)',
+                  color: m.dead ? 'var(--ink-4)' : 'var(--ink)',
                   fontVariantNumeric: 'tabular-nums',
                 }}>{m.dead ? '—' : m.life}</div>
               </button>
@@ -1338,8 +1405,8 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
         onTouchEnd={handleTouchEnd}
         style={{
         margin: '14px 14px',
-        background: '#150E08',
-        border: '1px solid rgba(226,184,88,0.18)',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-accent)',
         borderRadius: 24,
         boxShadow: '0 30px 60px -20px rgba(0,0,0,0.60)',
         padding: 14, flex: 1, position: 'relative', overflow: 'hidden',
@@ -1354,7 +1421,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CommAvatar src={p.art} size={42} ring={isEmpty ? 'rgba(226,184,88,0.18)' : '#E2B858'}/>
+            <CommAvatar src={p.art} size={42} ring={isEmpty ? 'var(--border-accent)' : 'var(--ring-active)'}/>
             <div style={{ minWidth: 0 }}>
               <div style={kicker(9)}>{p.name}</div>
               {!isEmpty && p.commander && (
@@ -1367,11 +1434,11 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
           </div>
           <button onClick={onClose} style={{
             width: 28, height: 28, borderRadius: 999,
-            background: 'transparent', border: '1px solid rgba(226,184,88,0.18)',
+            background: 'transparent', border: '1px solid var(--border-accent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', padding: 0,
           }}>
-            <Icon name="x" size={14} stroke="#C8BCA8"/>
+            <Icon name="x" size={14} stroke="var(--ink-2)"/>
           </button>
         </div>
 
@@ -1381,22 +1448,22 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '6px 10px',
-              background: '#0A0604', border: '1px solid rgba(226,184,88,0.10)',
+              background: 'var(--parchment)', border: '1px solid rgba(226,184,88,0.10)',
               borderRadius: 10,
             }}>
               <div style={{
                 fontSize: 11, fontWeight: 600,
-                color: '#C8BCA8', letterSpacing: '0.04em',
+                color: 'var(--ink-2)', letterSpacing: '0.04em',
               }}>{p.typeLine || 'Legendary Creature'}</div>
               <ManaDots colors={p.colors} size={7}/>
             </div>
 
             {p.rulesText && (
               <div style={{
-                background: '#0A0604', border: '1px solid rgba(226,184,88,0.10)',
+                background: 'var(--parchment)', border: '1px solid rgba(226,184,88,0.10)',
                 borderRadius: 12, padding: '10px 12px',
                 fontSize: 12, lineHeight: 1.45,
-                color: '#C8BCA8', fontStyle: 'italic',
+                color: 'var(--ink-2)', fontStyle: 'italic',
               }}>
                 {p.keywords && (
                   <span style={{ fontStyle: 'normal', fontWeight: 700, color: 'var(--ink)' }}>
@@ -1408,7 +1475,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
                   <span style={{
                     display: 'block', marginTop: 6, fontStyle: 'normal',
                     fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase',
-                    color: '#8A7E6F', fontWeight: 700,
+                    color: 'var(--ink-3)', fontWeight: 700,
                   }}>Power · Toughness — {p.pt}</span>
                 )}
               </div>
@@ -1447,7 +1514,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
         }}>
           <div style={{
-            background: '#0A0604', border: '1px solid rgba(226,184,88,0.10)',
+            background: 'var(--parchment)', border: '1px solid rgba(226,184,88,0.10)',
             borderRadius: 12, padding: '8px 12px',
           }}>
             <div style={{
@@ -1467,7 +1534,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
           }}>
             <div style={{
               fontSize: 9, fontWeight: 700, letterSpacing: '0.2em',
-              textTransform: 'uppercase', color: '#B06B2C',
+              textTransform: 'uppercase', color: 'var(--copper)',
             }}>Dmg from you</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontSize: 38, lineHeight: 1,
@@ -1482,21 +1549,21 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
 }
 
 // ─── Settings overlay ──────────────────────────────────────────────────────
-function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange }: any) {
+function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange, lightMode, onToggleLight }: any) {
   const [confirmingAbandon, setConfirmingAbandon] = useState(false);
 
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 50,
-      background: 'rgba(5,3,2,0.72)',
+      background: 'var(--overlay-dim)',
       backdropFilter: 'blur(2px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       animation: 'overlayFadeIn 0.25s ease-out',
     }}>
       <div style={{
         width: 'calc(100% - 48px)', maxWidth: 340,
-        background: '#1C140C',
-        border: '1px solid rgba(226,184,88,0.18)',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-accent)',
         borderRadius: 24,
         boxShadow: '0 30px 60px -20px rgba(0,0,0,0.60)',
         padding: 20,
@@ -1513,8 +1580,8 @@ function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange }: an
           </div>
           <button onClick={onClose} style={{
             padding: '6px 12px', borderRadius: 999,
-            background: 'transparent', border: '1px solid rgba(226,184,88,0.18)',
-            fontSize: 11, fontWeight: 700, color: '#C8BCA8',
+            background: 'transparent', border: '1px solid var(--border-accent)',
+            fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: 'pointer',
           }}>Close</button>
@@ -1531,9 +1598,9 @@ function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange }: an
                 width: '100%',
                 appearance: 'none',
                 WebkitAppearance: 'none',
-                background: '#150E08',
-                color: '#F0E8D8',
-                border: '1px solid rgba(226,184,88,0.18)',
+                background: 'var(--bg-elevated)',
+                color: 'var(--ink)',
+                border: '1px solid var(--border-accent)',
                 borderRadius: 14,
                 padding: '12px 40px 12px 16px',
                 fontSize: 14, fontWeight: 600,
@@ -1543,26 +1610,51 @@ function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange }: an
               }}
             >
               {PATTERN_LIST.map((p, i) => (
-                <option key={p.key} value={i} style={{ background: '#150E08', color: '#F0E8D8' }}>
+                <option key={p.key} value={i} style={{ background: 'var(--bg-elevated)', color: 'var(--ink)' }}>
                   {p.label}
                 </option>
               ))}
             </select>
             <div style={{
               position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-              pointerEvents: 'none', color: '#8A7E6F',
+              pointerEvents: 'none', color: 'var(--ink-3)',
             }}>
-              <Icon name="chevron-left" size={14} stroke="#8A7E6F" width={2}/>
+              <Icon name="chevron-left" size={14} stroke="var(--ink-3)" width={2}/>
             </div>
           </div>
+        </div>
+
+        {/* Light / Dark mode toggle */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ ...kicker(9), marginBottom: 8 }}>Appearance</div>
+          <button onClick={onToggleLight} style={{
+            width: '100%',
+            background: 'var(--bg-elevated)',
+            color: 'var(--ink)',
+            border: '1px solid var(--border-accent)',
+            borderRadius: 14,
+            padding: '12px 16px',
+            fontSize: 14, fontWeight: 600,
+            fontFamily: "'Instrument Sans', system-ui, sans-serif",
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name={lightMode ? 'sun' : 'moon'} size={16} stroke="var(--ink-2)" width={1.8}/>
+              {lightMode ? 'Light Mode' : 'Dark Mode'}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Tap to switch
+            </span>
+          </button>
         </div>
 
         {!confirmingAbandon ? (
           <button onClick={() => setConfirmingAbandon(true)} style={{
             width: '100%', cursor: 'pointer',
-            background: '#150E08',
-            color: '#9E2B2B',
-            border: '1px solid rgba(158,43,43,0.2)',
+            background: 'var(--bg-elevated)',
+            color: 'var(--danger)',
+            border: '1px solid var(--danger-border)',
             borderRadius: 20,
             padding: '14px 18px',
             fontSize: 15, fontWeight: 600,
@@ -1571,16 +1663,16 @@ function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange }: an
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{
-              textAlign: 'center', fontSize: 13, color: '#C8BCA8', lineHeight: 1.4,
+              textAlign: 'center', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.4,
               marginBottom: 4,
             }}>
               Are you sure? This action cannot be undone.
             </div>
             <button onClick={onAbandon} style={{
               width: '100%', cursor: 'pointer',
-              background: '#150E08',
-              color: '#9E2B2B',
-              border: '1px solid rgba(158,43,43,0.2)',
+              background: 'var(--bg-elevated)',
+              color: 'var(--danger)',
+              border: '1px solid var(--danger-border)',
               borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
@@ -1588,9 +1680,9 @@ function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange }: an
             }}>Confirm Abandon</button>
             <button onClick={() => setConfirmingAbandon(false)} style={{
               width: '100%', cursor: 'pointer',
-              background: '#150E08',
-              color: '#C8BCA8',
-              border: '1px solid rgba(226,184,88,0.18)',
+              background: 'var(--bg-elevated)',
+              color: 'var(--ink-2)',
+              border: '1px solid var(--border-accent)',
               borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
@@ -1645,15 +1737,15 @@ function EliminatedPopup({ onRevive, onReview }: any) {
 
         <div style={{
           position: 'relative',
-          background: '#1A1410',
+          background: 'var(--parchment-card)',
           padding: '8px 22px 32px',
         }}>
           <button onClick={onRevive} aria-label="Close" style={{
             position: 'absolute', top: 14, right: 16,
             width: 32, height: 32, borderRadius: 999,
             border: '1px solid rgba(240,232,216,0.08)',
-            background: '#100C08',
-            color: '#5C5043', cursor: 'pointer',
+            background: 'var(--parchment-deep)',
+            color: 'var(--ink-4)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
           }}>×</button>
@@ -1671,14 +1763,14 @@ function EliminatedPopup({ onRevive, onReview }: any) {
             </div>
             <div style={{
               fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6,
+              textTransform: 'uppercase', color: 'var(--copper)', marginBottom: 6,
             }}>Life Reached Zero</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 26, letterSpacing: '-0.02em',
-              color: '#F0E8D8', lineHeight: 1.1,
+              color: 'var(--ink)', lineHeight: 1.1,
             }}>You have been eliminated</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+            <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.4 }}>
               If the game is over, head to review to rate your experience.
               If this was a mistake, revive to continue playing.
             </div>
@@ -1687,14 +1779,14 @@ function EliminatedPopup({ onRevive, onReview }: any) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: '#B06B2C', color: '#F0E8D8',
+              background: 'var(--copper)', color: 'var(--ink)',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
               boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
@@ -1702,7 +1794,7 @@ function EliminatedPopup({ onRevive, onReview }: any) {
 
             <button onClick={onRevive} style={{
               width: '100%', cursor: 'pointer',
-              background: '#1A1410', color: 'var(--ink-2)',
+              background: 'var(--parchment-card)', color: 'var(--ink-2)',
               border: '1px solid var(--line-strong)',
               borderRadius: 20,
               padding: '14px 18px',
@@ -1712,18 +1804,18 @@ function EliminatedPopup({ onRevive, onReview }: any) {
           </div>
 
           <div style={{
-            textAlign: 'center', fontSize: 11, color: '#8A7E6F',
+            textAlign: 'center', fontSize: 11, color: 'var(--ink-3)',
             marginTop: 14, lineHeight: 1.4,
           }}>
             Closing this popup will revive you at 1 life.
           </div>
           <div style={{
-            textAlign: 'center', fontSize: 12, color: '#8A7E6F',
+            textAlign: 'center', fontSize: 12, color: 'var(--ink-3)',
             marginTop: 12,
           }}>
             Or <button onClick={onRevive} style={{
               background: 'none', border: 'none', padding: 0,
-              fontSize: 12, color: '#8A7E6F', textDecoration: 'underline',
+              fontSize: 12, color: 'var(--ink-3)', textDecoration: 'underline',
               cursor: 'pointer',
             }}>skip review</button> to exit the game.
           </div>
@@ -1756,15 +1848,15 @@ function VictoryPopup({ onContinue, onReview }: any) {
 
         <div style={{
           position: 'relative',
-          background: '#1A1410',
+          background: 'var(--parchment-card)',
           padding: '8px 22px 32px',
         }}>
           <button onClick={onContinue} aria-label="Close" style={{
             position: 'absolute', top: 14, right: 16,
             width: 32, height: 32, borderRadius: 999,
             border: '1px solid rgba(240,232,216,0.08)',
-            background: '#100C08',
-            color: '#5C5043', cursor: 'pointer',
+            background: 'var(--parchment-deep)',
+            color: 'var(--ink-4)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
           }}>×</button>
@@ -1789,14 +1881,14 @@ function VictoryPopup({ onContinue, onReview }: any) {
             </div>
             <div style={{
               fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: '#E2B858', marginBottom: 6,
+              textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 6,
             }}>Last One Standing</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 26, letterSpacing: '-0.02em',
-              color: '#F0E8D8', lineHeight: 1.1,
+              color: 'var(--ink)', lineHeight: 1.1,
             }}>Victory is yours</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+            <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.4 }}>
               All opponents have been defeated. Head to review to celebrate the win and rate the game.
             </div>
           </div>
@@ -1804,14 +1896,14 @@ function VictoryPopup({ onContinue, onReview }: any) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: '#B06B2C', color: '#F0E8D8',
+              background: 'var(--copper)', color: 'var(--ink)',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
               boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
@@ -1819,7 +1911,7 @@ function VictoryPopup({ onContinue, onReview }: any) {
 
             <button onClick={onContinue} style={{
               width: '100%', cursor: 'pointer',
-              background: '#1A1410', color: 'var(--ink-2)',
+              background: 'var(--parchment-card)', color: 'var(--ink-2)',
               border: '1px solid var(--line-strong)',
               borderRadius: 20,
               padding: '14px 18px',
@@ -1829,7 +1921,7 @@ function VictoryPopup({ onContinue, onReview }: any) {
           </div>
 
           <div style={{
-            textAlign: 'center', fontSize: 11, color: '#8A7E6F',
+            textAlign: 'center', fontSize: 11, color: 'var(--ink-3)',
             marginTop: 14, lineHeight: 1.4,
           }}>
             Closing this popup keeps you in the game.
@@ -1871,6 +1963,7 @@ function PageContent() {
   const [showVictory, setShowVictory] = useState(false);
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   const [patternIdx, setPatternIdx] = useState(0);
+  const [lightMode, setLightMode] = useState(false);
   const [expandedOpponent, setExpandedOpponent] = useState<string | null>(null);
   const [cmdrDmg, setCmdrDmg] = useState<Record<string, number>>({});
   const [cmdrDmgFromYou, setCmdrDmgFromYou] = useState<Record<string, number>>({});
@@ -2233,7 +2326,7 @@ function PageContent() {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#0A0604',
+        background: 'var(--parchment)',
       }}>
         <AuraLoaderG size={180} />
       </div>
@@ -2316,7 +2409,7 @@ function PageContent() {
         position: 'fixed', top: 0, bottom: 0, left: '50%',
         transform: 'translateX(-50%)',
         width: '100%', maxWidth: 430,
-        background: '#0A0604',
+        background: 'var(--parchment)',
         overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
@@ -2326,7 +2419,7 @@ function PageContent() {
   }
 
   return (
-    <div style={{
+    <div className={lightMode ? 'aura-light' : ''} style={{
       position: 'fixed', top: 0, bottom: 0, left: '50%',
       transform: 'translateX(-50%)',
       width: '100%', maxWidth: 430,
@@ -2336,7 +2429,7 @@ function PageContent() {
       touchAction: 'none',
       fontFamily: 'var(--font-ui)',
     }}>
-      <SVBackdrop src={myArt} patternIdx={patternIdx}/>
+      <SVBackdrop src={myArt} patternIdx={patternIdx} lightMode={lightMode}/>
       <SVHeader onSettings={() => setShowSettings(true)}/>
 
       {/* Life dial + buttons */}
@@ -2452,7 +2545,9 @@ function PageContent() {
           onClose={() => setShowSettings(false)}
           onAbandon={() => { setShowSettings(false); handleAbandon(); }}
           patternIdx={patternIdx}
-          onPatternChange={setPatternIdx}/>
+          onPatternChange={setPatternIdx}
+          lightMode={lightMode}
+          onToggleLight={() => setLightMode(m => !m)}/>
       )}
 
       {/* Victory popup */}
