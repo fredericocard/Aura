@@ -10,6 +10,7 @@ import { useAuth } from '../../lib/auth-context';
 import { getGame, type GamePlayer } from '@/lib/games';
 import { castVote, castBracketCheck, type QuestionKey } from '@/lib/votes';
 import { submitReview } from '@/lib/pods';
+import { checkPodCompletion } from '@/lib/questionnaire';
 import { getGameCard, type GameCard, type CommanderCardData } from '@/lib/game-card';
 
 interface PlayerInfo {
@@ -501,7 +502,7 @@ function GuestPromotionOverlay({ onComplete, onSkip }: { onComplete: () => void;
   );
 }
 
-function MemoryCardOverlay({ onClose, card }: { onClose: () => void; card: GameCard | null }) {
+function MemoryCardOverlay({ onClose, onViewProfile, card }: { onClose: () => void; onViewProfile: () => void; card: GameCard | null }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const handleDownload = async () => {
     if (!cardRef.current) return;
@@ -529,7 +530,7 @@ function MemoryCardOverlay({ onClose, card }: { onClose: () => void; card: GameC
             <Icon name="share-2" size={16} />
           </button>
         </div>
-        <button onClick={e => { e.stopPropagation(); onClose(); }} style={{ width: '100%', border: 'none', background: '#2F5D3A', color: '#F5EFE2', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 16, padding: '16px 20px', borderRadius: 20, boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)', cursor: 'pointer' }}>View Profile</button>
+        <button onClick={e => { e.stopPropagation(); onClose(); onViewProfile(); }} style={{ width: '100%', border: 'none', background: '#2F5D3A', color: '#F5EFE2', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 16, padding: '16px 20px', borderRadius: 20, boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)', cursor: 'pointer' }}>View Profile</button>
       </div>
     </div>
   );
@@ -621,6 +622,30 @@ function PageContent() {
     }
   }, [allAnswered]);
 
+  // Poll Supabase for the Game Card once the memory overlay opens.
+  // Card is created asynchronously by the orchestration pipeline so may not
+  // exist immediately. Retry every 600ms for up to ~12 seconds.
+  useEffect(() => {
+    if (!showMemory || gameCard || !gameId) return;
+    let cancelled = false;
+    let tries = 0;
+    const poll = async () => {
+      while (!cancelled && tries < 20) {
+        try {
+          const card = await getGameCard(gameId);
+          if (card) {
+            if (!cancelled) setGameCard(card);
+            return;
+          }
+        } catch { /* ignore and retry */ }
+        tries++;
+        await new Promise(r => setTimeout(r, 600));
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [showMemory, gameCard, gameId]);
+
   const selectAnswer = (catId: string, choice: PlayerInfo | '__skip') => {
     const selectionId = choice === '__skip' ? '__skip' : choice.id;
     setAnswers(a => ({ ...a, [catId]: selectionId }));
@@ -655,14 +680,16 @@ function PageContent() {
   const handleAcceptReview = async () => {
     if (!podId) return;
     setSubmitting(true);
-    const { allDone, error: submitErr } = await submitReview(podId);
-    setSubmitting(false);
-    if (submitErr) { setPageError(submitErr); return; }
+    const { error: submitErr } = await submitReview(podId);
+    if (submitErr) { setPageError(submitErr); setSubmitting(false); return; }
 
-    // Load the Game Card (created by the orchestration pipeline after all reviews are in)
+    // Trigger the orchestration pipeline (badges → AURA → nudges → Game Card).
+    // checkPodCompletion fires onGameCompleted(gameId) when all reviews are in,
+    // which creates the Game Card in Supabase.
     if (gameId) {
-      getGameCard(gameId).then(card => { if (card) setGameCard(card); }).catch(() => {});
+      try { await checkPodCompletion(podId, gameId); } catch { /* keep going */ }
     }
+    setSubmitting(false);
 
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     if (!isLoggedIn) {
@@ -770,7 +797,7 @@ function PageContent() {
         />
       )}
 
-      {showMemory && <MemoryCardOverlay card={gameCard} onClose={() => setShowMemory(false)} />}
+      {showMemory && <MemoryCardOverlay card={gameCard} onClose={() => setShowMemory(false)} onViewProfile={() => router.push('/profile')} />}
     </div>
   );
 }
