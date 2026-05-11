@@ -66,40 +66,40 @@ const TOKENS_CSS = `
 }
 
 .aura-light {
-  --parchment:        #FAF5EA;
-  --parchment-card:   #FFFFFF;
-  --parchment-deep:   #EDE6D6;
+  --parchment:        #F5EFE2;
+  --parchment-card:   #FAF5EA;
+  --parchment-deep:   #EDE4D0;
   --ink:              #2B2118;
   --ink-2:            #5C5043;
   --ink-3:            #8A7E6F;
-  --ink-4:            #B5ADA0;
-  --line:             rgba(43,33,24,0.10);
-  --line-strong:      rgba(43,33,24,0.16);
+  --ink-4:            #B8AE9E;
+  --line:             rgba(43,33,24,0.08);
+  --line-strong:      rgba(43,33,24,0.14);
   --forest-soft:      rgba(176,107,44,0.10);
   --forest-line:      rgba(176,107,44,0.22);
-  --shadow-rest:      0 1px 2px rgba(0,0,0,.06), 0 2px 8px -2px rgba(0,0,0,.10);
+  --shadow-rest:      0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12);
 
-  --bg-elevated:      #FFFFFF;
-  --bg-surface:       #FFFFFF;
-  --bg-well:          #EDE6D6;
-  --border-accent:    rgba(43,33,24,0.14);
-  --border-accent-subtle: rgba(43,33,24,0.08);
+  --bg-elevated:      #FAF5EA;
+  --bg-surface:       #FAF5EA;
+  --bg-well:          #EDE4D0;
+  --border-accent:    rgba(43,33,24,0.08);
+  --border-accent-subtle: rgba(43,33,24,0.06);
   --overlay-dim:      rgba(43,33,24,0.45);
   --gold:             #B06B2C;
   --gold-muted:       #8C5A28;
   --gold-deep:        #5C3D1A;
-  --shadow-btn:       0 1px 2px rgba(0,0,0,.06), 0 2px 8px -2px rgba(0,0,0,.10);
+  --shadow-btn:       0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12);
   --ring-active:      #B06B2C;
-  --ring-dead:        #B5ADA0;
-  --tick-stroke:      #B5ADA0;
-  --dial-ring-stroke: #B5ADA0;
-  --nav-fade-start:   rgba(250,245,234,0);
-  --nav-fade-mid:     rgba(250,245,234,0.92);
-  --nav-fade-end:     #FAF5EA;
-  --backdrop-top:     rgba(250,245,234,0.05);
-  --backdrop-mid:     rgba(250,245,234,0.45);
-  --backdrop-end:     #FAF5EA;
-  --copper-glow:      rgba(176,107,44,0.12);
+  --ring-dead:        #B8AE9E;
+  --tick-stroke:      #B8AE9E;
+  --dial-ring-stroke: #B8AE9E;
+  --nav-fade-start:   rgba(245,239,226,0);
+  --nav-fade-mid:     rgba(245,239,226,0.92);
+  --nav-fade-end:     #F5EFE2;
+  --backdrop-top:     rgba(245,239,226,0.05);
+  --backdrop-mid:     rgba(245,239,226,0.45);
+  --backdrop-end:     #F5EFE2;
+  --copper-glow:      rgba(176,107,44,0.08);
   --sheet-gold-edge:  linear-gradient(90deg, #C99B2F 0%, #B06B2C 25%, #8C5A28 50%, #B06B2C 75%, #C99B2F 100%);
 }
 
@@ -382,7 +382,7 @@ function SVBackdrop({ src, patternIdx = 0, lightMode = false }: { src: string; p
       <div style={{
         position: 'absolute', inset: 0, zIndex: 2,
         background: lightMode
-          ? 'linear-gradient(180deg, rgba(250,245,234,0.05) 0%, rgba(250,245,234,0.45) 35%, #FAF5EA 85%)'
+          ? 'linear-gradient(180deg, rgba(245,239,226,0.05) 0%, rgba(245,239,226,0.45) 35%, #F5EFE2 85%)'
           : 'linear-gradient(180deg, rgba(10,6,4,0.30) 0%, rgba(10,6,4,0.60) 35%, #0A0604 85%)',
       }}/>
 
