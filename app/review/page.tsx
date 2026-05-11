@@ -13,11 +13,14 @@ import { submitReview } from '@/lib/pods';
 import { getGameCard, type GameCard, type CommanderCardData } from '@/lib/game-card';
 
 interface PlayerInfo {
-  id: string;      // user_id
-  deckId: string;   // deck_id
-  name: string;     // display name (commander for now)
-  short: string;    // commander name
-  art: string;      // commander art URL
+  id: string;         // unique selection key: 'seat-${seat}'
+  seat: number;
+  deckId: string | null;
+  userId: string | null;
+  name: string;
+  short: string;
+  art: string;
+  isEmptySeat: boolean;
 }
 
 const CATEGORIES = [
@@ -104,7 +107,7 @@ function InactiveCard({ idx, question }: { idx: number; question: string }) {
   );
 }
 
-function ActiveCard({ idx, cat, selectedId, onSelect, players }: { idx: number; cat: typeof CATEGORIES[0]; selectedId: string | undefined; onSelect: (id: string) => void; players: PlayerInfo[] }) {
+function ActiveCard({ idx, cat, selectedId, onSelect, players }: { idx: number; cat: typeof CATEGORIES[0]; selectedId: string | undefined; onSelect: (choice: PlayerInfo | '__skip') => void; players: PlayerInfo[] }) {
   const faded = selectedId != null;
   return (
     <div style={{ background: '#FAF5EA', border: `1.5px solid ${cat.color}`, borderLeft: `6px solid ${cat.color}`, borderRadius: 20, padding: '22px 20px 24px', boxShadow: '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)' }}>
@@ -119,20 +122,20 @@ function ActiveCard({ idx, cat, selectedId, onSelect, players }: { idx: number; 
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
         {players.map((p: any) => (
-          <button key={p.deckId} onClick={() => onSelect(p.deckId)} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', opacity: faded && selectedId !== p.deckId ? 0.28 : 1, transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>
+          <button key={p.id} onClick={() => onSelect(p)} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', opacity: faded && selectedId !== p.id ? 0.28 : 1, transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>
             <div style={{ position: 'relative' }}>
-              <div style={{ width: 56, height: 56, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selectedId === p.deckId ? '0 0 0 3px #B06B2C' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
-                {p.art ? <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{p.short.charAt(0)}</div>}
+              <div style={{ width: 56, height: 56, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selectedId === p.id ? '0 0 0 3px #B06B2C' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
+                {p.art ? <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#8A7E6F', background: '#F5EFE2' }}>{`P${p.seat}`}</div>}
               </div>
-              {selectedId === p.deckId && (
+              {selectedId === p.id && (
                 <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'rgba(176,107,44,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                   <Icon name="check" size={26} width={2.5} />
                 </div>
               )}
             </div>
             <div style={{ textAlign: 'center', lineHeight: 1.25 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#2B2118' }}>{p.name}</div>
-              <div style={{ fontSize: 10, color: '#8A7E6F' }}>{p.short}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#2B2118' }}>{p.isEmptySeat ? `P${p.seat}` : p.short}</div>
+              <div style={{ fontSize: 10, color: '#8A7E6F' }}>{p.isEmptySeat ? 'Empty seat' : p.name}</div>
             </div>
           </button>
         ))}
@@ -181,20 +184,20 @@ function BracketActiveCard({ selected, onSelect, players }: { selected: string |
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {players.map((p: any) => (
-          <button key={p.id} onClick={() => onSelect(p.deckId)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: selected === p.deckId ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif" }}>
+          <button key={p.id} onClick={() => onSelect(p.id)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: selected === p.id ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif" }}>
             <div style={{ position: 'relative' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selected === p.deckId ? '0 0 0 2px #9E2B2B' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
-                {p.art ? <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>{p.short.charAt(0)}</div>}
+              <div style={{ width: 36, height: 36, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selected === p.id ? '0 0 0 2px #9E2B2B' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
+                {p.art ? <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#8A7E6F', background: '#F5EFE2' }}>{`P${p.seat}`}</div>}
               </div>
-              {selected === p.deckId && (
+              {selected === p.id && (
                 <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'rgba(158,43,43,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                   <Icon name="check" size={18} width={2.5} />
                 </div>
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#2B2118', lineHeight: 1.2 }}>{p.short}</div>
-              <div style={{ fontSize: 11, color: '#8A7E6F', marginTop: 1 }}>{p.name}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#2B2118', lineHeight: 1.2 }}>{p.isEmptySeat ? `P${p.seat}` : p.short}</div>
+              <div style={{ fontSize: 11, color: '#8A7E6F', marginTop: 1 }}>{p.isEmptySeat ? 'Empty seat' : p.name}</div>
             </div>
           </button>
         ))}
@@ -559,26 +562,40 @@ function PageContent() {
       const { data: game, error: err } = await getGame(gameId);
       if (err || !game) { setPageError(err ?? 'Game not found'); setLoading(false); return; }
       // Build player list from game_players + deck info
-      // We need deck info — game_players has deck_id but we need commander name/art
-      // For now, use deck_id as identifier; the game query joined decks
       const supabase = (await import('@/lib/supabase')).supabase;
-      const deckIds = game.players.map((p: any) => p.deck_id);
-      const { data: decks } = await supabase
-        .from('decks')
-        .select('id, commander_name, commander_art_url')
-        .in('id', deckIds) as { data: any };
-      const deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+      const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
+      let deckMap = new Map();
+      if (deckIds.length > 0) {
+        const { data: decks } = await supabase
+          .from('decks')
+          .select('id, commander_name, commander_art_url')
+          .in('id', deckIds) as { data: any };
+        deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
+      }
 
-      const loaded: PlayerInfo[] = game.players.map((p: any) => {
-        const deck: any = deckMap.get(p.deck_id);
-        return {
-          id: p.user_id,
-          deckId: p.deck_id,
-          name: deck?.commander_name ?? 'Unknown',
-          short: deck?.commander_name ?? 'Unknown',
-          art: deck?.commander_art_url ?? '',
-        };
-      });
+      // Get the current user's id so we can exclude self from the choices
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const myUserId = currentUser?.id ?? null;
+
+      const loaded: PlayerInfo[] = game.players
+        .map((gp: any): PlayerInfo => {
+          const seat = gp.seat_number ?? 0;
+          const deck: any = gp.deck_id ? deckMap.get(gp.deck_id) : null;
+          const isEmptySeat = !gp.user_id && !gp.deck_id && !gp.commander_name;
+          const commanderName: string | null = deck?.commander_name ?? gp.commander_name ?? null;
+          return {
+            id: `seat-${seat}`,
+            seat,
+            deckId: gp.deck_id ?? null,
+            userId: gp.user_id ?? null,
+            name: commanderName ?? `P${seat}`,
+            short: commanderName ? commanderName.split(',')[0] : `P${seat}`,
+            art: deck?.commander_art_url ?? '',
+            isEmptySeat,
+          };
+        })
+        .filter((pl) => !myUserId || pl.userId !== myUserId)
+        .sort((a, b) => a.seat - b.seat);
       setPlayers(loaded);
       setLoading(false);
     }
@@ -603,13 +620,13 @@ function PageContent() {
     }
   }, [allAnswered]);
 
-  const selectAnswer = (catId: string, playerId: string) => {
-    setAnswers(a => ({ ...a, [catId]: playerId }));
+  const selectAnswer = (catId: string, choice: PlayerInfo | '__skip') => {
+    const selectionId = choice === '__skip' ? '__skip' : choice.id;
+    setAnswers(a => ({ ...a, [catId]: selectionId }));
 
-    // Fire vote to backend (fire-and-forget for snappy UX)
-    if (playerId !== '__skip' && gameId) {
-      // playerId here is actually deckId for real players
-      castVote(gameId, catId as QuestionKey, playerId).catch(() => {});
+    // Fire vote to backend. Skip and empty-seat selections don't go to Supabase.
+    if (choice !== '__skip' && choice.deckId && gameId) {
+      castVote(gameId, catId as QuestionKey, choice.deckId).catch(() => {});
     }
 
     setTimeout(() => {
@@ -626,8 +643,10 @@ function PageContent() {
       if (val === 'on-bracket') {
         castBracketCheck(gameId, []).catch(() => {});
       } else {
-        // val is a deckId
-        castBracketCheck(gameId, [val]).catch(() => {});
+        // val is the selection id ('seat-N'); look up the player to find deckId
+        const sel = players.find((pl) => pl.id === val);
+        if (!sel || !sel.deckId) return;
+        castBracketCheck(gameId, [sel.deckId]).catch(() => {});
       }
     }
   };
@@ -676,13 +695,13 @@ function PageContent() {
           const ans = answers[cat.id];
           const isActive = idx === activeIdx;
           if (ans != null && !isActive) {
-            const player = players.find(p => p.deckId === ans);
+            const player = players.find(p => p.id === ans);
             return <DoneCard key={cat.id} idx={idx} cat={cat} answerPlayer={player ? { id: player.id, name: player.name, short: player.short, art: player.art } : undefined} onReopen={() => setActiveIdx(idx)} />;
           }
           if (isActive) {
             return (
               <div key={cat.id} ref={activeCardRef} style={{ margin: '10px 0' }}>
-                <ActiveCard idx={idx} cat={cat} selectedId={answers[cat.id]} onSelect={deckId => selectAnswer(cat.id, deckId)} players={players} />
+                <ActiveCard idx={idx} cat={cat} selectedId={answers[cat.id]} onSelect={choice => selectAnswer(cat.id, choice)} players={players} />
               </div>
             );
           }
