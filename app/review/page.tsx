@@ -63,6 +63,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     'share-2': <><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></>,
     crown: <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>,
     'thumbs-up': <path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H7V10l4-8a2 2 0 0 1 2 2v1.88z"/>,
+    'book-open': <><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -158,7 +159,7 @@ function BracketActiveCard({ selected, onSelect, players }: { selected: string |
     <div style={{ background: '#FAF5EA', border: '1.5px solid #8A7E6F', borderLeft: '6px solid #8A7E6F', borderRadius: 20, padding: '22px 20px 24px', boxShadow: '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
         <div style={{ width: 44, height: 44, borderRadius: 999, background: '#EDE4D0', border: '1.5px solid #8A7E6F', color: '#5C5043', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="layers" size={28} />
+          <Icon name="book-open" size={26} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5C5043' }}>Bracket check · 6/6</div>
@@ -774,10 +775,4 @@ function PageContent() {
   );
 }
 
-export default function ReviewPage() {
-  return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
-      <PageContent />
-    </Suspense>
-  );
-}
+export default fun
