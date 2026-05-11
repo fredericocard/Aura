@@ -1007,12 +1007,13 @@ function CounterRow({ counter, count, isFirst, onMinus, onPlus }: {
 }
 
 function DamageSeal({ amount, lethal, accent, onMinus, onPlus }: { amount: number; lethal: number; accent: string; onMinus: () => void; onPlus: () => void }) {
+  const light = DARK === LIGHT_THEME;
   const pct = Math.min(1, amount / lethal);
   const SIZE = 132, R = 58, C = 2 * Math.PI * R;
   const dash = pct * C;
   const stepStyle: React.CSSProperties = {
     width: 44, height: 44, borderRadius: 999,
-    background: '#1A120A',
+    background: light ? DARK.bgDeep : '#1A120A',
     border: `1.5px solid ${accent}`,
     color: accent,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1028,8 +1029,8 @@ function DamageSeal({ amount, lethal, accent, onMinus, onPlus }: { amount: numbe
         <svg width={SIZE} height={SIZE} style={{ position: 'absolute', inset: 0 }}>
           <defs>
             <radialGradient id="seal-bg" cx="50%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#2A1E12"/>
-              <stop offset="60%" stopColor="#1C140C"/>
+              <stop offset="0%" stopColor={light ? DARK.bgDeep : '#2A1E12'}/>
+              <stop offset="60%" stopColor={light ? DARK.bgCard : '#1C140C'}/>
               <stop offset="100%" stopColor={accent} stopOpacity="0.18"/>
             </radialGradient>
           </defs>
@@ -1089,7 +1090,7 @@ function DiceModal({ open, onClose, players, selectedDiceOpt, diceResults, onRol
   if (!open) return null;
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      position: 'fixed', inset: 0, background: DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
@@ -1123,7 +1124,7 @@ function CountersModal({ open, onClose, players, selectedNum, setSelectedNum, co
   const playerCounts = counters[selectedNum] ?? { poison: 0, energy: 0, experience: 0 };
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      position: 'fixed', inset: 0, background: DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>
@@ -1183,7 +1184,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   };
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      position: 'fixed', inset: 0, background: DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)',
     }}>

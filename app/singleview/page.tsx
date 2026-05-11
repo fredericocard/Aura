@@ -969,7 +969,7 @@ function BottomSheet({ children, onClose }: any) {
 }
 
 // ─── Dice bottom sheet (KeepsakeCard) ───────────────────────────────────────
-function DiceSheet({ onClose, opponents = [] }: any) {
+function DiceSheet({ onClose, opponents = [], lightMode = false }: any) {
   const [results, setResults] = useState<Record<string, string | null>>({ d6: null, d20: null, coin: null, player: null });
   const [lastRolled, setLastRolled] = useState<string | null>(null);
   const [rollingKey, setRollingKey] = useState<string | null>(null);
@@ -1028,22 +1028,21 @@ function DiceSheet({ onClose, opponents = [] }: any) {
           const isLast = lastRolled === d.key;
           const val = (results as any)[d.key];
           const accent = isLast ? 'var(--gold)' : 'var(--ink-3)';
-          const isLight = document.documentElement.classList.contains('aura-light');
-          const bgFill = isLight
+          const bgFill = lightMode
             ? (isLast ? `radial-gradient(circle at 30% 20%, var(--parchment-deep) 0%, var(--parchment-card) 65%)` : 'var(--parchment-deep)')
             : (isLast ? 'radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)' : '#1A120A');
           return (
             <button key={d.key} className="sv-dice-btn" onClick={() => roll(d.key)} style={{
               position: 'relative',
               background: bgFill,
-              border: `1px solid ${isLast ? (isLight ? 'rgba(176,107,44,0.53)' : 'rgba(226,184,88,0.53)') : (isLight ? 'var(--line-strong)' : 'rgba(226,184,88,0.22)')}`,
+              border: `1px solid ${isLast ? (lightMode ? 'rgba(176,107,44,0.53)' : 'rgba(226,184,88,0.53)') : (lightMode ? 'var(--line-strong)' : 'rgba(226,184,88,0.22)')}`,
               borderRadius: 16,
               padding: '16px 14px 12px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               cursor: 'pointer', textAlign: 'center',
               boxShadow: isLast
-                ? (isLight ? '0 0 0 3px rgba(176,107,44,0.10), 0 4px 14px -4px rgba(176,107,44,0.15)' : '0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)')
-                : (isLight ? '0 1px 3px rgba(0,0,0,0.06)' : 'inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)'),
+                ? (lightMode ? '0 0 0 3px rgba(176,107,44,0.10), 0 4px 14px -4px rgba(176,107,44,0.15)' : '0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)')
+                : (lightMode ? '0 1px 3px rgba(0,0,0,0.06)' : 'inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)'),
               overflow: 'hidden',
             }}>
               <div style={{
@@ -2500,7 +2499,7 @@ function PageContent() {
 
       {/* Dice sheet */}
       {showDice && (
-        <DiceSheet onClose={() => setShowDice(false)} opponents={mappedOpponents}/>
+        <DiceSheet onClose={() => setShowDice(false)} opponents={mappedOpponents} lightMode={lightMode}/>
       )}
 
       {/* Counter sheet */}
