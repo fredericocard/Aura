@@ -1352,14 +1352,14 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
     : 'none';
 
   return (
-    <div style={{
+    <div onClick={onClose} style={{
       position: 'absolute', inset: 0, zIndex: 40,
       background: 'var(--overlay-dim)',
       backdropFilter: 'blur(2px)',
       display: 'flex', flexDirection: 'column',
       animation: 'overlayFadeIn 0.25s ease-out',
     }}>
-      <div style={{
+      <div onClick={e => e.stopPropagation()} style={{
         margin: '52px auto 0', display: 'flex', alignItems: 'center', gap: 14,
         animation: 'dialShrinkUp 0.4s cubic-bezier(0.22,1,0.36,1)',
       }}>
@@ -1370,7 +1370,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
 
       {/* Mini roster selector — only show when multiple opponents */}
       {showSelector && (
-        <div style={{
+        <div onClick={e => e.stopPropagation()} style={{
           margin: '10px 14px 0',
           background: 'var(--bg-elevated)',
           border: '1px solid var(--border-accent)',
@@ -1400,6 +1400,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
       )}
 
       <div ref={cardRef}
+        onClick={e => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -1553,14 +1554,14 @@ function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange, ligh
   const [confirmingAbandon, setConfirmingAbandon] = useState(false);
 
   return (
-    <div style={{
+    <div onClick={onClose} style={{
       position: 'absolute', inset: 0, zIndex: 50,
       background: 'var(--overlay-dim)',
       backdropFilter: 'blur(2px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       animation: 'overlayFadeIn 0.25s ease-out',
     }}>
-      <div style={{
+      <div onClick={e => e.stopPropagation()} style={{
         width: 'calc(100% - 48px)', maxWidth: 340,
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-accent)',
@@ -1963,7 +1964,10 @@ function PageContent() {
   const [showVictory, setShowVictory] = useState(false);
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   const [patternIdx, setPatternIdx] = useState(0);
-  const [lightMode, setLightMode] = useState(false);
+  const [lightMode, setLightMode] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('aura-light-mode') === '1';
+    return false;
+  });
   const [expandedOpponent, setExpandedOpponent] = useState<string | null>(null);
   const [cmdrDmg, setCmdrDmg] = useState<Record<string, number>>({});
   const [cmdrDmgFromYou, setCmdrDmgFromYou] = useState<Record<string, number>>({});
@@ -2547,7 +2551,7 @@ function PageContent() {
           patternIdx={patternIdx}
           onPatternChange={setPatternIdx}
           lightMode={lightMode}
-          onToggleLight={() => setLightMode(m => !m)}/>
+          onToggleLight={() => setLightMode(m => { const next = !m; localStorage.setItem('aura-light-mode', next ? '1' : '0'); return next; })}/>
       )}
 
       {/* Victory popup */}
