@@ -5,6 +5,8 @@ import React, { useState, useEffect, useId, useRef, useCallback, Suspense } from
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getGameLog } from '@/lib/game-log';
+import { previewGameCard, type GameCard } from '@/lib/game-card';
+import { KeepsakeCard } from '../components/MemoryCardKeepsake';
 
 // =============================================================================
 // Aura — Recent Games screen
