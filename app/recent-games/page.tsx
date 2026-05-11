@@ -1253,23 +1253,22 @@ function RecentGamesPageInner() {
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{ position: 'relative', maxWidth: 430, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+          style={{ maxWidth: 430, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}
         >
-          {/* × close button sits on the gold-foil border of the card itself */}
+          {/* × button sits directly above the card, centered */}
           <button
             onClick={(e) => { e.stopPropagation(); setMemoryCardOpen(false); }}
             aria-label="Close"
             style={{
-              position: 'absolute', top: -10, right: -10,
-              width: 32, height: 32, borderRadius: 999,
+              width: 36, height: 36, borderRadius: 999,
               background: '#0A0604',
               border: '1.5px solid #C99B2F',
               color: '#E2B858',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 700, lineHeight: 1, padding: 0,
+              fontSize: 20, fontWeight: 700, lineHeight: 1, padding: 0,
               boxShadow: '0 4px 14px -2px rgba(0,0,0,0.55)',
-              zIndex: 2,
+              flexShrink: 0,
             }}
           >×</button>
           {memoryCard ? (
