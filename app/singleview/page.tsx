@@ -11,6 +11,7 @@ import { getMyCommanders } from '@/lib/commanders';
 import { searchCommanders } from '@/lib/scryfall';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, updateCommanderDamage, abandonGame } from '@/lib/game-triggers';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
+import AuraLoaderF from '@/app/components/AuraLoaderF';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design tokens (injected once into <head>)
@@ -2328,11 +2329,11 @@ function PageContent() {
   // Loading screen
   if (!gameLoaded) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden',
+      <div className={lightMode ? 'aura-light' : ''} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--parchment)',
+        background: lightMode ? '#F5EFE2' : 'var(--parchment)',
       }}>
-        <AuraLoaderG size={180} />
+        {lightMode ? <AuraLoaderF size={180} /> : <AuraLoaderG size={180} />}
       </div>
     );
   }
@@ -2406,18 +2407,18 @@ function PageContent() {
     isEmptySeat: p.isEmptySeat,
   }));
 
-  // Loading screen: show dark bg + AuraLoaderG until game data arrives
+  // Loading screen: show loader until game data arrives
   if (!currentUserData) {
     return (
-      <div style={{
+      <div className={lightMode ? 'aura-light' : ''} style={{
         position: 'fixed', top: 0, bottom: 0, left: '50%',
         transform: 'translateX(-50%)',
         width: '100%', maxWidth: 430,
-        background: 'var(--parchment)',
+        background: lightMode ? '#F5EFE2' : 'var(--parchment)',
         overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <AuraLoaderG size={180} />
+        {lightMode ? <AuraLoaderF size={180} /> : <AuraLoaderG size={180} />}
       </div>
     );
   }
