@@ -10,6 +10,7 @@ import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
 import { DefeatedOverlay } from '@/app/components/DefeatedOverlay';
+import { DefeatedOverlay } from '@/app/components/DefeatedOverlay';
 
 const DARK_THEME = {
   bg:        '#0A0604',
