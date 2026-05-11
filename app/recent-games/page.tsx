@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useId, useRef, useCallback, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getGameLog } from '@/lib/game-log';
 import { previewGameCard, type GameCard } from '@/lib/game-card';
@@ -1077,8 +1077,58 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function GameFinishedPopup({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(43,33,24,0.55)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif",
+    }} onClick={onDismiss}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: '90%', maxWidth: 340,
+        background: '#FAF5EA',
+        borderRadius: 24,
+        padding: '32px 24px 28px',
+        boxShadow: '0 24px 60px -12px rgba(43,33,24,0.45), 0 0 0 1px rgba(43,33,24,0.08)',
+        textAlign: 'center',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+          <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#2F5D3A" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div style={{
+          fontWeight: 700, fontSize: 11, letterSpacing: '0.16em',
+          textTransform: 'uppercase', color: '#2F5D3A', marginBottom: 6,
+        }}>All done</div>
+        <div style={{
+          fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400,
+          fontSize: 24, letterSpacing: '-0.01em',
+          color: '#2B2118', lineHeight: 1.15,
+        }}>Game Complete</div>
+        <div style={{ marginTop: 10, fontSize: 14, color: '#5C5043', lineHeight: 1.5 }}>
+          This game has already been reviewed and finished. Check your recent games to see the results.
+        </div>
+        <button onClick={onDismiss} style={{
+          width: '100%', marginTop: 20, cursor: 'pointer',
+          background: '#2F5D3A', color: '#F5EFE2',
+          border: 'none', borderRadius: 16,
+          padding: '14px 18px',
+          fontSize: 15, fontWeight: 600,
+          boxShadow: '0 2px 0 rgba(0,0,0,.15), 0 10px 24px -8px rgba(47,93,58,0.35)',
+        }}>Alright, got it</button>
+      </div>
+    </div>
+  );
+}
+
 function RecentGamesPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [showGameFinished, setShowGameFinished] = useState(searchParams.get('gameFinished') === '1');
   const [games, setGames] = useState<Game[]>([]);
   const [memoryCardOpen, setMemoryCardOpen] = useState(false);
   const [memoryCard, setMemoryCard] = useState<GameCard | null>(null);
@@ -1278,6 +1328,13 @@ function RecentGamesPageInner() {
           )}
         </div>
       </div>
+    )}
+    {showGameFinished && (
+      <GameFinishedPopup onDismiss={() => {
+        setShowGameFinished(false);
+        // Clean up the URL param
+        window.history.replaceState({}, '', '/recent-games');
+      }}/>
     )}
     </>
   );

@@ -1484,6 +1484,12 @@ function PageContent() {
       const { data: game } = await getGame(gameId);
       if (!game) return;
 
+      // If game is already completed, redirect to recent-games
+      if (game.state === 'completed') {
+        router.push('/recent-games?gameFinished=1');
+        return;
+      }
+
       if (game.pod_id) {
         const { data: pod } = await supabase.from('pods').select('short_code').eq('id', game.pod_id).single() as { data: any };
         if (pod?.short_code) setPodShortCode(pod.short_code);
