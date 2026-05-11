@@ -379,7 +379,7 @@ function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive, 
       {isDefeated && (
         <DefeatedButtonsLayer
           reviveColor={DARK.forest}
-          reviveTextColor={DARK.ink}
+          reviveTextColor={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}
           onRevive={onRevive}
           zIndex={20}
           triggerKey={trig}
@@ -484,7 +484,7 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
       {isDefeated && (
         <DefeatedButtonsLayer
           reviveColor={DARK.forest}
-          reviveTextColor={DARK.ink}
+          reviveTextColor={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}
           reviewBorder={DARK.lineStrong}
           reviewTextColor={DARK.ink2}
           onRevive={onRevive}
@@ -509,14 +509,14 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
           display:'inline-flex', alignItems:'center', gap:5,
           padding:'5px 10px',
           background: DARK.forest,
-          color: DARK.ink,
+          color: DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink,
           border:'none', borderRadius:999,
           boxShadow: '0 2px 6px -2px rgba(47,93,58,0.4)',
           fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
           letterSpacing:'0.14em', textTransform:'uppercase',
           cursor:'pointer', whiteSpace:'nowrap',
         }}>
-          <Icon name="plus-circle" size={12} stroke={DARK.ink}/>
+          <Icon name="plus-circle" size={12} stroke={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}/>
           Claim
         </button>
       </div>
