@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Load html2canvas from CDN on demand — no npm install needed.
+ * Load html2canvas from CDN on demand.
  */
 let _html2canvas: any = null;
 async function loadHtml2Canvas(): Promise<any> {
@@ -19,19 +19,20 @@ async function loadHtml2Canvas(): Promise<any> {
 }
 
 /**
- * Capture an HTML element as a PNG blob.
+ * Fetch a remote image and convert it to a base64 data URI.
+ * Sidesteps CORS — the resulting data: URL is same-origin so html2canvas
+ * can embed it without any cross-origin restriction.
  */
-async function captureElement(element: HTMLElement): Promise<Blob | null> {
+async function imageToDataUri(src: string): Promise<string | null> {
   try {
-    const html2canvas = await loadHtml2Canvas();
-    const canvas = await html2canvas(element, {
-      backgroundColor: "#0A0604",
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
-    return new Promise((resolve) => {
-      canvas.toBlob((blob: Blob | null) => resolve(blob), "image/png", 1.0);
+    const res = await fetch(src, { mode: "cors", credentials: "omit" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
   } catch {
     return null;
@@ -39,19 +40,67 @@ async function captureElement(element: HTMLElement): Promise<Blob | null> {
 }
 
 /**
- * Download the card as a PNG image.
+ * Replace every external <img src> in the subtree with a base64 data URI,
+ * waiting for each new image to actually paint. Returns a restore function.
  */
+async function inlineImages(root: HTMLElement): Promise<() => void> {
+  const imgs = Array.from(root.querySelectorAll("img")) as HTMLImageElement[];
+  const restore: Array<() => void> = [];
+  await Promise.all(
+    imgs.map(async (img) => {
+      const original = img.getAttribute("src") ?? "";
+      if (!original || original.startsWith("data:") || original.startsWith("blob:")) return;
+      const dataUri = await imageToDataUri(original);
+      if (!dataUri) return;
+      img.setAttribute("src", dataUri);
+      await new Promise<void>((res) => {
+        if (img.complete && img.naturalWidth > 0) res();
+        else { img.onload = () => res(); img.onerror = () => res(); }
+      });
+      restore.push(() => img.setAttribute("src", original));
+    })
+  );
+  return () => restore.forEach((fn) => fn());
+}
+
+/**
+ * Capture an HTML element as a JPEG blob (q=0.95). Pre-inlines all <img> tags
+ * as base64 data URIs first so CORS never breaks the capture.
+ */
+async function captureElement(element: HTMLElement): Promise<Blob | null> {
+  let restore: (() => void) | null = null;
+  try {
+    restore = await inlineImages(element);
+    const html2canvas = await loadHtml2Canvas();
+    const canvas = await html2canvas(element, {
+      backgroundColor: "#0A0604",
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 15000,
+    });
+    return await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((blob: Blob | null) => resolve(blob), "image/jpeg", 0.95);
+    });
+  } catch {
+    return null;
+  } finally {
+    if (restore) restore();
+  }
+}
+
+/** Download the card as a JPEG image. */
 export async function downloadCard(
   element: HTMLElement,
   filename = "aura-game-card"
 ): Promise<boolean> {
   const blob = await captureElement(element);
   if (!blob) return false;
-
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${filename}.png`;
+  a.download = `${filename}.jpg`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -59,9 +108,7 @@ export async function downloadCard(
   return true;
 }
 
-/**
- * Share the card using the native share sheet (mobile) or clipboard/download.
- */
+/** Share the card via native share sheet, clipboard, or download fallback. */
 export async function shareCard(
   element: HTMLElement,
   title = "My Aura Game Card",
@@ -70,33 +117,20 @@ export async function shareCard(
   const blob = await captureElement(element);
   if (!blob) return false;
 
-  // Native Web Share API — opens share sheet on mobile (WhatsApp, Instagram, etc.)
   if (navigator.share && navigator.canShare) {
-    const file = new File([blob], "aura-game-card.png", { type: "image/png" });
+    const file = new File([blob], "aura-game-card.jpg", { type: "image/jpeg" });
     const shareData = { title, text, files: [file] };
-
     if (navigator.canShare(shareData)) {
-      try {
-        await navigator.share(shareData);
-        return true;
-      } catch {
-        // User cancelled — fall through
-      }
+      try { await navigator.share(shareData); return true; } catch { /* cancelled */ }
     }
   }
 
-  // Fallback: copy image to clipboard
   if (navigator.clipboard && typeof ClipboardItem !== "undefined") {
     try {
-      await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
-      ]);
+      await navigator.clipboard.write([new ClipboardItem({ "image/jpeg": blob })]);
       return true;
-    } catch {
-      // Clipboard failed — fall through
-    }
+    } catch { /* fall through */ }
   }
 
-  // Final fallback: download the image
   return downloadCard(element);
 }
