@@ -485,6 +485,14 @@ function LoginSheet({ onClose, redirect }: { onClose: () => void; redirect?: str
 
 /* ── Landing Page ── */
 export default function HomePage() {
+  /* Ink-bloom splash animation states */
+  const [inkRise, setInkRise] = useState(false);
+  const [dotIn, setDotIn] = useState(false);
+  const [glowIn, setGlowIn] = useState(false);
+  const [wordIn, setWordIn] = useState(false);
+  const [subIn, setSubIn] = useState(false);
+  const [footIn, setFootIn] = useState(false);
+
   const [phase, setPhase] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
   const [loginRedirect, setLoginRedirect] = useState('/create');
@@ -493,15 +501,20 @@ export default function HomePage() {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 200),
-      setTimeout(() => setPhase(2), 700),
-      setTimeout(() => setPhase(3), 2600),
-      setTimeout(() => setPhase(4), 3600),
-      setTimeout(() => setPhase(5), 4200),
+      /* Ink bloom sequence */
+      setTimeout(() => setInkRise(true), 60),
+      setTimeout(() => setGlowIn(true), 1200),
+      setTimeout(() => setDotIn(true), 1400),
+      setTimeout(() => setWordIn(true), 1900),
+      setTimeout(() => setSubIn(true), 2300),
+      setTimeout(() => setFootIn(true), 2500),
+      /* Morph + landing reveal */
+      setTimeout(() => setPhase(3), 3200),
+      setTimeout(() => setPhase(4), 4100),
+      setTimeout(() => setPhase(5), 4700),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
-
 
   // Auto-open login when ?login=1 is in URL (used by other pages routing to landing for auth)
   useEffect(() => {
@@ -521,7 +534,6 @@ export default function HomePage() {
     if (saved) {
       sessionStorage.removeItem('loginRedirect');
       setShowLogin(false);
-      // Use window.location for reliable navigation after OAuth redirect
       window.location.href = saved;
       return;
     }
@@ -542,6 +554,7 @@ export default function HomePage() {
   }, [isLoggedIn, loading, showLogin, loginRedirect, router]);
 
   const ease = 'cubic-bezier(.22,.61,.36,1)';
+  const morph = phase >= 3;
 
   return (
     <div style={{
@@ -556,32 +569,99 @@ export default function HomePage() {
       padding: '60px 22px 22px',
     }}>
 
-      {/* ── SPLASH LOCKUP ── */}
+      {/* ── SPLASH LOCKUP — InkBloom mark + wordmark ── */}
       <div style={{
         position: 'absolute', left: 0, right: 0,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
         zIndex: 10,
-        top: phase >= 3 ? 60 : '50%',
-        transform: phase >= 3 ? 'translateY(0)' : 'translateY(-50%)',
-        transition: `top 1100ms ${ease}, transform 1100ms ${ease}`,
-        opacity: phase >= 1 ? 1 : 0,
+        top: morph ? 60 : '50%',
+        transform: morph ? 'translateY(0)' : 'translateY(-50%)',
+        transition: `top 1.1s ${ease}, transform 1.1s ${ease}`,
         pointerEvents: 'none',
       }}>
-        <AuraMark size={phase >= 3 ? 40 : 96} color="#2F5D3A" />
+        {/* Mark container — shrinks on morph */}
+        <div style={{
+          position: 'relative',
+          width: morph ? 40 : 120,
+          height: morph ? 40 : 120,
+          transition: `width 1.1s ${ease}, height 1.1s ${ease}`,
+        }}>
+          {/* Ink glow */}
+          <div style={{
+            position: 'absolute', inset: -30, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(47,93,58,0.22), transparent 65%)',
+            filter: 'blur(8px)',
+            opacity: glowIn && !morph ? 0.7 : 0,
+            transition: `opacity ${morph ? '600ms' : '800ms'} ${ease}`,
+          }}/>
+          {/* Ghost V shapes (faint watermark) */}
+          <svg width="100%" height="100%" viewBox="0 0 64 64"
+               style={{ position: 'absolute', inset: 0 }}>
+            <defs>
+              <clipPath id="lp-ghost"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
+            </defs>
+            <g clipPath="url(#lp-ghost)">
+              <polygon points="8,60 30,4 31,4 24,60" fill="rgba(47,93,58,0.10)"/>
+              <polygon points="40,60 33,4 34,4 56,60" fill="rgba(47,93,58,0.10)"/>
+            </g>
+          </svg>
+          {/* Ink-fill V shapes + dot */}
+          <svg width="100%" height="100%" viewBox="0 0 64 64"
+               style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
+            <defs>
+              <clipPath id="lp-fill"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
+            </defs>
+            <g clipPath="url(#lp-fill)" style={{
+              transformOrigin: '50% 100%',
+              transform: inkRise ? 'scaleY(1)' : 'scaleY(0)',
+              opacity: inkRise ? 1 : 0.4,
+              transition: `transform 1.7s ${ease}, opacity 1.7s ${ease}`,
+            }}>
+              <polygon points="8,60 30,4 31,4 24,60" fill="#2F5D3A"/>
+              <polygon points="40,60 33,4 34,4 56,60" fill="#2F5D3A"/>
+            </g>
+            <circle cx="32" cy="36" r="2.4" fill="#2F5D3A" style={{
+              transformOrigin: '32px 36px',
+              transform: dotIn ? 'translateY(0) scale(1)' : 'translateY(-30px) scale(0)',
+              opacity: dotIn ? 1 : 0,
+              transition: `transform 0.5s ${ease}, opacity 0.5s ${ease}`,
+            }}/>
+          </svg>
+        </div>
+
+        {/* Wordmark "Aura" — fades out on morph */}
         <div style={{
           fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400,
-          fontSize: phase >= 3 ? 34 : 48, letterSpacing: '-0.02em',
-          lineHeight: 1, color: '#2F5D3A',
-          opacity: phase >= 3 ? 0 : 1,
-          transition: `opacity 600ms ${ease}, font-size 1100ms ${ease}`,
+          fontSize: 52, letterSpacing: '-0.02em',
+          lineHeight: 1, color: '#B06B2C',
+          marginTop: 18,
+          opacity: wordIn && !morph ? 1 : 0,
+          transform: wordIn ? 'translateY(0)' : 'translateY(6px)',
+          transition: `opacity ${morph ? '600ms' : '800ms'} ${ease}, transform 800ms ${ease}`,
         }}>Aura</div>
+
+        {/* Subtitle */}
         <div style={{
-          fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
+          fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase' as const,
           color: '#8A7E6F', fontWeight: 600, marginTop: 8,
-          opacity: phase >= 3 ? 0 : 1,
-          transition: `opacity 500ms ${ease}`,
-        }}>Shape Your Aura</div>
+          opacity: subIn && !morph ? 1 : 0,
+          transform: subIn ? 'translateY(0)' : 'translateY(6px)',
+          transition: `opacity ${morph ? '500ms' : '600ms'} ${ease}, transform 600ms ${ease}`,
+        }}>Commander · Reviewed</div>
       </div>
+
+      {/* Splash footer — "Every game has a story" */}
+      <div style={{
+        position: 'absolute', bottom: 60, left: 0, right: 0,
+        textAlign: 'center', fontSize: 11,
+        color: '#8A7E6F',
+        letterSpacing: '0.18em', textTransform: 'uppercase' as const, fontWeight: 600,
+        fontFamily: "'Instrument Sans', sans-serif",
+        zIndex: 10, pointerEvents: 'none',
+        opacity: footIn && !morph ? 1 : 0,
+        transform: footIn ? 'translateY(0)' : 'translateY(6px)',
+        transition: `opacity ${morph ? '500ms' : '600ms'} ${ease}, transform 600ms ${ease}`,
+      }}>Every game has a story</div>
 
       {/* ── UPPER BAND ── */}
       <div style={{
@@ -592,7 +672,7 @@ export default function HomePage() {
         <div style={{
           fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400,
           fontSize: 54, letterSpacing: '-0.02em',
-          lineHeight: 1, color: '#2B2118',
+          lineHeight: 1, color: '#B06B2C',
           opacity: phase >= 4 ? 1 : 0,
           transition: `opacity 600ms ${ease} 80ms`,
         }}>Aura</div>
@@ -627,8 +707,8 @@ export default function HomePage() {
       }}>
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
-          transform: `translate(-50%, -50%) scale(${phase >= 2 ? 1 : 0.5})`,
-          opacity: phase >= 2 ? 0.16 : 0,
+          transform: `translate(-50%, -50%) scale(${morph ? 1 : 0.5})`,
+          opacity: morph ? 0.16 : 0,
           transition: `opacity 1400ms ${ease}, transform 1400ms ${ease}`,
         }}>
           <SunCircle size={340} opacity={1} />

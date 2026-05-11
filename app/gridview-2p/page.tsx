@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
+import { DefeatedOverlay } from '@/app/components/DefeatedOverlay';
 
 const DARK_THEME = {
   bg:        '#0A0604',
@@ -363,32 +364,15 @@ function NormalCell({ player, flipped = false, onTapLeft, onTapRight, onRevive, 
         const isPoisoned = (player.counters?.poison || 0) >= 10;
         const isCmdrLethal = (player.cmdrDamage || []).some((d: any) => d.amount >= 21);
         if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
-        const causes: string[] = [];
-        if (isLifeZero) causes.push('Life');
-        if (isPoisoned) causes.push('Poison');
-        if (isCmdrLethal) causes.push('Commander');
-        const reason = causes.join(' + ');
         return (
-          <div style={{
-            position:'absolute', inset:0, zIndex:20,
-            background:'rgba(10,6,4,0.88)',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
-          }}>
-            <div style={{
-              fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
-              letterSpacing:'0.20em', textTransform:'uppercase',
-              color: DARK.ink2,
-            }}>Defeated · {reason}</div>
-            <button onClick={onRevive} style={{
-              padding:'10px 22px',
-              background: DARK.forest,
-              color: DARK.ink,
-              border:'none', borderRadius:999,
-              fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
-              letterSpacing:'0.16em', textTransform:'uppercase',
-              cursor:'pointer', whiteSpace:'nowrap',
-            }}>Revive</button>
-          </div>
+          <DefeatedOverlay
+            bgColor={DARK.bgCard}
+            reviveColor={DARK.forest}
+            reviveTextColor={DARK.ink}
+            onRevive={onRevive}
+            zIndex={20}
+            triggerKey={`${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`}
+          />
         );
       })()}
 
@@ -485,43 +469,19 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
         const isPoisoned = (cellCounters?.poison || 0) >= 10;
         const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
         if (!isLifeZero && !isPoisoned && !isCmdrLethal) return null;
-        const causes: string[] = [];
-        if (isLifeZero) causes.push('Life');
-        if (isPoisoned) causes.push('Poison');
-        if (isCmdrLethal) causes.push('Commander');
-        const reason = causes.join(' + ');
         return (
-          <div style={{
-            position:'absolute', inset:0, zIndex:25,
-            background:'rgba(10,6,4,0.88)',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
-          }}>
-            <div style={{
-              fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
-              letterSpacing:'0.20em', textTransform:'uppercase',
-              color: DARK.ink2,
-            }}>Defeated · {reason}</div>
-            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-              <button onClick={onRevive} style={{
-                padding:'10px 22px',
-                background: DARK.forest,
-                color: DARK.ink,
-                border:'none', borderRadius:999,
-                fontFamily:'var(--font-ui)', fontSize:12, fontWeight:700,
-                letterSpacing:'0.16em', textTransform:'uppercase',
-                cursor:'pointer', whiteSpace:'nowrap',
-              }}>Revive</button>
-              <button onClick={onClaimSeat} style={{
-                padding:'8px 18px',
-                background:'transparent',
-                color: DARK.ink2,
-                border:`1px solid ${DARK.lineStrong}`, borderRadius:999,
-                fontFamily:'var(--font-ui)', fontSize:11, fontWeight:700,
-                letterSpacing:'0.16em', textTransform:'uppercase',
-                cursor:'pointer', whiteSpace:'nowrap',
-              }}>Review Game</button>
-            </div>
-          </div>
+          <DefeatedOverlay
+            bgColor={DARK.bgDeep}
+            reviveColor={DARK.forest}
+            reviveTextColor={DARK.ink}
+            reviewBorder={DARK.lineStrong}
+            reviewTextColor={DARK.ink2}
+            onRevive={onRevive}
+            onReview={onClaimSeat}
+            showReviewButton={true}
+            zIndex={25}
+            triggerKey={`${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`}
+          />
         );
       })()}
       {/* Header: seat label + compact Claim button */}
