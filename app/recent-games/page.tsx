@@ -1219,7 +1219,10 @@ function RecentGamesPageInner() {
       myCommanders={commanders}
       youId={youId}
       onOpenMemoryCard={(game: any) => {
-        if (game.shareCode) router.push(`/c/${game.shareCode}`);
+        // Always navigate to the live memory-card page. previewGameCard there
+        // returns the persisted card if it exists, else composes a live one
+        // from current metadata.
+        if (game?.id) router.push(`/memory-card?gameId=${game.id}`);
       }}
       onNavigate={(tabId: string) => {
         if (tabId === 'profile') router.push('/profile');
@@ -1230,10 +1233,3 @@ function RecentGamesPageInner() {
   );
 }
 
-export default function Page() {
-  return (
-    <Suspense fallback={<div style={{ padding: 24, fontFamily: 'sans-serif' }}>Loading…</div>}>
-      <RecentGamesPageInner/>
-    </Suspense>
-  );
-}
