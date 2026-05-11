@@ -104,7 +104,7 @@ const TOKENS_CSS = `
   --backdrop-end:     #F5EFE2;
   --copper-glow:      rgba(176,107,44,0.08);
   --sheet-gold-edge:  linear-gradient(90deg, #C99B2F 0%, #B06B2C 25%, #8C5A28 50%, #B06B2C 75%, #C99B2F 100%);
-  --dial-well-opacity: 0.7;
+  --dial-well-opacity: 0.8;
   --dial-ring:        rgba(176,107,44,0.45);
 }
 
@@ -1141,17 +1141,17 @@ function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: an
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button onClick={() => onAdjust(counter.key, -1)} style={{
             width: 38, height: 38, borderRadius: 999,
-            background: `${counter.tone}${lightMode ? '55' : '25'}`,
-            color: counter.tone,
+            background: lightMode ? `${counter.tone}CC` : `${counter.tone}25`,
+            color: lightMode ? '#fff' : counter.tone,
             border: `1.5px solid ${counter.tone}AA`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', padding: 0,
             boxShadow: `0 0 8px -2px ${counter.tone}30`,
             opacity: count === 0 ? 0.3 : 1,
-          }}><Icon name="minus" size={16} stroke={counter.tone} width={2.2}/></button>
+          }}><Icon name="minus" size={16} stroke={lightMode ? '#fff' : counter.tone} width={2.2}/></button>
           <button onClick={() => onAdjust(counter.key, 1)} style={{
             width: 38, height: 38, borderRadius: 999,
-            background: counter.tone,
+            background: lightMode ? `${counter.tone}CC` : counter.tone,
             color: '#fff',
             border: `1.5px solid ${counter.tone}AA`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',

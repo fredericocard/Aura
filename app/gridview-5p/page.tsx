@@ -1088,14 +1088,14 @@ function CounterRow({ counter, count, isFirst, onMinus, onPlus }: {
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button onClick={onMinus} style={{
             ...stepBase,
-            background: `${counter.tone}${DARK === LIGHT_THEME ? '55' : '25'}`,
-            color: counter.tone,
+            background: DARK === LIGHT_THEME ? `${counter.tone}CC` : `${counter.tone}25`,
+            color: DARK === LIGHT_THEME ? '#fff' : counter.tone,
             border: `1.5px solid ${counter.tone}AA`,
             boxShadow: `0 0 8px -2px ${counter.tone}30`,
-          }}><Icon name="minus" size={16} stroke={counter.tone} width={2.2}/></button>
+          }}><Icon name="minus" size={16} stroke={DARK === LIGHT_THEME ? '#fff' : counter.tone} width={2.2}/></button>
           <button onClick={onPlus} style={{
             ...stepBase,
-            background: counter.tone,
+            background: DARK === LIGHT_THEME ? `${counter.tone}CC` : counter.tone,
             color: '#fff',
             border: `1.5px solid ${counter.tone}AA`,
             boxShadow: `0 2px 8px -2px ${counter.tone}66, inset 0 1px 0 rgba(255,255,255,0.25)`,
