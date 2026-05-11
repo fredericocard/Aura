@@ -8,6 +8,7 @@ import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, update
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
+import AuraLoaderG from '@/app/components/AuraLoaderG';
 
 const DARK = {
   bg:        '#0A0604',
@@ -2199,27 +2200,9 @@ function PageContent() {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: `radial-gradient(ellipse 80% 40% at 50% 0%, rgba(176,107,44,0.18) 0%, transparent 100%),
-          radial-gradient(ellipse 50% 35% at 0% 35%, rgba(176,107,44,0.12) 0%, transparent 100%),
-          radial-gradient(ellipse 50% 35% at 100% 55%, rgba(176,107,44,0.12) 0%, transparent 100%),
-          radial-gradient(ellipse 70% 30% at 50% 100%, rgba(176,107,44,0.14) 0%, transparent 100%),
-          radial-gradient(ellipse 40% 25% at 25% 75%, rgba(176,107,44,0.06) 0%, transparent 100%),
-          radial-gradient(ellipse 40% 25% at 80% 20%, rgba(176,107,44,0.06) 0%, transparent 100%),
-          ${DARK.bg}`,
+        background: DARK.bg,
       }}>
-        <DarkCompassBg centered/>
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
-          background: 'linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 40%, transparent 100%)',
-          pointerEvents: 'none' }}/>
-        <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
-          style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
-          <defs><clipPath id="aura-gv-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
-          <circle cx="32" cy="36" r="2.4" fill="rgba(226,184,88,0.7)"/>
-          <g clipPath="url(#aura-gv-load)">
-            <polygon points="8,60 30,4 31,4 24,60" fill="rgba(226,184,88,0.7)"/>
-            <polygon points="40,60 33,4 34,4 56,60" fill="rgba(226,184,88,0.7)"/>
-          </g>
-        </svg>
+        <AuraLoaderG size={180} />
       </div>
     );
   }

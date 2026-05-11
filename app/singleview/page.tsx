@@ -10,6 +10,7 @@ import { useWakeLock } from '@/lib/use-wake-lock';
 import { getMyCommanders } from '@/lib/commanders';
 import { searchCommanders } from '@/lib/scryfall';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, updateCommanderDamage, abandonGame } from '@/lib/game-triggers';
+import AuraLoaderG from '@/app/components/AuraLoaderG';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design tokens (injected once into <head>)
@@ -2232,51 +2233,9 @@ function PageContent() {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: `radial-gradient(ellipse 80% 40% at 50% 0%, rgba(176,107,44,0.18) 0%, transparent 100%),
-          radial-gradient(ellipse 50% 35% at 0% 35%, rgba(176,107,44,0.12) 0%, transparent 100%),
-          radial-gradient(ellipse 50% 35% at 100% 55%, rgba(176,107,44,0.12) 0%, transparent 100%),
-          radial-gradient(ellipse 70% 30% at 50% 100%, rgba(176,107,44,0.14) 0%, transparent 100%),
-          radial-gradient(ellipse 40% 25% at 25% 75%, rgba(176,107,44,0.06) 0%, transparent 100%),
-          radial-gradient(ellipse 40% 25% at 80% 20%, rgba(176,107,44,0.06) 0%, transparent 100%),
-          #0A0604`,
+        background: '#0A0604',
       }}>
-        {/* Compass rose — top of screen */}
-        <svg viewBox="0 0 320 320" style={{
-          position: 'absolute', top: '8%',
-          left: 0, right: 0, marginLeft: 'auto', marginRight: 'auto',
-          transform: 'translateY(-50%)',
-          width: 'min(85vw, 360px)', height: 'min(85vw, 360px)',
-          opacity: 0.28, pointerEvents: 'none',
-        }}>
-          <g stroke="#B06B2C" strokeWidth="0.8" fill="none">
-            {Array.from({ length: 24 }).map((_, i) => {
-              const a = (i / 24) * Math.PI * 2;
-              const r1 = 40, r2 = 150;
-              return <line key={i}
-                x1={160 + Math.cos(a) * r1} y1={160 + Math.sin(a) * r1}
-                x2={160 + Math.cos(a) * r2} y2={160 + Math.sin(a) * r2}/>;
-            })}
-            <circle cx="160" cy="160" r="40"/>
-            <circle cx="160" cy="160" r="60" strokeDasharray="1 3"/>
-            <circle cx="160" cy="160" r="100" strokeDasharray="1 4"/>
-            <circle cx="160" cy="160" r="150"/>
-          </g>
-        </svg>
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
-          background: 'linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 40%, transparent 100%)',
-          pointerEvents: 'none' }}/>
-        {/* Aura logo — centered via flex parent */}
-        <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
-          style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
-          <defs>
-            <clipPath id="aura-sv-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
-          </defs>
-          <circle cx="32" cy="36" r="2.4" fill="rgba(226,184,88,0.7)"/>
-          <g clipPath="url(#aura-sv-load)">
-            <polygon points="8,60 30,4 31,4 24,60" fill="rgba(226,184,88,0.7)"/>
-            <polygon points="40,60 33,4 34,4 56,60" fill="rgba(226,184,88,0.7)"/>
-          </g>
-        </svg>
+        <AuraLoaderG size={180} />
       </div>
     );
   }
@@ -2350,7 +2309,7 @@ function PageContent() {
     isEmptySeat: p.isEmptySeat,
   }));
 
-  // Loading screen: show dark bg + mesh + gold Aura mark until game data arrives
+  // Loading screen: show dark bg + AuraLoaderG until game data arrives
   if (!currentUserData) {
     return (
       <div style={{
@@ -2361,21 +2320,7 @@ function PageContent() {
         overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <div style={{ position: 'absolute', inset: 0 }}>
-          <DigitalMatMesh patternIdx={patternIdx}/>
-        </div>
-        {/* Gold Aura mark, same tone as mesh */}
-        <svg width="72" height="72" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
-          style={{ position: 'relative', zIndex: 2, opacity: 0.55 }}>
-          <defs>
-            <clipPath id="aura-load"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath>
-          </defs>
-          <circle cx="32" cy="36" r="2.4" fill="rgba(226,184,88,0.7)"/>
-          <g clipPath="url(#aura-load)">
-            <polygon points="8,60 30,4 31,4 24,60" fill="rgba(226,184,88,0.7)"/>
-            <polygon points="40,60 33,4 34,4 56,60" fill="rgba(226,184,88,0.7)"/>
-          </g>
-        </svg>
+        <AuraLoaderG size={180} />
       </div>
     );
   }
