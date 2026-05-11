@@ -1251,25 +1251,27 @@ function RecentGamesPageInner() {
           overflowY: 'auto',
         }}
       >
-        <button
-          onClick={(e) => { e.stopPropagation(); setMemoryCardOpen(false); }}
-          aria-label="Close"
-          style={{
-            position: 'absolute', top: 16, right: 16,
-            width: 40, height: 40, borderRadius: 999,
-            background: 'rgba(10,6,4,0.55)',
-            border: '1px solid rgba(226,184,88,0.35)',
-            color: '#E2B858',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22, fontWeight: 600, lineHeight: 1, padding: 0,
-            zIndex: 1001,
-          }}
-        >×</button>
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{ maxWidth: 430, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+          style={{ position: 'relative', maxWidth: 430, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
         >
+          {/* × close button sits on the gold-foil border of the card itself */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setMemoryCardOpen(false); }}
+            aria-label="Close"
+            style={{
+              position: 'absolute', top: -10, right: -10,
+              width: 32, height: 32, borderRadius: 999,
+              background: '#0A0604',
+              border: '1.5px solid #C99B2F',
+              color: '#E2B858',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, fontWeight: 700, lineHeight: 1, padding: 0,
+              boxShadow: '0 4px 14px -2px rgba(0,0,0,0.55)',
+              zIndex: 2,
+            }}
+          >×</button>
           {memoryCard ? (
             <KeepsakeCard card={memoryCard} />
           ) : (

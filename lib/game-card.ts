@@ -142,6 +142,26 @@ function composeNarrative(data: {
   return narrative + ".";
 }
 
+// Lightweight Scryfall art fetcher with localStorage cache for missing commander art.
+// Falls back to null silently if Scryfall is unreachable or the card isn't found.
+const _scryfallArtCache = new Map<string, string | null>();
+async function fetchScryfallArt(commanderName: string): Promise<string | null> {
+  const key = commanderName.trim().toLowerCase();
+  if (!key) return null;
+  if (_scryfallArtCache.has(key)) return _scryfallArtCache.get(key) ?? null;
+  try {
+    const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(commanderName)}`);
+    if (!res.ok) { _scryfallArtCache.set(key, null); return null; }
+    const card = await res.json();
+    const art = card?.image_uris?.art_crop || card?.card_faces?.[0]?.image_uris?.art_crop || null;
+    _scryfallArtCache.set(key, art);
+    return art;
+  } catch {
+    _scryfallArtCache.set(key, null);
+    return null;
+  }
+}
+
 // ── Card composition ───────────────────────────────────
 
 /**
@@ -218,8 +238,10 @@ export async function composeGameCard(
   // 7. Build bracket check summary
   const bracketResult = await buildBracketSummary(gameId, deckToCommander);
 
-  // 8. Build commanders array (LEFT JOIN means empty seats also show up)
-  const commanders: CommanderCardData[] = players.map((p: any) => {
+  // 8. Build commanders array (LEFT JOIN means empty seats also show up).
+  // For non-empty seats whose deck.commander_art_url is null, fetch the art
+  // from Scryfall on-the-fly so the card never shows a blank avatar.
+  const commanders: CommanderCardData[] = await Promise.all(players.map(async (p: any) => {
     const deck = p.decks as { commander_name: string; commander_art_url: string | null } | null;
     if (!deck || !p.deck_id) {
       // Empty seat — render as P{seat}
@@ -235,17 +257,21 @@ export async function composeGameCard(
       };
     }
     const attr = attrMap.get(p.deck_id);
+    let artUrl: string | null = deck.commander_art_url;
+    if (!artUrl && deck.commander_name) {
+      artUrl = await fetchScryfallArt(deck.commander_name);
+    }
     return {
       deck_id: p.deck_id,
       user_id: p.user_id ?? null,
       seat_number: p.seat_number ?? undefined,
       commander_name: deck.commander_name,
-      art_url: deck.commander_art_url,
+      art_url: artUrl,
       archetype: attr?.archetype_name ?? "The Unknown",
       brewed_badge: attr?.brewed_badge ?? "none",
       is_winner: p.is_winner,
     };
-  });
+  }));
 
   // 9. Compose narrative
   const narrative = composeNarrative({
