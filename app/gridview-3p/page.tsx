@@ -715,13 +715,13 @@ function GameNav({ active = 'grid', onDiceClick, onCountersClick, onCmdrClick, p
               <button key={it.id} onClick={() => handleToggle(it.id)} style={{
                 flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
                 padding: '6px 0', border: 'none', background: 'transparent',
-                color: on ? DARK.ink : DARK.ink3,
+                color: on ? (DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink) : DARK.ink3,
                 borderRadius: 999, position: 'relative', zIndex: 1,
                 fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700,
                 letterSpacing: '0.12em', textTransform: 'uppercase', gap: 2,
                 cursor: 'pointer', transition: 'color 0.28s ease',
               }}>
-                <Icon name={it.icon} size={16} stroke={on ? DARK.ink : DARK.ink3}/>
+                <Icon name={it.icon} size={16} stroke={on ? (DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink) : DARK.ink3}/>
                 <span>{it.label}</span>
               </button>
             );
