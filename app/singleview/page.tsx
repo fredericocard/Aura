@@ -78,8 +78,8 @@ const TOKENS_CSS = `
   --ink-4:            #B8AE9E;
   --line:             rgba(43,33,24,0.08);
   --line-strong:      rgba(43,33,24,0.14);
-  --forest-soft:      rgba(176,107,44,0.10);
-  --forest-line:      rgba(176,107,44,0.22);
+  --forest-soft:      rgba(47,93,58,0.10);
+  --forest-line:      rgba(47,93,58,0.22);
   --shadow-rest:      0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12);
 
   --bg-elevated:      #FAF5EA;
@@ -88,11 +88,11 @@ const TOKENS_CSS = `
   --border-accent:    rgba(43,33,24,0.08);
   --border-accent-subtle: rgba(43,33,24,0.06);
   --overlay-dim:      rgba(43,33,24,0.45);
-  --gold:             #B06B2C;
-  --gold-muted:       #8C5A28;
-  --gold-deep:        #5C3D1A;
+  --gold:             #2F5D3A;
+  --gold-muted:       #1E3D25;
+  --gold-deep:        #15291A;
   --shadow-btn:       0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12);
-  --ring-active:      #B06B2C;
+  --ring-active:      #2F5D3A;
   --ring-dead:        #B8AE9E;
   --tick-stroke:      #B8AE9E;
   --dial-ring-stroke: #B8AE9E;
@@ -102,10 +102,10 @@ const TOKENS_CSS = `
   --backdrop-top:     rgba(245,239,226,0.05);
   --backdrop-mid:     rgba(245,239,226,0.45);
   --backdrop-end:     #F5EFE2;
-  --copper-glow:      rgba(176,107,44,0.08);
-  --sheet-gold-edge:  linear-gradient(90deg, #C99B2F 0%, #B06B2C 25%, #8C5A28 50%, #B06B2C 75%, #C99B2F 100%);
+  --copper-glow:      rgba(47,93,58,0.08);
+  --sheet-gold-edge:  linear-gradient(90deg, #4A8B55 0%, #3A7245 25%, #2F5D3A 50%, #3A7245 75%, #4A8B55 100%);
   --dial-well-opacity: 0.8;
-  --dial-ring:        rgba(176,107,44,0.45);
+  --dial-ring:        rgba(47,93,58,0.45);
 }
 
 @keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
@@ -1035,13 +1035,13 @@ function DiceSheet({ onClose, opponents = [], lightMode = false }: any) {
             <button key={d.key} className="sv-dice-btn" onClick={() => roll(d.key)} style={{
               position: 'relative',
               background: bgFill,
-              border: `1px solid ${isLast ? (lightMode ? 'rgba(176,107,44,0.53)' : 'rgba(226,184,88,0.53)') : (lightMode ? 'var(--line-strong)' : 'rgba(226,184,88,0.22)')}`,
+              border: `1px solid ${isLast ? (lightMode ? 'rgba(47,93,58,0.53)' : 'rgba(226,184,88,0.53)') : (lightMode ? 'var(--line-strong)' : 'rgba(226,184,88,0.22)')}`,
               borderRadius: 16,
               padding: '16px 14px 12px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               cursor: 'pointer', textAlign: 'center',
               boxShadow: isLast
-                ? (lightMode ? '0 0 0 3px rgba(176,107,44,0.10), 0 4px 14px -4px rgba(176,107,44,0.15)' : '0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)')
+                ? (lightMode ? '0 0 0 3px rgba(47,93,58,0.10), 0 4px 14px -4px rgba(47,93,58,0.15)' : '0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)')
                 : (lightMode ? '0 1px 3px rgba(0,0,0,0.06)' : 'inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)'),
               overflow: 'hidden',
             }}>
@@ -1540,8 +1540,8 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
             }}>{p.cmdrDmg ?? 0}<span style={{ fontSize: 16, color: '#8A7E6F' }}> /21</span></div>
           </div>
           <div style={{
-            background: 'rgba(176,107,44,0.10)',
-            border: '1px solid rgba(176,107,44,0.25)',
+            background: lightMode ? 'rgba(47,93,58,0.10)' : 'rgba(176,107,44,0.10)',
+            border: `1px solid ${lightMode ? 'rgba(47,93,58,0.25)' : 'rgba(176,107,44,0.25)'}`,
             borderRadius: 12, padding: '8px 12px',
           }}>
             <div style={{
@@ -1765,11 +1765,11 @@ function EliminatedPopup({ onRevive, onReview }: any) {
           <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <svg width={28} height={28} viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="36" r="2.4" fill="#B06B2C"/>
+                <circle cx="32" cy="36" r="2.4" fill="var(--gold)"/>
                 <defs><clipPath id="elim-clip"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
                 <g clipPath="url(#elim-clip)">
-                  <polygon points="8,60 30,4 31,4 24,60" fill="#B06B2C"/>
-                  <polygon points="40,60 33,4 34,4 56,60" fill="#B06B2C"/>
+                  <polygon points="8,60 30,4 31,4 24,60" fill="var(--gold)"/>
+                  <polygon points="40,60 33,4 34,4 56,60" fill="var(--gold)"/>
                 </g>
               </svg>
             </div>

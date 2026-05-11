@@ -43,12 +43,12 @@ const LIGHT_THEME = {
   ink2:      '#5C5043',
   ink3:      '#8A7E6F',
   ink4:      '#B8AE9E',
-  copper:    '#B06B2C',
-  copperDim: 'rgba(176,107,44,0.55)',
-  copperGlow:'rgba(140,84,34,0.18)',
-  gold:      '#8C5A28',
-  forest:    '#B06B2C',
-  forestDeep:'#8C5422',
+  copper:    '#2F5D3A',
+  copperDim: 'rgba(47,93,58,0.55)',
+  copperGlow:'rgba(47,93,58,0.18)',
+  gold:      '#1E3D25',
+  forest:    '#2F5D3A',
+  forestDeep:'#1E3D25',
   line:      'rgba(43,33,24,0.08)',
   lineStrong:'rgba(43,33,24,0.14)',
   cellBorder:'rgba(43,33,24,0.10)',
@@ -542,7 +542,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
               background: DARK.forest,
               color: DARK.ink,
               border:'none', borderRadius:999,
-              boxShadow: '0 2px 6px -2px rgba(176,107,44,0.4)',
+              boxShadow: '0 2px 6px -2px rgba(47,93,58,0.4)',
               fontFamily:'var(--font-ui)', fontSize:8, fontWeight:700,
               letterSpacing:'0.14em', textTransform:'uppercase',
               cursor:'pointer', whiteSpace:'nowrap',
@@ -822,11 +822,11 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
       background: light
-        ? 'linear-gradient(135deg, #C99B2F 0%, #B06B2C 22%, #8C5A28 50%, #B06B2C 78%, #C99B2F 100%)'
+        ? 'linear-gradient(135deg, #4A8B55 0%, #3A7245 22%, #2F5D3A 50%, #3A7245 78%, #4A8B55 100%)'
         : 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
       borderRadius: 26,
       boxShadow: light
-        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(176,107,44,0.2)'
+        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(47,93,58,0.2)'
         : '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
     }}>
       <div style={{
@@ -886,7 +886,7 @@ function DicePlaque({ option, active, result, onClick }: { option: { id: string;
       textAlign: 'center',
       boxShadow: active
         ? (light
-          ? `0 0 0 3px rgba(176,107,44,0.10), 0 4px 14px -4px rgba(176,107,44,0.15)`
+          ? `0 0 0 3px rgba(47,93,58,0.10), 0 4px 14px -4px rgba(47,93,58,0.15)`
           : `0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)`)
         : (light
           ? `0 1px 3px rgba(0,0,0,0.06)`
@@ -1362,11 +1362,11 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
       padding: 3,
       transform: `rotate(${rotation}deg)`,
       background: light
-        ? 'linear-gradient(135deg, #C99B2F 0%, #B06B2C 22%, #8C5A28 50%, #B06B2C 78%, #C99B2F 100%)'
+        ? 'linear-gradient(135deg, #4A8B55 0%, #3A7245 22%, #2F5D3A 50%, #3A7245 78%, #4A8B55 100%)'
         : 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
       borderRadius: 26,
       boxShadow: light
-        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(176,107,44,0.2)'
+        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(47,93,58,0.2)'
         : '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
     }}>
       <div style={{

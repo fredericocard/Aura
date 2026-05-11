@@ -43,12 +43,12 @@ const LIGHT_THEME = {
   ink2:      '#5C5043',
   ink3:      '#8A7E6F',
   ink4:      '#B8AE9E',
-  copper:    '#B06B2C',
-  copperDim: 'rgba(176,107,44,0.55)',
-  copperGlow:'rgba(140,84,34,0.18)',
-  gold:      '#8C5A28',
-  forest:    '#B06B2C',
-  forestDeep:'#8C5422',
+  copper:    '#2F5D3A',
+  copperDim: 'rgba(47,93,58,0.55)',
+  copperGlow:'rgba(47,93,58,0.18)',
+  gold:      '#1E3D25',
+  forest:    '#2F5D3A',
+  forestDeep:'#1E3D25',
   line:      'rgba(43,33,24,0.08)',
   lineStrong:'rgba(43,33,24,0.14)',
   cellBorder:'rgba(43,33,24,0.10)',
@@ -542,7 +542,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
               background: DARK.forest,
               color: DARK.ink,
               border:'none', borderRadius:999,
-              boxShadow: '0 2px 6px -2px rgba(176,107,44,0.4)',
+              boxShadow: '0 2px 6px -2px rgba(47,93,58,0.4)',
               fontFamily:'var(--font-ui)', fontSize:8, fontWeight:700,
               letterSpacing:'0.14em', textTransform:'uppercase',
               cursor:'pointer', whiteSpace:'nowrap',
@@ -827,17 +827,22 @@ function ModalCompass({ size = 300, opacity = 0.10 }: { size?: number; opacity?:
 }
 
 function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, showCompass = true }: { width?: number; onClose: () => void; onRotate?: () => void; rotated?: boolean; children: React.ReactNode; showCompass?: boolean }) {
+  const light = DARK === LIGHT_THEME;
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
-      background: 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
+      background: light
+        ? 'linear-gradient(135deg, #4A8B55 0%, #3A7245 22%, #2F5D3A 50%, #3A7245 78%, #4A8B55 100%)'
+        : 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
       borderRadius: 26,
-      boxShadow: '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
+      boxShadow: light
+        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(47,93,58,0.2)'
+        : '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
     }}>
       <div style={{
         position: 'relative',
         width, padding: '14px 22px 20px',
-        background: '#1C140C',
+        background: light ? DARK.bgCard : '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
         transform: rotated ? 'rotate(180deg)' : 'none',
@@ -847,10 +852,10 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
         <button onClick={onClose} style={{
           position: 'absolute', top: 6, left: 10, zIndex: 2,
           width: 36, height: 36, borderRadius: 999,
-          background: 'rgba(226,184,88,0.12)',
-          border: '1.5px solid rgba(226,184,88,0.30)',
+          background: light ? 'rgba(43,33,24,0.06)' : 'rgba(226,184,88,0.12)',
+          border: `1.5px solid ${light ? 'rgba(43,33,24,0.14)' : 'rgba(226,184,88,0.30)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-          boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          boxShadow: light ? 'none' : '0 0 8px -2px rgba(226,184,88,0.15)',
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
@@ -858,10 +863,10 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
           <button onClick={onRotate} aria-label="Rotate" style={{
             position: 'absolute', top: 6, right: 10, zIndex: 2,
             width: 36, height: 36, borderRadius: 999,
-            background: 'rgba(226,184,88,0.12)',
-            border: '1.5px solid rgba(226,184,88,0.30)',
+            background: light ? 'rgba(43,33,24,0.06)' : 'rgba(226,184,88,0.12)',
+            border: `1.5px solid ${light ? 'rgba(43,33,24,0.14)' : 'rgba(226,184,88,0.30)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+            boxShadow: light ? 'none' : '0 0 8px -2px rgba(226,184,88,0.15)',
           }}>
             <Icon name="rotate" size={18} stroke={DARK.ink2} width={2}/>
           </button>
@@ -873,22 +878,29 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
 }
 
 function DicePlaque({ option, active, result, onClick }: { option: { id: string; label: string; icon: string; large?: boolean }; active: boolean; result: string | null; onClick: () => void }) {
+  const light = DARK === LIGHT_THEME;
   const accent = active ? DARK.copper : DARK.ink3;
   return (
     <button onClick={onClick} style={{
       width: '100%', minWidth: 0,
       height: 90,
       position: 'relative',
-      background: active ? `radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)` : '#1A120A',
-      border: `1px solid ${active ? `${DARK.copper}88` : 'rgba(226,184,88,0.22)'}`,
+      background: light
+        ? (active ? `radial-gradient(circle at 30% 20%, ${DARK.bgDeep} 0%, ${DARK.bgCard} 65%)` : DARK.bgDeep)
+        : (active ? `radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)` : '#1A120A'),
+      border: `1px solid ${active ? `${DARK.copper}88` : (light ? DARK.lineStrong : 'rgba(226,184,88,0.22)')}`,
       borderRadius: 16,
       padding: '12px 10px 10px',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
       cursor: 'pointer',
       textAlign: 'center',
       boxShadow: active
-        ? `0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)`
-        : `inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)`,
+        ? (light
+          ? `0 0 0 3px rgba(47,93,58,0.10), 0 4px 14px -4px rgba(47,93,58,0.15)`
+          : `0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)`)
+        : (light
+          ? `0 1px 3px rgba(0,0,0,0.06)`
+          : `inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)`),
       overflow: 'hidden',
     }}>
       <div style={{
@@ -1360,11 +1372,11 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
       padding: 3,
       transform: `rotate(${rotation}deg)`,
       background: light
-        ? 'linear-gradient(135deg, #C99B2F 0%, #B06B2C 22%, #8C5A28 50%, #B06B2C 78%, #C99B2F 100%)'
+        ? 'linear-gradient(135deg, #4A8B55 0%, #3A7245 22%, #2F5D3A 50%, #3A7245 78%, #4A8B55 100%)'
         : 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
       borderRadius: 26,
       boxShadow: light
-        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(176,107,44,0.2)'
+        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(47,93,58,0.2)'
         : '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
     }}>
       <div style={{
