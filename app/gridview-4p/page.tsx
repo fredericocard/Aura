@@ -146,18 +146,19 @@ function CompassRose({ color = DARK.copper, opacity = 0.22, size = 240 }: { colo
 
 function CounterChip({ kind, count }: { kind: string; count: number }) {
   const v = COUNTER_VOCAB[kind as keyof typeof COUNTER_VOCAB] || COUNTER_VOCAB.poison;
+  const light = DARK === LIGHT_THEME;
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       height: 22, padding: '0 9px',
-      background: `${v.tone}22`,
-      color: v.soft,
-      border: `1px solid ${v.tone}44`,
+      background: `${v.tone}${light ? '55' : '22'}`,
+      color: light ? v.tone : v.soft,
+      border: `1px solid ${v.tone}${light ? '88' : '44'}`,
       borderRadius: 999,
       fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
       letterSpacing: '0.02em', whiteSpace: 'nowrap',
     }}>
-      <Icon name={v.glyph} size={12} stroke={v.soft} width={1.9}/>
+      <Icon name={v.glyph} size={12} stroke={light ? v.tone : v.soft} width={1.9}/>
       <span style={{
         fontFamily: 'var(--font-display)', fontWeight: 400,
         fontSize: 13, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
@@ -315,7 +316,7 @@ function CellInner({ player, defeated = false, defeatTrigger = 0 }: { player: an
         <CommanderArt colors={player.colors} art={player.art} opacity={0.4}/>
         <div style={{ position:'absolute', inset:0,
           background: DARK === LIGHT_THEME
-            ? 'linear-gradient(180deg, rgba(245,239,226,0.82) 0%, rgba(245,239,226,0.30) 22%, rgba(245,239,226,0.20) 50%, rgba(245,239,226,0.40) 78%, rgba(245,239,226,0.85) 100%)'
+            ? 'linear-gradient(180deg, rgba(245,239,226,0.55) 0%, rgba(245,239,226,0.15) 22%, rgba(245,239,226,0.10) 50%, rgba(245,239,226,0.20) 78%, rgba(245,239,226,0.60) 100%)'
             : 'linear-gradient(180deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.35) 22%, rgba(10,6,4,0.25) 50%, rgba(10,6,4,0.45) 78%, rgba(10,6,4,0.90) 100%)',
         }}/>
         <div style={{ position:'absolute', inset:0,
@@ -2547,16 +2548,37 @@ function PageContent() {
               onHoldEnd={() => stopLifeHold(1)}
               onRevive={() => handleRevive(1)}
             />
-            <SidewaysCell
-              player={enrichPlayer(3)}
-              rotation={90}
-              onTapLeft={() => handleLifeChange(3, -1)}
-              onTapRight={() => handleLifeChange(3, 1)}
-              onHoldLeftStart={() => startLifeHold(3, -1)}
-              onHoldRightStart={() => startLifeHold(3, 1)}
-              onHoldEnd={() => stopLifeHold(3)}
-              onRevive={() => handleRevive(3)}
-            />
+            {players[3].claimed ? (
+              <SidewaysCell
+                player={enrichPlayer(3)}
+                rotation={90}
+                onTapLeft={() => handleLifeChange(3, -1)}
+                onTapRight={() => handleLifeChange(3, 1)}
+                onHoldLeftStart={() => startLifeHold(3, -1)}
+                onHoldRightStart={() => startLifeHold(3, 1)}
+                onHoldEnd={() => stopLifeHold(3)}
+                onRevive={() => handleRevive(3)}
+              />
+            ) : (
+              <SidewaysEmptyCell
+                seatLabel="Player 3"
+                life={players[3].life}
+                counters={counters[3]}
+                cmdrDamage={enrichPlayer(3).cmdrDamage}
+                rotation={90}
+                onClaimSeat={() => openJoinModal(3)}
+                showQR={joinModalOpen && joinSlot === 3}
+                qrCodeUrl={qrCodeUrl}
+                podShortCode={podShortCode}
+                onCloseQR={() => setJoinModalOpen(false)}
+                onTapLeft={() => handleLifeChange(3, -1)}
+                onTapRight={() => handleLifeChange(3, 1)}
+                onHoldLeftStart={() => startLifeHold(3, -1)}
+                onHoldRightStart={() => startLifeHold(3, 1)}
+                onHoldEnd={() => stopLifeHold(3)}
+                onRevive={() => handleRevive(3)}
+              />
+            )}
           </div>
           <div className="grid-column">
             {players[2].claimed ? (

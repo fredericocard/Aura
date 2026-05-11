@@ -560,21 +560,22 @@ function RoundBtn({ glyph, onTap, onLongStart, onLongEnd }: any) {
 }
 
 // ─── Counter chip (KeepsakeCard dark) ───────────────────────────────────────
-function CounterChip({ kind, value, label, dense = false }: any) {
+function CounterChip({ kind, value, label, dense = false, lightMode = false }: any) {
   const v = COUNTER_VOCAB[kind] || { label: kind, tone: '#8A7E6F', soft: '#F0E8D8', glyph: 'flame' };
+  const chipColor = lightMode ? v.tone : v.soft;
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: dense ? 5 : 6,
       height: dense ? 22 : 'auto',
       padding: dense ? '0 9px' : '6px 12px',
       borderRadius: 999,
-      background: `${v.tone}22`,
-      border: `1px solid ${v.tone}44`,
-      color: v.soft,
+      background: `${v.tone}${lightMode ? '55' : '22'}`,
+      border: `1px solid ${v.tone}${lightMode ? '88' : '44'}`,
+      color: chipColor,
       fontSize: dense ? 11 : 12, fontWeight: 700, letterSpacing: '0.02em',
       fontFamily: 'var(--font-ui)',
     }}>
-      <Icon name={v.glyph} size={dense ? 12 : 14} stroke={v.soft} width={1.9}/>
+      <Icon name={v.glyph} size={dense ? 12 : 14} stroke={chipColor} width={1.9}/>
       <span style={{
         fontFamily: 'var(--font-display)', fontWeight: 400,
         fontSize: dense ? 13 : 15, lineHeight: 1, letterSpacing: '-0.01em',
@@ -589,14 +590,14 @@ function CounterChip({ kind, value, label, dense = false }: any) {
 }
 
 // ─── Counter orbit (row of chips below dial) ────────────────────────────────
-function CounterOrbit({ items = [] }: any) {
+function CounterOrbit({ items = [], lightMode = false }: any) {
   if (!items.length) return null;
   return (
     <div style={{
       display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center',
       padding: '0 24px', marginTop: 14,
     }}>
-      {items.map((it: any, i: number) => <CounterChip key={i} {...it}/>)}
+      {items.map((it: any, i: number) => <CounterChip key={i} {...it} lightMode={lightMode}/>)}
     </div>
   );
 }
@@ -1272,7 +1273,7 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
 }
 
 // ─── Opponent overlay — commander broadside ─────────────────────────────────
-function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLifeAdj, onSelectPlayer }: any) {
+function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLifeAdj, onSelectPlayer, lightMode = false }: any) {
   const cardRef = useRef<HTMLDivElement>(null);
   const touchRef = useRef<{ startX: number; startY: number; locked: boolean; dir: 'h' | 'v' | null }>({ startX: 0, startY: 0, locked: false, dir: null });
   const [dragX, setDragX] = useState(0);
@@ -1506,7 +1507,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
             <div style={kicker(9)}>Counters</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
               {(p.counters || []).map((c: any, i: number) => (
-                <CounterChip key={i} kind={c.kind} value={c.value}/>
+                <CounterChip key={i} kind={c.kind} value={c.value} lightMode={lightMode}/>
               ))}
               {!(p.counters || []).length && (
                 <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>None on the table.</div>
@@ -2469,7 +2470,7 @@ function PageContent() {
 
       {/* Counter chips */}
       <div style={{ position: 'relative', zIndex: 4 }}>
-        <CounterOrbit items={counterChips}/>
+        <CounterOrbit items={counterChips} lightMode={lightMode}/>
       </div>
 
       {/* Opponent rail */}
@@ -2547,7 +2548,8 @@ function PageContent() {
           onLifeAdj={adjustLife}
           onSelectPlayer={(m: any) => {
             setExpandedOpponent(m.id);
-          }}/>
+          }}
+          lightMode={lightMode}/>
       )}
 
       {/* Settings overlay */}
