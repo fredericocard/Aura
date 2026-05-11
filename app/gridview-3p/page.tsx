@@ -817,17 +817,22 @@ function ModalCompass({ size = 300, opacity = 0.10 }: { size?: number; opacity?:
 }
 
 function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, showCompass = true }: { width?: number; onClose: () => void; onRotate?: () => void; rotated?: boolean; children: React.ReactNode; showCompass?: boolean }) {
+  const light = DARK === LIGHT_THEME;
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
-      background: 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
+      background: light
+        ? 'linear-gradient(135deg, #C99B2F 0%, #B06B2C 22%, #8C5A28 50%, #B06B2C 78%, #C99B2F 100%)'
+        : 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
       borderRadius: 26,
-      boxShadow: '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
+      boxShadow: light
+        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(176,107,44,0.2)'
+        : '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
     }}>
       <div style={{
         position: 'relative',
         width, padding: '14px 22px 20px',
-        background: '#1C140C',
+        background: light ? DARK.bgCard : '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
         transform: rotated ? 'rotate(180deg)' : 'none',
@@ -837,10 +842,10 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
         <button onClick={onClose} style={{
           position: 'absolute', top: 6, left: 10, zIndex: 2,
           width: 36, height: 36, borderRadius: 999,
-          background: 'rgba(226,184,88,0.12)',
-          border: '1.5px solid rgba(226,184,88,0.30)',
+          background: light ? 'rgba(43,33,24,0.06)' : 'rgba(226,184,88,0.12)',
+          border: `1.5px solid ${light ? 'rgba(43,33,24,0.14)' : 'rgba(226,184,88,0.30)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-          boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          boxShadow: light ? 'none' : '0 0 8px -2px rgba(226,184,88,0.15)',
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
@@ -848,10 +853,10 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
           <button onClick={onRotate} aria-label="Rotate" style={{
             position: 'absolute', top: 6, right: 10, zIndex: 2,
             width: 36, height: 36, borderRadius: 999,
-            background: 'rgba(226,184,88,0.12)',
-            border: '1.5px solid rgba(226,184,88,0.30)',
+            background: light ? 'rgba(43,33,24,0.06)' : 'rgba(226,184,88,0.12)',
+            border: `1.5px solid ${light ? 'rgba(43,33,24,0.14)' : 'rgba(226,184,88,0.30)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+            boxShadow: light ? 'none' : '0 0 8px -2px rgba(226,184,88,0.15)',
           }}>
             <Icon name="rotate" size={18} stroke={DARK.ink2} width={2}/>
           </button>
@@ -863,22 +868,29 @@ function ModalCard({ width = 320, onClose, onRotate, rotated = false, children, 
 }
 
 function DicePlaque({ option, active, result, onClick }: { option: { id: string; label: string; icon: string; large?: boolean }; active: boolean; result: string | null; onClick: () => void }) {
+  const light = DARK === LIGHT_THEME;
   const accent = active ? DARK.copper : DARK.ink3;
   return (
     <button onClick={onClick} style={{
       width: '100%', minWidth: 0,
       height: 90,
       position: 'relative',
-      background: active ? `radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)` : '#1A120A',
-      border: `1px solid ${active ? `${DARK.copper}88` : 'rgba(226,184,88,0.22)'}`,
+      background: light
+        ? (active ? `radial-gradient(circle at 30% 20%, ${DARK.bgDeep} 0%, ${DARK.bgCard} 65%)` : DARK.bgDeep)
+        : (active ? `radial-gradient(circle at 30% 20%, #2A1E12 0%, #1E1409 65%)` : '#1A120A'),
+      border: `1px solid ${active ? `${DARK.copper}88` : (light ? DARK.lineStrong : 'rgba(226,184,88,0.22)')}`,
       borderRadius: 16,
       padding: '12px 10px 10px',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
       cursor: 'pointer',
       textAlign: 'center',
       boxShadow: active
-        ? `0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)`
-        : `inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)`,
+        ? (light
+          ? `0 0 0 3px rgba(176,107,44,0.10), 0 4px 14px -4px rgba(176,107,44,0.15)`
+          : `0 0 0 3px rgba(226,184,88,0.08), 0 4px 14px -4px rgba(226,184,88,0.20), inset 0 1px 0 rgba(226,184,88,0.08)`)
+        : (light
+          ? `0 1px 3px rgba(0,0,0,0.06)`
+          : `inset 0 1px 0 rgba(226,184,88,0.04), 0 1px 2px rgba(0,0,0,0.2)`),
       overflow: 'hidden',
     }}>
       <div style={{
@@ -973,7 +985,7 @@ function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.
                   ) : (
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: size * 0.32, color: DARK.ink2 }}>{initial}</span>
                   )}
-                  {!on && <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,6,4,0.25)' }}/>}
+                  {!on && <div style={{ position: 'absolute', inset: 0, background: DARK === LIGHT_THEME ? 'rgba(245,239,226,0.35)' : 'rgba(10,6,4,0.25)' }}/>}
                 </div>
                 {on && (
                   <div style={{
@@ -1343,18 +1355,23 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
   rotated?: boolean;
   showCompass?: boolean;
 }) {
+  const light = DARK === LIGHT_THEME;
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
       padding: 3,
       transform: `rotate(${rotation}deg)`,
-      background: 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
+      background: light
+        ? 'linear-gradient(135deg, #C99B2F 0%, #B06B2C 22%, #8C5A28 50%, #B06B2C 78%, #C99B2F 100%)'
+        : 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)',
       borderRadius: 26,
-      boxShadow: '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
+      boxShadow: light
+        ? '0 30px 80px -20px rgba(0,0,0,.25), 0 0 0 1px rgba(176,107,44,0.2)'
+        : '0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(226,184,88,0.2), 0 0 60px -10px rgba(226,184,88,0.15)',
     }}>
       <div style={{
         position: 'relative',
         width, height, padding: '18px 20px 16px',
-        background: '#1C140C',
+        background: light ? DARK.bgCard : '#1C140C',
         borderRadius: 23,
         overflow: 'hidden',
         transform: rotated ? 'rotate(180deg)' : 'none',
@@ -1364,10 +1381,10 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
         <button onClick={onClose} style={{
           position: 'absolute', top: 6, left: 10, zIndex: 2,
           width: 36, height: 36, borderRadius: 999,
-          background: 'rgba(226,184,88,0.12)',
-          border: '1.5px solid rgba(226,184,88,0.30)',
+          background: light ? 'rgba(43,33,24,0.06)' : 'rgba(226,184,88,0.12)',
+          border: `1.5px solid ${light ? 'rgba(43,33,24,0.14)' : 'rgba(226,184,88,0.30)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-          boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+          boxShadow: light ? 'none' : '0 0 8px -2px rgba(226,184,88,0.15)',
         }}>
           <Icon name="close" size={16} stroke={DARK.ink2} width={1.8}/>
         </button>
@@ -1375,10 +1392,10 @@ function LandscapeModalShell({ children, rotation = 90, width = 540, height = 31
           <button onClick={onRotate} aria-label="Rotate" style={{
             position: 'absolute', top: 6, right: 10, zIndex: 2,
             width: 36, height: 36, borderRadius: 999,
-            background: 'rgba(226,184,88,0.12)',
-            border: '1.5px solid rgba(226,184,88,0.30)',
+            background: light ? 'rgba(43,33,24,0.06)' : 'rgba(226,184,88,0.12)',
+            border: `1.5px solid ${light ? 'rgba(43,33,24,0.14)' : 'rgba(226,184,88,0.30)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-            boxShadow: '0 0 8px -2px rgba(226,184,88,0.15)',
+            boxShadow: light ? 'none' : '0 0 8px -2px rgba(226,184,88,0.15)',
           }}>
             <Icon name="rotate" size={18} stroke={DARK.ink2} width={2}/>
           </button>
@@ -1667,12 +1684,13 @@ function TornEdgeMiniGV() {
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
       style={{ display: 'block', width: '100%', marginBottom: -1 }} aria-hidden="true">
-      <path d={d} fill="#1A1410"/>
+      <path d={d} fill={DARK === LIGHT_THEME ? DARK.bgCard : '#1A1410'}/>
     </svg>
   );
 }
 
 function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onReview: () => void }) {
+  const light = DARK === LIGHT_THEME;
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -1681,7 +1699,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
     }}>
       <div onClick={onContinue} style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.60)',
+        background: light ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
       }}/>
@@ -1692,15 +1710,15 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
         <TornEdgeMiniGV/>
         <div style={{
           position: 'relative',
-          background: '#1A1410',
+          background: light ? DARK.bgCard : '#1A1410',
           padding: '8px 22px 32px',
         }}>
           <button onClick={onContinue} aria-label="Close" style={{
             position: 'absolute', top: 14, right: 16,
             width: 32, height: 32, borderRadius: 999,
-            border: '1px solid rgba(240,232,216,0.08)',
-            background: '#100C08',
-            color: '#5C5043', cursor: 'pointer',
+            border: `1px solid ${DARK.line}`,
+            background: DARK.bgDeep,
+            color: DARK.ink3, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
           }}>×</button>
@@ -1723,36 +1741,36 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
             </div>
             <div style={{
               fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: '#E2B858', marginBottom: 6,
+              textTransform: 'uppercase', color: DARK.copper, marginBottom: 6,
             }}>Last One Standing</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 26, letterSpacing: '-0.02em',
-              color: '#F0E8D8', lineHeight: 1.1,
+              color: DARK.ink, lineHeight: 1.1,
             }}>Victory is yours</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+            <div style={{ marginTop: 8, fontSize: 13, color: DARK.ink3, lineHeight: 1.4 }}>
               All opponents have been defeated. Head to review to celebrate the win and rate the game.
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: '#B06B2C', color: '#F0E8D8',
+              background: DARK.forest, color: light ? '#FAF5EA' : '#F0E8D8',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
-              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
+              boxShadow: light ? '0 2px 0 rgba(0,0,0,.10), 0 18px 36px -12px rgba(0,0,0,.15)' : '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={light ? '#FAF5EA' : '#F0E8D8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
             </button>
             <button onClick={onContinue} style={{
               width: '100%', cursor: 'pointer',
-              background: '#1A1410', color: '#C5B9A5',
-              border: '1px solid rgba(226,184,88,0.25)',
+              background: DARK.bgDeep, color: DARK.ink2,
+              border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
               borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
@@ -1760,7 +1778,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
             }}>Revive Last Player</button>
           </div>
           <div style={{
-            textAlign: 'center', fontSize: 11, color: '#8A7E6F',
+            textAlign: 'center', fontSize: 11, color: DARK.ink3,
             marginTop: 14, lineHeight: 1.4,
           }}>
             Revive Last Player brings the most recent defeated opponent back at 1 life.
@@ -1772,6 +1790,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
 }
 
 function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () => void; onContinue: () => void; onReview: () => void }) {
+  const light = DARK === LIGHT_THEME;
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -1780,7 +1799,7 @@ function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () 
     }}>
       <div onClick={onDismiss} style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.60)',
+        background: light ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
       }}/>
@@ -1791,61 +1810,61 @@ function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () 
         <TornEdgeMiniGV/>
         <div style={{
           position: 'relative',
-          background: '#1A1410',
+          background: light ? DARK.bgCard : '#1A1410',
           padding: '8px 22px 32px',
         }}>
           <button onClick={onDismiss} aria-label="Close" style={{
             position: 'absolute', top: 14, right: 16,
             width: 32, height: 32, borderRadius: 999,
-            border: '1px solid rgba(240,232,216,0.08)',
-            background: '#100C08',
-            color: '#5C5043', cursor: 'pointer',
+            border: `1px solid ${DARK.line}`,
+            background: DARK.bgDeep,
+            color: DARK.ink3, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
           }}>×</button>
           <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <svg width={28} height={28} viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="36" r="2.4" fill="#B06B2C"/>
+                <circle cx="32" cy="36" r="2.4" fill={DARK.copper}/>
                 <defs><clipPath id="elim-clip-gv"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
                 <g clipPath="url(#elim-clip-gv)">
-                  <polygon points="8,60 30,4 31,4 24,60" fill="#B06B2C"/>
-                  <polygon points="40,60 33,4 34,4 56,60" fill="#B06B2C"/>
+                  <polygon points="8,60 30,4 31,4 24,60" fill={DARK.copper}/>
+                  <polygon points="40,60 33,4 34,4 56,60" fill={DARK.copper}/>
                 </g>
               </svg>
             </div>
             <div style={{
               fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6,
+              textTransform: 'uppercase', color: DARK.copper, marginBottom: 6,
             }}>Out of the Game</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 26, letterSpacing: '-0.02em',
-              color: '#F0E8D8', lineHeight: 1.1,
+              color: DARK.ink, lineHeight: 1.1,
             }}>You have been eliminated</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+            <div style={{ marginTop: 8, fontSize: 13, color: DARK.ink3, lineHeight: 1.4 }}>
               Head to review to rate the game, or close this to keep watching.
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: '#B06B2C', color: '#F0E8D8',
+              background: DARK.forest, color: light ? '#FAF5EA' : '#F0E8D8',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
-              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
+              boxShadow: light ? '0 2px 0 rgba(0,0,0,.10), 0 18px 36px -12px rgba(0,0,0,.15)' : '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={light ? '#FAF5EA' : '#F0E8D8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
             </button>
             <button onClick={onContinue} style={{
               width: '100%', cursor: 'pointer',
-              background: '#1A1410', color: '#C5B9A5',
-              border: '1px solid rgba(226,184,88,0.25)',
+              background: DARK.bgDeep, color: DARK.ink2,
+              border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
               borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
@@ -2470,7 +2489,7 @@ function PageContent() {
     .grid-col-3p { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     .grid-bottom-cell { flex: 1; }
 
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)'}; display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
     .modal-overlay.active { display: flex; }
 
     .dice-modal { width: calc(100% - 40px); max-width: 340px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }

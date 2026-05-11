@@ -883,7 +883,7 @@ function PlayerAvatarRow({ players, selectedNum, onSelect, label, accent = DARK.
                   ) : (
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: size * 0.32, color: DARK.ink2 }}>{initial}</span>
                   )}
-                  {!on && <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,6,4,0.25)' }}/>}
+                  {!on && <div style={{ position: 'absolute', inset: 0, background: DARK === LIGHT_THEME ? 'rgba(245,239,226,0.35)' : 'rgba(10,6,4,0.25)' }}/>}
                 </div>
                 {on && (
                   <div style={{
@@ -1235,12 +1235,13 @@ function TornEdgeMiniGV() {
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
       style={{ display: 'block', width: '100%', marginBottom: -1 }} aria-hidden="true">
-      <path d={d} fill="#1A1410"/>
+      <path d={d} fill={DARK === LIGHT_THEME ? DARK.bgCard : '#1A1410'}/>
     </svg>
   );
 }
 
 function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onReview: () => void }) {
+  const light = DARK === LIGHT_THEME;
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -1249,7 +1250,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
     }}>
       <div onClick={onContinue} style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.60)',
+        background: light ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
       }}/>
@@ -1260,15 +1261,15 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
         <TornEdgeMiniGV/>
         <div style={{
           position: 'relative',
-          background: '#1A1410',
+          background: light ? DARK.bgCard : '#1A1410',
           padding: '8px 22px 32px',
         }}>
           <button onClick={onContinue} aria-label="Close" style={{
             position: 'absolute', top: 14, right: 16,
             width: 32, height: 32, borderRadius: 999,
-            border: '1px solid rgba(240,232,216,0.08)',
-            background: '#100C08',
-            color: '#5C5043', cursor: 'pointer',
+            border: `1px solid ${DARK.line}`,
+            background: DARK.bgDeep,
+            color: DARK.ink3, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
           }}>×</button>
@@ -1291,36 +1292,36 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
             </div>
             <div style={{
               fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: '#E2B858', marginBottom: 6,
+              textTransform: 'uppercase', color: DARK.copper, marginBottom: 6,
             }}>Last One Standing</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 26, letterSpacing: '-0.02em',
-              color: '#F0E8D8', lineHeight: 1.1,
+              color: DARK.ink, lineHeight: 1.1,
             }}>Victory is yours</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+            <div style={{ marginTop: 8, fontSize: 13, color: DARK.ink3, lineHeight: 1.4 }}>
               All opponents have been defeated. Head to review to celebrate the win and rate the game.
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: '#B06B2C', color: '#F0E8D8',
+              background: DARK.forest, color: light ? '#FAF5EA' : '#F0E8D8',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
-              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
+              boxShadow: light ? '0 2px 0 rgba(0,0,0,.10), 0 18px 36px -12px rgba(0,0,0,.15)' : '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={light ? '#FAF5EA' : '#F0E8D8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
             </button>
             <button onClick={onContinue} style={{
               width: '100%', cursor: 'pointer',
-              background: '#1A1410', color: '#C5B9A5',
-              border: '1px solid rgba(226,184,88,0.25)',
+              background: DARK.bgDeep, color: DARK.ink2,
+              border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
               borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
@@ -1328,7 +1329,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
             }}>Revive Last Player</button>
           </div>
           <div style={{
-            textAlign: 'center', fontSize: 11, color: '#8A7E6F',
+            textAlign: 'center', fontSize: 11, color: DARK.ink3,
             marginTop: 14, lineHeight: 1.4,
           }}>
             Revive Last Player brings the most recent defeated opponent back at 1 life.
@@ -1340,6 +1341,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
 }
 
 function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () => void; onContinue: () => void; onReview: () => void }) {
+  const light = DARK === LIGHT_THEME;
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -1348,7 +1350,7 @@ function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () 
     }}>
       <div onClick={onDismiss} style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.60)',
+        background: light ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
       }}/>
@@ -1359,61 +1361,61 @@ function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () 
         <TornEdgeMiniGV/>
         <div style={{
           position: 'relative',
-          background: '#1A1410',
+          background: light ? DARK.bgCard : '#1A1410',
           padding: '8px 22px 32px',
         }}>
           <button onClick={onDismiss} aria-label="Close" style={{
             position: 'absolute', top: 14, right: 16,
             width: 32, height: 32, borderRadius: 999,
-            border: '1px solid rgba(240,232,216,0.08)',
-            background: '#100C08',
-            color: '#5C5043', cursor: 'pointer',
+            border: `1px solid ${DARK.line}`,
+            background: DARK.bgDeep,
+            color: DARK.ink3, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
           }}>×</button>
           <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <svg width={28} height={28} viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="36" r="2.4" fill="#B06B2C"/>
+                <circle cx="32" cy="36" r="2.4" fill={DARK.copper}/>
                 <defs><clipPath id="elim-clip-gv"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
                 <g clipPath="url(#elim-clip-gv)">
-                  <polygon points="8,60 30,4 31,4 24,60" fill="#B06B2C"/>
-                  <polygon points="40,60 33,4 34,4 56,60" fill="#B06B2C"/>
+                  <polygon points="8,60 30,4 31,4 24,60" fill={DARK.copper}/>
+                  <polygon points="40,60 33,4 34,4 56,60" fill={DARK.copper}/>
                 </g>
               </svg>
             </div>
             <div style={{
               fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6,
+              textTransform: 'uppercase', color: DARK.copper, marginBottom: 6,
             }}>Out of the Game</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 26, letterSpacing: '-0.02em',
-              color: '#F0E8D8', lineHeight: 1.1,
+              color: DARK.ink, lineHeight: 1.1,
             }}>You have been eliminated</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: '#5C5043', lineHeight: 1.4 }}>
+            <div style={{ marginTop: 8, fontSize: 13, color: DARK.ink3, lineHeight: 1.4 }}>
               Head to review to rate the game, or close this to keep watching.
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: '#B06B2C', color: '#F0E8D8',
+              background: DARK.forest, color: light ? '#FAF5EA' : '#F0E8D8',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
-              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
+              boxShadow: light ? '0 2px 0 rgba(0,0,0,.10), 0 18px 36px -12px rgba(0,0,0,.15)' : '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#F0E8D8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={light ? '#FAF5EA' : '#F0E8D8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
             </button>
             <button onClick={onContinue} style={{
               width: '100%', cursor: 'pointer',
-              background: '#1A1410', color: '#C5B9A5',
-              border: '1px solid rgba(226,184,88,0.25)',
+              background: DARK.bgDeep, color: DARK.ink2,
+              border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
               borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
@@ -2033,7 +2035,7 @@ function PageContent() {
 
     .grid-container-2p { flex: 1; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 10px; padding: 10px; min-height: 0; overflow: hidden; }
 
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${DARK === LIGHT_THEME ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.65)'}; display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
     .modal-overlay.active { display: flex; }
 
     .dice-modal { width: calc(100% - 40px); max-width: 340px; background: ${DARK.bgCard}; border: 1px solid ${DARK.lineStrong}; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
