@@ -802,4 +802,10 @@ function PageContent() {
   );
 }
 
-export default fun
+export default function ReviewPage() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
+      <PageContent />
+    </Suspense>
+  );
+}
