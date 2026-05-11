@@ -1240,3 +1240,11 @@ function RecentGamesPageInner() {
   );
 }
 
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, fontFamily: 'sans-serif' }}>Loading…</div>}>
+      <RecentGamesPageInner/>
+    </Suspense>
+  );
+}
