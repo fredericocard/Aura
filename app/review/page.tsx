@@ -11,7 +11,7 @@ import { getGame, type GamePlayer } from '@/lib/games';
 import { castVote, castBracketCheck, type QuestionKey } from '@/lib/votes';
 import { submitReview } from '@/lib/pods';
 import { checkPodCompletion } from '@/lib/questionnaire';
-import { getGameCard, type GameCard, type CommanderCardData } from '@/lib/game-card';
+import { getGameCard, previewGameCard, type GameCard, type CommanderCardData } from '@/lib/game-card';
 
 interface PlayerInfo {
   id: string;         // unique selection key: 'seat-${seat}'
@@ -632,7 +632,9 @@ function PageContent() {
     const poll = async () => {
       while (!cancelled && tries < 20) {
         try {
-          const card = await getGameCard(gameId);
+          // Try persisted card first; fall back to live preview so the user
+          // sees the card take shape even before orchestration finishes
+          const card = await previewGameCard(gameId);
           if (card) {
             if (!cancelled) setGameCard(card);
             return;

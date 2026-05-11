@@ -342,6 +342,42 @@ export async function getGameCard(gameId: string): Promise<GameCard | null> {
   return data as GameCard;
 }
 
+/**
+ * Get the persisted Game Card if it exists, otherwise compose a LIVE preview
+ * from current state. Used by the review page so the player can see the card
+ * take shape as votes come in (the persisted row only gets inserted once the
+ * orchestration pipeline runs and completes). The preview has id: 'preview'
+ * and share_code: null.
+ */
+export async function previewGameCard(gameId: string): Promise<GameCard | null> {
+  const existing = await getGameCard(gameId);
+  if (existing) return existing;
+  try {
+    const data = await composeGameCard(gameId);
+    return {
+      id: 'preview',
+      game_id: data.gameId,
+      pod_id: data.podId,
+      narrative: data.narrative,
+      game_date: data.gameDate,
+      pod_size: data.podSize,
+      winner_commander_name: data.winnerCommanderName,
+      winner_archetype: data.winnerArchetype,
+      archenemy_commander: data.archenemyCommander,
+      flavour_winner_commander: data.flavourWinnerCommander,
+      fun_winner_commander: data.funWinnerCommander,
+      brilliance_winner_commander: data.brillianceWinnerCommander,
+      commanders: data.commanders,
+      share_code: null,
+      image_url: null,
+      created_at: new Date().toISOString(),
+    } as GameCard;
+  } catch (err) {
+    if (typeof console !== 'undefined') console.error('[previewGameCard] compose failed:', err);
+    return null;
+  }
+}
+
 /** Get a card by its share code (public access) */
 export async function getCardByShareCode(
   shareCode: string
