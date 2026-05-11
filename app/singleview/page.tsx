@@ -64,6 +64,8 @@ const TOKENS_CSS = `
   --backdrop-end:     #0A0604;
   --copper-glow:      rgba(201,155,47,0.18);
   --sheet-gold-edge:  linear-gradient(90deg, #8C5A28 0%, #E2B858 25%, #C99B2F 50%, #E2B858 75%, #8C5A28 100%);
+  --dial-well-opacity: 1;
+  --dial-ring:        rgba(240,232,216,0.08);
 }
 
 .aura-light {
@@ -102,6 +104,8 @@ const TOKENS_CSS = `
   --backdrop-end:     #F5EFE2;
   --copper-glow:      rgba(176,107,44,0.08);
   --sheet-gold-edge:  linear-gradient(90deg, #C99B2F 0%, #B06B2C 25%, #8C5A28 50%, #B06B2C 75%, #C99B2F 100%);
+  --dial-well-opacity: 0.7;
+  --dial-ring:        rgba(176,107,44,0.45);
 }
 
 @keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
@@ -488,7 +492,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
 
         {/* Inner well */}
         <circle cx={cx} cy={cx} r="68"
-          fill="var(--parchment-card)" stroke="var(--line)" strokeWidth="1"/>
+          fill="var(--parchment-card)" fillOpacity="var(--dial-well-opacity, 1)" stroke="var(--dial-ring)" strokeWidth="1.5"/>
 
         {/* Inner decorative ring */}
         <circle cx={cx} cy={cx} r="65"
