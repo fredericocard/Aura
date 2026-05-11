@@ -1071,7 +1071,7 @@ function DiceSheet({ onClose, opponents = [] }: any) {
 }
 
 // ─── Counter Row (KeepsakeCard) ─────────────────────────────────────────────
-function CounterRow({ counter, count, isFirst, onAdjust }: any) {
+function CounterRow({ counter, count, isFirst, onAdjust, lightMode = false }: any) {
   const iconSize = 44;
   const fillPct = counter.lethal ? Math.min(100, (count / counter.lethal) * 100) : 0;
 
@@ -1085,11 +1085,15 @@ function CounterRow({ counter, count, isFirst, onAdjust }: any) {
         <div style={{
           position: 'relative',
           width: iconSize, height: iconSize, borderRadius: 999,
-          background: `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
-          border: `1.5px solid ${counter.tone}BB`,
+          background: lightMode
+            ? `radial-gradient(circle at 35% 30%, ${counter.tone}77 0%, ${counter.tone}55 60%, ${counter.tone}66 100%)`
+            : `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
+          border: `1.5px solid ${lightMode ? counter.tone : counter.tone + 'BB'}`,
           color: counter.tone,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
+          boxShadow: lightMode
+            ? `0 0 14px -2px ${counter.tone}99, inset 0 0 8px ${counter.tone}44`
+            : `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
           flexShrink: 0,
         }}>
           <Icon name={counter.glyph} size={20} stroke={counter.tone} width={1.8}/>
@@ -1117,7 +1121,7 @@ function CounterRow({ counter, count, isFirst, onAdjust }: any) {
           {counter.lethal && (
             <div style={{
               marginTop: 6, height: 3, borderRadius: 999,
-              background: `${counter.tone}33`,
+              background: `${counter.tone}${lightMode ? '77' : '33'}`,
               overflow: 'hidden', maxWidth: 120,
             }}>
               <div style={{
@@ -1132,7 +1136,7 @@ function CounterRow({ counter, count, isFirst, onAdjust }: any) {
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button onClick={() => onAdjust(counter.key, -1)} style={{
             width: 38, height: 38, borderRadius: 999,
-            background: `${counter.tone}25`,
+            background: `${counter.tone}${lightMode ? '55' : '25'}`,
             color: counter.tone,
             border: `1.5px solid ${counter.tone}AA`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1156,7 +1160,7 @@ function CounterRow({ counter, count, isFirst, onAdjust }: any) {
 }
 
 // ─── Counter bottom sheet (KeepsakeCard) ───────────────────────────────────
-function CounterSheet({ onClose, counters, onAdjust }: any) {
+function CounterSheet({ onClose, counters, onAdjust, lightMode = false }: any) {
   const COUNTERS = [
     { key: 'poison',     label: 'Poison',     glyph: 'skull', tone: '#4F8A4D', lethal: 10 },
     { key: 'energy',     label: 'Energy',     glyph: 'bolt',  tone: '#C99B2F', lethal: null },
@@ -1184,7 +1188,8 @@ function CounterSheet({ onClose, counters, onAdjust }: any) {
           <CounterRow key={c.key} counter={c}
             count={counters[c.key] || 0}
             isFirst={i === 0}
-            onAdjust={onAdjust}/>
+            onAdjust={onAdjust}
+            lightMode={lightMode}/>
         ))}
       </div>
     </BottomSheet>
@@ -2497,7 +2502,8 @@ function PageContent() {
         <CounterSheet
           onClose={() => setShowCounters(false)}
           counters={{ poison, energy, experience, commander: 0 }}
-          onAdjust={adjustCounter}/>
+          onAdjust={adjustCounter}
+          lightMode={lightMode}/>
       )}
 
       {/* Commander damage sheet */}

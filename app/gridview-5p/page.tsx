@@ -184,7 +184,7 @@ function ScreenBg({ children }: { children: React.ReactNode }) {
       position: 'relative', height: '100%', width: '100%',
       background: DARK.bg,
       backgroundImage:
-        `radial-gradient(ellipse at 50% 12%, ${DARK.copperGlow}, transparent 50%), ` +
+        (DARK === LIGHT_THEME ? '' : `radial-gradient(ellipse at 50% 12%, ${DARK.copperGlow}, transparent 50%), `) +
         `radial-gradient(ellipse at 50% 100%, ${DARK === LIGHT_THEME ? 'rgba(237,228,208,0.6)' : 'rgba(0,0,0,0.6)'}, transparent 50%), ` +
         `linear-gradient(180deg, ${DARK.bgCard} 0%, ${DARK.bg} 45%, ${DARK.bgDeep} 100%)`,
       fontFamily: 'var(--font-ui)',
@@ -288,7 +288,9 @@ function CellInner({ player, lifeSize = 64, defeated = false, defeatTrigger = 0 
       <div style={{ position:'absolute', inset:0, ...fadeStyle }}>
         <CommanderArt colors={player.colors} art={player.art} opacity={0.4}/>
         <div style={{ position:'absolute', inset:0,
-          background: 'linear-gradient(180deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.35) 22%, rgba(10,6,4,0.25) 50%, rgba(10,6,4,0.45) 78%, rgba(10,6,4,0.90) 100%)',
+          background: DARK === LIGHT_THEME
+            ? 'linear-gradient(180deg, rgba(245,239,226,0.82) 0%, rgba(245,239,226,0.30) 22%, rgba(245,239,226,0.20) 50%, rgba(245,239,226,0.40) 78%, rgba(245,239,226,0.85) 100%)'
+            : 'linear-gradient(180deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.35) 22%, rgba(10,6,4,0.25) 50%, rgba(10,6,4,0.45) 78%, rgba(10,6,4,0.90) 100%)',
         }}/>
         <div style={{ position:'absolute', inset:0,
           background: `radial-gradient(ellipse 80% 60% at 50% 50%, ${darkWash} 0%, transparent 70%)`,
@@ -1031,11 +1033,15 @@ function CounterRow({ counter, count, isFirst, onMinus, onPlus }: {
         <div style={{
           position: 'relative',
           width: 44, height: 44, borderRadius: 999,
-          background: `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
-          border: `1.5px solid ${counter.tone}BB`,
+          background: DARK === LIGHT_THEME
+            ? `radial-gradient(circle at 35% 30%, ${counter.tone}77 0%, ${counter.tone}55 60%, ${counter.tone}66 100%)`
+            : `radial-gradient(circle at 35% 30%, ${counter.tone}33 0%, ${counter.tone}1A 60%, ${counter.tone}22 100%)`,
+          border: `1.5px solid ${DARK === LIGHT_THEME ? counter.tone : counter.tone + 'BB'}`,
           color: counter.tone,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
+          boxShadow: DARK === LIGHT_THEME
+            ? `0 0 14px -2px ${counter.tone}99, inset 0 0 8px ${counter.tone}44`
+            : `0 0 14px -2px ${counter.tone}50, inset 0 0 8px ${counter.tone}15`,
           flexShrink: 0,
         }}>
           <Icon name={counter.glyph} size={20} stroke={counter.tone} width={1.8}/>
@@ -1064,7 +1070,7 @@ function CounterRow({ counter, count, isFirst, onMinus, onPlus }: {
           {counter.lethal && (
             <div style={{
               marginTop: 6, height: 3, borderRadius: 999,
-              background: `${counter.tone}33`,
+              background: `${counter.tone}${DARK === LIGHT_THEME ? '77' : '33'}`,
               overflow: 'hidden',
               maxWidth: 120,
             }}>
@@ -1081,7 +1087,7 @@ function CounterRow({ counter, count, isFirst, onMinus, onPlus }: {
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button onClick={onMinus} style={{
             ...stepBase,
-            background: `${counter.tone}25`,
+            background: `${counter.tone}${DARK === LIGHT_THEME ? '55' : '25'}`,
             color: counter.tone,
             border: `1.5px solid ${counter.tone}AA`,
             boxShadow: `0 0 8px -2px ${counter.tone}30`,
