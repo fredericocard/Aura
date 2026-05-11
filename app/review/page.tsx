@@ -515,7 +515,7 @@ function MemoryCardOverlay({ onClose, onViewProfile, card }: { onClose: () => vo
     await shareCard(cardRef.current);
   };
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,6,4,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 20px', fontFamily: "'Instrument Sans', sans-serif" }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,6,4,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 20px', fontFamily: "'Instrument Sans', sans-serif" }}>
       <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, width: '100%', maxWidth: 430 }}>
         <div ref={cardRef}>
           {card ? <KeepsakeCard card={card} /> : (
