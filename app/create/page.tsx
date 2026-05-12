@@ -184,7 +184,40 @@ export default function Page() {
       return;
     }
 
-    // Show bracket picker step
+    // If user has no decks, quick-add without bracket picker
+    if (decks.length === 0) {
+      setRegistering(true);
+      setShowNewDeck(false);
+      setSearchQuery('');
+      setSearchResults([]);
+
+      const { data: newDeck, error: regError } = await registerCommander(validated.cardName, 2, true);
+      if (regError || !newDeck) {
+        displayToast(regError || 'Failed to register commander');
+        setRegistering(false);
+        return;
+      }
+
+      // Update art + color identity
+      const { supabase } = await import('@/lib/supabase');
+      await supabase.from('decks').update({
+        commander_art_url: validated.artUrl,
+        color_identity: validated.colorIdentity || null,
+      }).eq('id', newDeck.id);
+
+      const enrichedDeck = {
+        ...newDeck,
+        commander_art_url: validated.artUrl,
+        color_identity: validated.colorIdentity || null,
+      };
+      setDecks([enrichedDeck]);
+      setSelectedDeck(0);
+      setRegistering(false);
+      displayToast(`${validated.cardName} added!`);
+      return;
+    }
+
+    // Show bracket picker step (normal flow when user already has decks)
     setPendingCard(validated);
     setSelectedBracket(2); // default
     setShowNewDeck(false);
@@ -844,11 +877,22 @@ export default function Page() {
             {loading ? (
               <div style={{ textAlign: 'center', padding: 32, color: '#8A7E6F' }}>Loading your commanders...</div>
             ) : decks.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 32, color: '#8A7E6F' }}>
-                No commanders registered yet.
-                <br />
-                <Link href="/profile" style={{ color: '#2F5D3A', fontWeight: 600 }}>Add a commander first</Link>
-              </div>
+              <button onClick={openNewDeck} disabled={registering} style={{
+                width: '100%', padding: '18px 16px',
+                background: 'transparent', border: '1.5px dashed rgba(43,33,24,0.25)',
+                borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                color: '#2F5D3A', fontSize: 15, fontWeight: 600, fontFamily: "'Instrument Sans', sans-serif",
+                cursor: registering ? 'default' : 'pointer', transition: 'all 0.2s ease',
+                opacity: registering ? 0.5 : 1,
+              }}>
+                {registering ? 'Adding...' : (<>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Choose a Commander
+                </>)}
+              </button>
             ) : (
               decks.map((d, i) => (
                 <div
