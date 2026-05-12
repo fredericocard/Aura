@@ -387,7 +387,7 @@ function SidewaysCell({ player, rotation, onTapLeft, onTapRight, onRevive, onHol
       {isDefeated && (
         <DefeatedButtonsLayer
           reviveColor={DARK.forest}
-          reviveTextColor={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}
+          reviveTextColor={DARK.ink}
           onRevive={onRevive}
           zIndex={20}
           triggerKey={defeatTrigger}
@@ -515,7 +515,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
         {isDefeated && (
           <DefeatedButtonsLayer
             reviveColor={DARK.forest}
-            reviveTextColor={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}
+            reviveTextColor={DARK.ink}
             reviewBorder={DARK.lineStrong}
             reviewTextColor={DARK.ink2}
             onRevive={onRevive}
@@ -540,14 +540,14 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
               display:'inline-flex', alignItems:'center', gap:5,
               padding:'4px 9px',
               background: DARK.forest,
-              color: DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink,
+              color: DARK.ink,
               border:'none', borderRadius:999,
               boxShadow: '0 2px 6px -2px rgba(47,93,58,0.4)',
               fontFamily:'var(--font-ui)', fontSize:8, fontWeight:700,
               letterSpacing:'0.14em', textTransform:'uppercase',
               cursor:'pointer', whiteSpace:'nowrap',
             }}>
-              <Icon name="plus-circle" size={11} stroke={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}/>
+              <Icon name="plus-circle" size={11} stroke={DARK.ink}/>
               Claim
             </button>
           </div>
@@ -638,7 +638,7 @@ function NormalCell({ player, onTapLeft, onTapRight, onRevive, lifeSize = 100, o
       {isDefeated && (
         <DefeatedButtonsLayer
           reviveColor={DARK.forest}
-          reviveTextColor={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}
+          reviveTextColor={DARK.ink}
           onRevive={onRevive}
           zIndex={20}
           triggerKey={defeatTrigger}
