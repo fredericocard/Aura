@@ -681,9 +681,65 @@ function FormField({ label, value, onChange, type = 'text', focused = false, rea
 function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, onSave, onDeleteAccount, onChangePhoto }: {
   initial: string; nameValue: string; emailValue: string;
   onNameChange: (v: string) => void; onBack: () => void;
-  onSave: () => void; onDeleteAccount: () => void; onChangePhoto: () => void;
+  onSave: () => void; onDeleteAccount: () => Promise<void>; onChangePhoto: () => void;
 }) {
-  return (
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  return (<>
+    {/* Delete confirmation overlay */}
+    {confirmDelete && (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(43,33,24,0.55)',
+        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: T.fontUI,
+      }}>
+        <div style={{
+          width: 'calc(100% - 48px)', maxWidth: 340,
+          background: T.parchmentCard,
+          border: `1px solid ${T.line}`,
+          borderRadius: 24,
+          boxShadow: '0 30px 60px -20px rgba(43,33,24,0.40)',
+          padding: 24,
+          animation: 'slideUpCard 0.35s cubic-bezier(0.22,1,0.36,1)',
+        }}>
+          <div style={{
+            fontFamily: T.fontDisplay, fontSize: 22, color: T.ink,
+            letterSpacing: '-0.01em', lineHeight: 1.15, marginBottom: 10, textAlign: 'center',
+          }}>Delete Account?</div>
+          <div style={{
+            fontSize: 14, color: T.ink2, lineHeight: 1.5, textAlign: 'center', marginBottom: 20,
+          }}>
+            This is permanent. All your decks, games, badges, memory cards, and aura scores will be erased forever.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button disabled={deleting} onClick={async () => {
+              setDeleting(true);
+              await onDeleteAccount();
+            }} style={{
+              width: '100%', cursor: deleting ? 'default' : 'pointer',
+              background: deleting ? T.ink3 : T.rivalry,
+              color: T.parchment,
+              border: 'none', borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600, fontFamily: T.fontUI,
+            }}>{deleting ? 'Deleting...' : 'Delete Everything'}</button>
+            <button disabled={deleting} onClick={() => setConfirmDelete(false)} style={{
+              width: '100%', cursor: 'pointer',
+              background: T.parchment,
+              color: T.ink2,
+              border: `1px solid ${T.lineStrong}`,
+              borderRadius: 20,
+              padding: '14px 18px',
+              fontSize: 15, fontWeight: 600, fontFamily: T.fontUI,
+            }}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    )}
+
     <div style={{
       width: '100%', maxWidth: 430, height: '100%', position: 'fixed',
       top: 0, bottom: 0, left: '50%', transform: 'translateX(-50%)',
@@ -770,7 +826,7 @@ function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, o
           borderTop: `1px solid ${T.line}`,
           display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center',
         }}>
-          <button onClick={onDeleteAccount} style={{
+          <button onClick={() => setConfirmDelete(true)} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             fontFamily: T.fontUI, fontSize: 14, fontWeight: 700,
             color: T.rivalry, padding: '8px 16px',
@@ -789,7 +845,7 @@ function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, o
         <div style={{ width: 134, height: 5, borderRadius: 999, background: 'rgba(43,33,24,0.65)' }}/>
       </div>
     </div>
-  );
+  </>);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -914,7 +970,30 @@ export default function ProfilePage() {
               showToastMsg('Changes saved');
             }
           }}
-          onDeleteAccount={() => showToastMsg('Delete Account — Coming Soon')}
+          onDeleteAccount={async () => {
+            try {
+              const { data: { user: authU } } = await supabase.auth.getUser();
+              const uid = authU?.id;
+              if (!uid) throw new Error('No user');
+              // Delete user data from tables in dependency order
+              await supabase.from('badge_vote_history').delete().eq('user_id', uid);
+              await supabase.from('badge_history').delete().eq('user_id', uid);
+              await supabase.from('badge_attributions').delete().eq('user_id', uid);
+              await supabase.from('game_card_players').delete().eq('user_id', uid);
+              await supabase.from('game_votes').delete().eq('voter_id', uid);
+              await supabase.from('bracket_change_log').delete().eq('user_id', uid);
+              await supabase.from('bracket_nudges').delete().eq('user_id', uid);
+              await supabase.from('game_players').delete().eq('user_id', uid);
+              await supabase.from('pod_members').delete().eq('user_id', uid);
+              await supabase.from('decks').delete().eq('user_id', uid);
+              await supabase.from('profiles').delete().eq('id', uid);
+              // Sign out and redirect to landing
+              await supabase.auth.signOut();
+              window.location.href = '/landing';
+            } catch (e: any) {
+              showToastMsg('Failed to delete: ' + (e?.message || 'Unknown error'));
+            }
+          }}
           onChangePhoto={() => showToastMsg('Change Photo — Coming Soon')}
         />
       )}
