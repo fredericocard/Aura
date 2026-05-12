@@ -71,22 +71,20 @@ export async function createGame(podId: string, playerCount?: number): Promise<{
     return { data: null, error: gameError?.message ?? 'Failed to create game' };
   }
 
-  // Build ALL seat rows — real members fill first, remaining seats are placeholders.
-  // Three player types:
-  //   1. Logged-in user: user_id + deck_id (from pod_members with a deck)
-  //   2. Guest: user_id null, commander_name set (handled later when guest picks a commander)
+  // Build ALL seat rows as empty placeholders.
+  // Pod members claim seats explicitly via claimSeat() once they reach the
+  // gridview — including the host. Three player types after claim:
+  //   1. Logged-in user: user_id + deck_id (set by claimSeat from pod_members)
+  //   2. Guest: user_id null, commander_name set (set when guest picks a commander)
   //   3. Empty seat: user_id null, deck_id null, commander_name null
-  const realMembers = members.filter((m: any) => m.deck_id != null);
-
   const gamePlayers = [];
   for (let seat = 1; seat <= totalSeats; seat++) {
-    const member = realMembers[seat - 1]; // assign real members to first seats
     gamePlayers.push({
       game_id: game.id,
       seat_number: seat,
-      user_id: member?.user_id ?? null,
-      deck_id: member?.deck_id ?? null,
-      commander_name: null, // filled later if guest picks a commander
+      user_id: null,
+      deck_id: null,
+      commander_name: null,
     });
   }
 
@@ -125,6 +123,60 @@ export async function getGame(gameId: string): Promise<{ data: (Game & { players
     data: { ...(game as Game), players: (players as GamePlayer[]) ?? [] },
     error: null,
   };
+}
+
+/**
+ * Claim a seat in an active game for the currently signed-in user.
+ *
+ * Looks up the user's deck from pod_members (the deck they registered when
+ * creating or joining the pod), then atomically writes user_id + deck_id onto
+ * the chosen seat — but only if that seat is still empty (user_id IS NULL).
+ *
+ * Returns an error if:
+ *   - The user is not signed in
+ *   - The user has no pod_members row / no deck for this pod
+ *   - The seat is already claimed (race condition)
+ */
+export async function claimSeat(gameId: string, seatNumber: number): Promise<{ error: string | null }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not signed in' };
+
+  // 1. Find the pod this game belongs to.
+  const { data: game, error: gameError } = await supabase
+    .from('games')
+    .select('pod_id')
+    .eq('id', gameId)
+    .single() as { data: any; error: any };
+
+  if (gameError || !game) return { error: gameError?.message ?? 'Game not found' };
+
+  // 2. Look up the user's deck for that pod.
+  const { data: member, error: memberError } = await supabase
+    .from('pod_members')
+    .select('deck_id')
+    .eq('pod_id', game.pod_id)
+    .eq('user_id', user.id)
+    .maybeSingle() as { data: any; error: any };
+
+  if (memberError) return { error: memberError.message };
+  if (!member?.deck_id) return { error: 'No deck registered for this pod' };
+
+  // 3. Atomically claim the seat — only update if it's still empty.
+  const { data, error } = await supabase
+    .from('game_players')
+    .update({
+      user_id: user.id,
+      deck_id: member.deck_id,
+    })
+    .eq('game_id', gameId)
+    .eq('seat_number', seatNumber)
+    .is('user_id', null)
+    .select() as { data: any; error: any };
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { error: 'Seat is already taken' };
+
+  return { error: null };
 }
 
 /**
@@ -257,44 +309,30 @@ export async function getActiveGameForUser(): Promise<{
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: null };
 
-  // Find game_players rows for this user that are NOT eliminated
-  // If the player was eliminated (e.g. abandoned), they should be free to start a new game
-  const { data: entries, error: entryError } = await supabase
+  // Find game_players rows for this user
+  const { data: entries, error: entriesError } = await supabase
     .from('game_players')
-    .select('game_id, deck_id, is_eliminated')
-    .eq('user_id', user.id) as { data: any; error: any };
+    .select('game_id, commander_name')
+    .eq('user_id', user.id);
 
-  if (entryError || !entries || entries.length === 0) return { data: null, error: null };
+  if (entriesError) return { data: null, error: entriesError.message };
+  if (!entries || entries.length === 0) return { data: null, error: null };
 
-  // Only consider entries where the player is NOT eliminated
-  const activeEntries = entries.filter((e: any) => !e.is_eliminated);
-  if (activeEntries.length === 0) return { data: null, error: null };
+  const gameIds = [...new Set(entries.map((e: any) => e.game_id))];
 
-  const gameIds = [...new Set(activeEntries.map((e: any) => e.game_id))];
-
-  // Find games that are still active or in_questionnaire
-  const { data: activeGames } = await supabase
+  const { data: games, error: gamesError } = await supabase
     .from('games')
-    .select('id, pod_id, pod_size, state, winner_player_id')
+    .select('*')
     .in('id', gameIds)
     .in('state', ['active', 'in_questionnaire'])
-    .limit(1) as { data: any };
+    .order('created_at', { ascending: false })
+    .limit(1);
 
-  if (!activeGames || activeGames.length === 0) return { data: null, error: null };
+  if (gamesError) return { data: null, error: gamesError.message };
+  if (!games || games.length === 0) return { data: null, error: null };
 
-  const game = activeGames[0];
-
-  // Get the commander name for context
-  const entry = activeEntries.find((e: any) => e.game_id === game.id);
-  let commanderName: string | null = null;
-  if (entry?.deck_id) {
-    const { data: deck } = await supabase
-      .from('decks')
-      .select('commander_name')
-      .eq('id', entry.deck_id)
-      .single() as { data: any };
-    commanderName = deck?.commander_name ?? null;
-  }
+  const game = games[0] as Game;
+  const commanderName = entries.find((e: any) => e.game_id === game.id)?.commander_name ?? null;
 
   return {
     data: {
@@ -303,7 +341,7 @@ export async function getActiveGameForUser(): Promise<{
       podSize: game.pod_size,
       state: game.state,
       commanderName,
-      hasWinner: !!game.winner_player_id,
+      hasWinner: game.winner_player_id !== null,
     },
     error: null,
   };

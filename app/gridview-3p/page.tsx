@@ -3,7 +3,8 @@
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { getGame } from '@/lib/games';
+import { getGame, claimSeat } from '@/lib/games';
+import { SeatPickerModal, SeatInfo } from '@/app/components/SeatPickerModal';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
@@ -1922,6 +1923,7 @@ function PageContent() {
   const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
   const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
   const [commanderArt, setCommanderArt] = useState<Record<string, string>>({});
+  const [showSeatPicker, setShowSeatPicker] = useState(false);
 
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const diceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -2127,6 +2129,15 @@ function PageContent() {
       if (showVictory) setShowVictory(false);
     }
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
+
+  // ── Seat picker: show on first arrival if current user has no seat yet ──
+  useEffect(() => {
+    if (!gameLoaded) return;
+    const uid = auth?.user?.id;
+    if (!uid) return;
+    const hasSeat = Object.values(playerUserIds).includes(uid);
+    setShowSeatPicker(!hasSeat);
+  }, [gameLoaded, playerUserIds, auth?.user?.id]);
 
   // ── Track death order (so VictoryPopup can revive only the last-dead seat) ──
   const deathOrderRef = useRef<number[]>([]);
@@ -2696,6 +2707,31 @@ function PageContent() {
         />
       )}
 
+
+      <SeatPickerModal
+        open={showSeatPicker}
+        podSize={3}
+        seats={(() => {
+          const out: SeatInfo[] = [];
+          const uid = auth?.user?.id;
+          for (let n = 1; n <= 3; n++) {
+            const p = players[n];
+            const taken = !!(p && p.claimed);
+            out.push({
+              seat: n,
+              label: taken ? (p?.commander ?? p?.name ?? `Player ${n}`) : `Player ${n}`,
+              art: taken ? (commanderArt[p?.commander ?? ''] ?? null) : null,
+              taken,
+              isMe: !!(uid && playerUserIds[n] === uid),
+            });
+          }
+          return out;
+        })()}
+        onPick={async (seat) => {
+          const { error } = await claimSeat(gameId, seat);
+          if (error) throw new Error(error);
+        }}
+      />
 
       {showVictory && (
         <VictoryPopup

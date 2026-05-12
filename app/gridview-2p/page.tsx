@@ -3,7 +3,8 @@
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { getGame } from '@/lib/games';
+import { getGame, claimSeat } from '@/lib/games';
+import { SeatPickerModal, SeatInfo } from '@/app/components/SeatPickerModal';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
@@ -1483,6 +1484,7 @@ function PageContent() {
   const [playerUserIds, setPlayerUserIds] = useState<Record<number, string>>({});
   const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
   const [commanderArt, setCommanderArt] = useState<Record<string, string>>({});
+  const [showSeatPicker, setShowSeatPicker] = useState(false);
 
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const diceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -1694,6 +1696,15 @@ function PageContent() {
       if (showVictory) setShowVictory(false);
     }
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
+
+  // ── Seat picker: show on first arrival if current user has no seat yet ──
+  useEffect(() => {
+    if (!gameLoaded) return;
+    const uid = auth?.user?.id;
+    if (!uid) return;
+    const hasSeat = Object.values(playerUserIds).includes(uid);
+    setShowSeatPicker(!hasSeat);
+  }, [gameLoaded, playerUserIds, auth?.user?.id]);
 
   // ── Track death order (so VictoryPopup can revive only the last-dead seat) ──
   const deathOrderRef = useRef<number[]>([]);
@@ -2214,6 +2225,32 @@ function PageContent() {
       )}
 
 
+      <SeatPickerModal
+        open={showSeatPicker}
+        podSize={2}
+        seats={(() => {
+          const out: SeatInfo[] = [];
+          const uid = auth?.user?.id;
+          for (let n = 1; n <= 2; n++) {
+            const p = players[n];
+            const taken = !!(p && p.claimed);
+            out.push({
+              seat: n,
+              label: taken ? (p?.commander ?? p?.name ?? `Player ${n}`) : `Player ${n}`,
+              art: taken ? (commanderArt[p?.commander ?? ''] ?? null) : null,
+              taken,
+              isMe: !!(uid && playerUserIds[n] === uid),
+            });
+          }
+          return out;
+        })()}
+        onPick={async (seat) => {
+          const { error } = await claimSeat(gameId, seat);
+          if (error) throw new Error(error);
+          // Modal closes itself once realtime/refresh sees our user_id on that seat.
+        }}
+      />
+
       {showVictory && (
         <VictoryPopup
           onContinue={() => {
@@ -2224,6 +2261,49 @@ function PageContent() {
             // Find the most recent dead seat that isn't me
             const deathOrder = deathOrderRef.current;
             const lastDeadOpponent = [...deathOrder].reverse().find(n => n !== mySeat);
+            if (lastDeadOpponent != null) handleRevive(lastDeadOpponent);
+            setShowVictory(false);
+            setVictoryDismissed(true);
+          }}
+          onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
+        />
+      )}
+
+      {showEliminatedGV && (
+        <EliminatedPopupGV
+          onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}
+          onContinue={() => {
+            const uid = auth?.user?.id;
+            if (uid) {
+              const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
+              if (seatEntry) handleRevive(Number(seatEntry[0]));
+            }
+            setShowEliminatedGV(false);
+            setElimDismissed(true);
+          }}
+          onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
+        />
+      )}
+
+      {toast && (
+        <div className="toast show">
+          {toast}
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function GridView2P() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: DARK.ink3 }}>Loading...</div>}>
+      <ScreenBg>
+        <PageContent />
+      </ScreenBg>
+    </Suspense>
+  );
+}
+ = [...deathOrder].reverse().find(n => n !== mySeat);
             if (lastDeadOpponent != null) handleRevive(lastDeadOpponent);
             setShowVictory(false);
             setVictoryDismissed(true);
