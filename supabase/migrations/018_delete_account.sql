@@ -11,9 +11,44 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  uid UUID := auth.uid();
 BEGIN
-  -- Delete the auth user row; CASCADE handles profiles + all child tables
-  DELETE FROM auth.users WHERE id = auth.uid();
+  -- Explicitly clean up game-related rows in user's pods
+  -- to avoid FK ordering issues during cascade
+  DELETE FROM game_players WHERE game_id IN (
+    SELECT id FROM games WHERE pod_id IN (
+      SELECT id FROM pods WHERE host_id = uid
+    )
+  );
+  DELETE FROM game_votes WHERE game_id IN (
+    SELECT id FROM games WHERE pod_id IN (
+      SELECT id FROM pods WHERE host_id = uid
+    )
+  );
+  DELETE FROM badge_attributions WHERE game_id IN (
+    SELECT id FROM games WHERE pod_id IN (
+      SELECT id FROM pods WHERE host_id = uid
+    )
+  );
+  DELETE FROM aura_history WHERE game_id IN (
+    SELECT id FROM games WHERE pod_id IN (
+      SELECT id FROM pods WHERE host_id = uid
+    )
+  );
+  DELETE FROM badge_history WHERE game_id IN (
+    SELECT id FROM games WHERE pod_id IN (
+      SELECT id FROM pods WHERE host_id = uid
+    )
+  );
+  DELETE FROM badge_vote_history WHERE game_id IN (
+    SELECT id FROM games WHERE pod_id IN (
+      SELECT id FROM pods WHERE host_id = uid
+    )
+  );
+
+  -- Delete the auth user row; CASCADE handles the rest
+  DELETE FROM auth.users WHERE id = uid;
 END;
 $$;
 

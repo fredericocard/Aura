@@ -311,8 +311,8 @@ CREATE POLICY "Players can update own votes"
 CREATE TABLE IF NOT EXISTS badge_attributions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  deck_id UUID NOT NULL REFERENCES decks(id),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  deck_id UUID NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
   brewed_badge TEXT,
   archetype_key TEXT,
   archetype_name TEXT,
@@ -458,8 +458,8 @@ CREATE POLICY "System can update game cards"
 CREATE TABLE IF NOT EXISTS game_card_players (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   card_id UUID NOT NULL REFERENCES game_cards(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  deck_id UUID NOT NULL REFERENCES decks(id),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  deck_id UUID REFERENCES decks(id) ON DELETE SET NULL,
   commander_name TEXT NOT NULL,
   archetype TEXT,
   brewed_badge TEXT,
