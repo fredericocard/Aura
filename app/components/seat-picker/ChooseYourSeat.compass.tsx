@@ -362,27 +362,6 @@ export function SeatModalCompass({
         </div>
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 8, marginTop: 6, padding: '8px 12px',
-        background: 'var(--parchment)',
-        borderRadius: 999,
-        border: '1px solid var(--line)',
-        width: 'fit-content', margin: '6px auto 0',
-      }}>
-        <div aria-label={you.name} style={{
-          width: 22, height: 22, borderRadius: 999,
-          border: '1.5px solid var(--copper)',
-          flexShrink: 0,
-          backgroundImage: you.art ? `url(${you.art})` : undefined,
-          backgroundColor: you.art ? undefined : 'rgba(176,107,44,0.10)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}/>
-        <div style={{ fontSize: 11, fontWeight: 600, color: theme.title }}>
-          You — {you.name}
-        </div>
-      </div>
     </div>
   );
 }

@@ -2144,13 +2144,20 @@ function PageContent() {
     }
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
 
-  // ── Seat picker: show on first arrival if current user has no seat yet ──
+  // ── Seat picker: show on first arrival if current user has no seat yet.
+  //    Once a seat is claimed, keep the modal open for ~1s so the commander
+  //    image lands in the chair (wax-stamp + Scryfall art) before dismissing.
   useEffect(() => {
     if (!gameLoaded) return;
     const uid = auth?.user?.id;
     if (!uid) return;
     const hasSeat = Object.values(playerUserIds).includes(uid);
-    setShowSeatPicker(!hasSeat);
+    if (!hasSeat) {
+      setShowSeatPicker(true);
+      return;
+    }
+    const t = setTimeout(() => setShowSeatPicker(false), 1000);
+    return () => clearTimeout(t);
   }, [gameLoaded, playerUserIds, auth?.user?.id]);
 
   // ── Track death order (so VictoryPopup can revive only the last-dead seat) ──
