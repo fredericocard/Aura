@@ -35,8 +35,26 @@ export type SeatPickerModalProps = {
   youArt?: string;
   /** Stable id for the current viewer (auth user id). Used for the "You" pip. */
   youId?: string;
+  /** Render in dark mode (overrides parchment palette with dark tokens). */
+  dark?: boolean;
   title?: string;
   subtitle?: string;
+};
+
+// Dark-mode overrides for the design's CSS variables. These mirror the
+// gridview's DARK_THEME palette so the modal matches the rest of the page.
+const DARK_TOKEN_OVERRIDES: Record<string, string> = {
+  '--parchment':      '#0A0604',
+  '--parchment-card': '#150E08',
+  '--parchment-deep': '#050302',
+  '--ink':            '#F0E8D8',
+  '--ink-2':          '#C5B9A5',
+  '--ink-3':          '#8A7E6F',
+  '--ink-4':          '#5C5043',
+  '--fg-subtle':      '#8A7E6F',
+  '--copper':         '#E2B858',
+  '--line':           'rgba(226,184,88,0.10)',
+  '--line-strong':    'rgba(226,184,88,0.18)',
 };
 
 // Letter ↔ seat-number mapping for each pod size. The letters come from
@@ -73,29 +91,22 @@ export function SeatPickerModal({
   youName,
   youArt,
   youId,
-  title,
-  subtitle,
+  dark = false,
 }: SeatPickerModalProps) {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [justClaimedId, setJustClaimedId] = useState<string | null>(null);
 
-  // When a fresh claim shows up in `seats`, light the wax-stamp animation
-  // for ~900ms so the design's ripple plays.
+  // When the viewer's own seat appears as taken, briefly light the ripple.
   useEffect(() => {
     if (!open) return;
-    const newlyTakenLetter = (() => {
-      for (const s of seats) {
-        if (!s.taken) continue;
-        const letter = seatNumToLetter(podSize, s.seat);
-        if (!letter) continue;
-        // We only have one signal per render — pick the most recently
-        // taken one heuristically by isMe (so the viewer's own pop is shown).
-        if (s.isMe) return letter;
-      }
-      return null;
-    })();
-    if (newlyTakenLetter) {
-      setJustClaimedId(newlyTakenLetter);
+    let myLetter: string | null = null;
+    for (const s of seats) {
+      if (!s.taken || !s.isMe) continue;
+      myLetter = seatNumToLetter(podSize, s.seat);
+      break;
+    }
+    if (myLetter) {
+      setJustClaimedId(myLetter);
       const t = setTimeout(() => setJustClaimedId(null), 900);
       return () => clearTimeout(t);
     }
@@ -131,7 +142,6 @@ export function SeatPickerModal({
     }
     setErrorText(null);
     try {
-      // Optimistic ripple on the letter the viewer just tapped.
       setJustClaimedId(letter);
       await onPick(seatNum);
     } catch (err: any) {
@@ -146,23 +156,24 @@ export function SeatPickerModal({
     podSize === 4 ? ChooseYourSeat4P :
     ChooseYourSeat5P;
 
+  const baseStyle: React.CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 2000,
+    background: dark ? 'rgba(0, 0, 0, 0.72)' : 'rgba(43, 33, 24, 0.40)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    overflow: 'auto',
+  };
+  const wrapperStyle: React.CSSProperties = dark
+    ? (Object.assign({}, baseStyle, DARK_TOKEN_OVERRIDES) as React.CSSProperties)
+    : baseStyle;
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 2000,
-        background: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-        overflow: 'auto',
-      }}
-    >
+    <div role="dialog" aria-modal="true" style={wrapperStyle}>
       <ChooseYourSeatStyles />
       <div style={{ position: 'relative' }}>
         <SeatModal

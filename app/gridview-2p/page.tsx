@@ -2249,6 +2249,9 @@ function PageContent() {
           if (error) throw new Error(error);
           // Modal closes itself once realtime/refresh sees our user_id on that seat.
         }}
+        youId={auth?.user?.id}
+        youName={auth?.user?.user_metadata?.display_name ?? auth?.user?.email?.split('@')[0]}
+        dark={DARK !== LIGHT_THEME}
       />
 
       {showVictory && (

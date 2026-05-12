@@ -2731,6 +2731,9 @@ function PageContent() {
           const { error } = await claimSeat(gameId, seat);
           if (error) throw new Error(error);
         }}
+        youId={auth?.user?.id}
+        youName={auth?.user?.user_metadata?.display_name ?? auth?.user?.email?.split('@')[0]}
+        dark={DARK !== LIGHT_THEME}
       />
 
       {showVictory && (
