@@ -472,14 +472,14 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
     <div style={{ position: 'relative', width: sz, height: sz }}>
       <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`}>
         {/* Tick marks */}
-        <g stroke="var(--ink-3)" strokeWidth="1">
+        <g stroke="var(--dial-ring)" strokeWidth="1">
           {Array.from({ length: 60 }).map((_, i) => {
             const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
             const r1 = 87, r2 = i % 5 === 0 ? 78 : 82;
             return <line key={i}
               x1={cx + Math.cos(a) * r1} y1={cx + Math.sin(a) * r1}
               x2={cx + Math.cos(a) * r2} y2={cx + Math.sin(a) * r2}
-              opacity={i % 5 === 0 ? 0.45 : 0.18}/>;
+              opacity={i % 5 === 0 ? 1 : 0.45}/>;
           })}
         </g>
 
@@ -505,7 +505,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
 
         {/* Inner decorative ring */}
         <circle cx={cx} cy={cx} r="65"
-          fill="none" stroke="var(--ink-3)" strokeWidth="0.4" strokeOpacity="0.3"
+          fill="none" stroke="var(--dial-ring)" strokeWidth="0.4" strokeOpacity="0.7"
           strokeDasharray="1 3"/>
 
       </svg>
