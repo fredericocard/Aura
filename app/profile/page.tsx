@@ -685,7 +685,9 @@ function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, o
 }) {
   return (
     <div style={{
-      width: '100%', height: '100%', position: 'fixed', inset: 0, zIndex: 90,
+      width: '100%', maxWidth: 430, height: '100%', position: 'fixed',
+      top: 0, bottom: 0, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 90,
       background: T.parchment,
       backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(201,155,47,0.06), transparent 40%)',
       display: 'flex', flexDirection: 'column',
