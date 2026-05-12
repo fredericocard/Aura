@@ -2077,6 +2077,43 @@ function PageContent() {
                 return next;
               });
             }
+            // Seat-claim transition: when user_id + deck_id appear on a row,
+            // fetch the deck and update players[num] so the cell renders the
+            // claimer's commander art and name. Idempotent — setPlayers/UserIds
+            // updaters early-return if nothing changed.
+            if (row.user_id && row.deck_id) {
+              const claimedUid = row.user_id as string;
+              const claimedDeckId = row.deck_id as string;
+              supabase
+                .from('decks')
+                .select('id, commander_name, color_identity')
+                .eq('id', claimedDeckId)
+                .single()
+                .then(({ data: deck }: any) => {
+                  if (!deck) return;
+                  const commanderName: string | null = deck.commander_name ?? null;
+                  const isMe = claimedUid === myUserId;
+                  const displayName = (isMe && myDisplayName)
+                    ? myDisplayName
+                    : (commanderName ? commanderName.split(',')[0] : `Player ${num}`);
+                  const colors = ((deck.color_identity as string | null) ?? '').split('').filter((c: string) => 'WUBRG'.includes(c));
+                  setPlayers(p => {
+                    const cur = p[num];
+                    if (cur?.claimed && cur?.commander === commanderName && cur?.name === displayName) return p;
+                    return {
+                      ...p,
+                      [num]: {
+                        ...(cur ?? { life: 40, name: '', commander: null, claimed: false, colors: [], assignedColor: null }),
+                        claimed: true,
+                        commander: commanderName,
+                        name: displayName,
+                        colors,
+                      },
+                    };
+                  });
+                  setPlayerUserIds(m => m[num] === claimedUid ? m : ({ ...m, [num]: claimedUid }));
+                });
+            }
           }
         })
         .subscribe();
