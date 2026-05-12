@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Young+Serif&family=Instrument+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+@import "../design_system/tokens/colors_and_type.css";
 
 :root {
   --background: #ffffff;
