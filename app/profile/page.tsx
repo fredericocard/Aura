@@ -972,22 +972,11 @@ export default function ProfilePage() {
           }}
           onDeleteAccount={async () => {
             try {
-              const { data: { user: authU } } = await supabase.auth.getUser();
-              const uid = authU?.id;
-              if (!uid) throw new Error('No user');
-              // Delete user data from tables in dependency order
-              await supabase.from('badge_vote_history').delete().eq('user_id', uid);
-              await supabase.from('badge_history').delete().eq('user_id', uid);
-              await supabase.from('badge_attributions').delete().eq('user_id', uid);
-              await supabase.from('game_card_players').delete().eq('user_id', uid);
-              await supabase.from('game_votes').delete().eq('voter_id', uid);
-              await supabase.from('bracket_change_log').delete().eq('user_id', uid);
-              await supabase.from('bracket_nudges').delete().eq('user_id', uid);
-              await supabase.from('game_players').delete().eq('user_id', uid);
-              await supabase.from('pod_members').delete().eq('user_id', uid);
-              await supabase.from('decks').delete().eq('user_id', uid);
-              await supabase.from('profiles').delete().eq('id', uid);
-              // Sign out and redirect to landing
+              // Calls the SECURITY DEFINER function that deletes auth.users row
+              // CASCADE handles all child tables (profiles, decks, games, etc.)
+              const { error } = await supabase.rpc('delete_own_account');
+              if (error) throw error;
+              // Sign out locally and redirect to landing
               await supabase.auth.signOut();
               window.location.href = '/landing';
             } catch (e: any) {
