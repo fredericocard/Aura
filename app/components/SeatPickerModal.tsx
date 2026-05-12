@@ -1,23 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import ChooseYourSeat2P from './seat-picker/ChooseYourSeat2P';
+import ChooseYourSeat3P from './seat-picker/ChooseYourSeat3P';
+import ChooseYourSeat4P from './seat-picker/ChooseYourSeat4P';
+import ChooseYourSeat5P from './seat-picker/ChooseYourSeat5P';
+import {
+  ChooseYourSeatStyles,
+  SeatClaim,
+} from './seat-picker/ChooseYourSeat.compass';
 
-// Functional stub for the "Choose your seat" modal.
-//
-// Backend wiring is final. The visual layer is intentionally plain — the
-// real table infographic will replace the markup inside the inner card
-// once Claude Design hands off the drawing. Props and behavior stay
-// stable so the swap is markup-only.
+// Public API kept stable from the stub days — gridviews call this
+// component without knowing about the compass internals.
 
 export type SeatInfo = {
   seat: number;
-  /** Display label for the player (commander name, "Player 2", etc.). */
   label: string;
-  /** Commander art URL when the seat is claimed; null when empty. */
+  /** Commander art URL when seat is claimed; null when empty. */
   art: string | null;
-  /** True when the seat is already taken (by anyone, including the viewer). */
   taken: boolean;
-  /** True when the seat is taken by the current viewer. */
   isMe: boolean;
 };
 
@@ -28,69 +29,127 @@ export type SeatPickerModalProps = {
   /** Fires when the viewer taps an empty seat. Async — modal stays open
    *  until the parent flips `open` to false (i.e. after the DB write). */
   onPick: (seat: number) => Promise<void> | void;
-  /** Optional override copy. */
+  /** Current user's display name. Falls back to "You". */
+  youName?: string;
+  /** Current user's commander art. Falls back to a blank chip avatar. */
+  youArt?: string;
+  /** Stable id for the current viewer (auth user id). Used for the "You" pip. */
+  youId?: string;
   title?: string;
   subtitle?: string;
 };
+
+// Letter ↔ seat-number mapping for each pod size. The letters come from
+// the compass design's layout files; the seat numbers come from each
+// gridview's cell layout. The chair the user taps in the popup must end
+// up in the matching cell in the live grid.
+const LETTER_TO_SEAT: Record<number, Record<string, number>> = {
+  // 2p — gridview shows seat 2 on top (flipped) and seat 1 on bottom (you).
+  2: { a: 2, b: 1 },
+  // 3p — gridview shows seat 2 top-left, seat 3 top-right, seat 1 bottom.
+  3: { a: 2, b: 3, c: 1 },
+  // 4p — gridview shows seat 1 top-left, seat 3 bottom-left,
+  //                    seat 2 top-right, seat 4 bottom-right.
+  4: { a: 1, b: 3, c: 2, d: 4 },
+  // 5p — gridview shows seat 2 top-left, seat 3 bottom-left,
+  //                    seat 4 top-right, seat 5 bottom-right, seat 1 bottom.
+  5: { a: 2, b: 3, c: 4, d: 5, e: 1 },
+};
+
+function seatNumToLetter(podSize: 2 | 3 | 4 | 5, seatNum: number): string | null {
+  const map = LETTER_TO_SEAT[podSize];
+  if (!map) return null;
+  for (const [letter, n] of Object.entries(map)) {
+    if (n === seatNum) return letter;
+  }
+  return null;
+}
 
 export function SeatPickerModal({
   open,
   podSize,
   seats,
   onPick,
-  title = 'Choose your seat',
-  subtitle = 'Pick a chair at the table to take that seat in the game.',
+  youName,
+  youArt,
+  youId,
+  title,
+  subtitle,
 }: SeatPickerModalProps) {
-  const [busySeat, setBusySeat] = useState<number | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [justClaimedId, setJustClaimedId] = useState<string | null>(null);
+
+  // When a fresh claim shows up in `seats`, light the wax-stamp animation
+  // for ~900ms so the design's ripple plays.
+  useEffect(() => {
+    if (!open) return;
+    const newlyTakenLetter = (() => {
+      for (const s of seats) {
+        if (!s.taken) continue;
+        const letter = seatNumToLetter(podSize, s.seat);
+        if (!letter) continue;
+        // We only have one signal per render — pick the most recently
+        // taken one heuristically by isMe (so the viewer's own pop is shown).
+        if (s.isMe) return letter;
+      }
+      return null;
+    })();
+    if (newlyTakenLetter) {
+      setJustClaimedId(newlyTakenLetter);
+      const t = setTimeout(() => setJustClaimedId(null), 900);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [open, seats, podSize]);
 
   if (!open) return null;
 
-  const handlePick = async (seat: number) => {
-    if (busySeat != null) return;
-    setBusySeat(seat);
+  // Build the `claimed` map the compass components expect.
+  const claimed: Record<string, SeatClaim> = {};
+  for (const s of seats) {
+    if (!s.taken) continue;
+    const letter = seatNumToLetter(podSize, s.seat);
+    if (!letter) continue;
+    claimed[letter] = {
+      id: s.isMe && youId ? youId : `seat-${s.seat}`,
+      name: s.label,
+      art: s.art ?? '',
+    };
+  }
+
+  const you: SeatClaim = {
+    id: youId ?? 'me',
+    name: youName ?? 'You',
+    art: youArt ?? '',
+  };
+
+  const handleClaim = async (letter: string) => {
+    const seatNum = LETTER_TO_SEAT[podSize]?.[letter];
+    if (!seatNum) {
+      setErrorText('Could not resolve seat — please try again.');
+      return;
+    }
     setErrorText(null);
     try {
-      await onPick(seat);
+      // Optimistic ripple on the letter the viewer just tapped.
+      setJustClaimedId(letter);
+      await onPick(seatNum);
     } catch (err: any) {
+      setJustClaimedId(null);
       setErrorText(err?.message ?? 'Could not claim that seat — try another.');
-    } finally {
-      setBusySeat(null);
     }
   };
 
-  // Render seats in an order that roughly mirrors the gridview layouts.
-  // This is placeholder rendering — Claude Design will replace it with a
-  // proper top-down table infographic.
-  const renderSeats = () => {
-    const sorted = [...seats].sort((a, b) => a.seat - b.seat);
-    return (
-      <div
-        style={{
-          display: 'grid',
-          gap: 10,
-          gridTemplateColumns: podSize === 2 ? '1fr' : podSize === 3 ? '1fr' : '1fr 1fr',
-          width: '100%',
-        }}
-      >
-        {sorted.map((s) => (
-          <SeatButton
-            key={s.seat}
-            seat={s}
-            onPick={() => handlePick(s.seat)}
-            busy={busySeat === s.seat}
-            disabled={busySeat != null}
-          />
-        ))}
-      </div>
-    );
-  };
+  const SeatModal =
+    podSize === 2 ? ChooseYourSeat2P :
+    podSize === 3 ? ChooseYourSeat3P :
+    podSize === 4 ? ChooseYourSeat4P :
+    ChooseYourSeat5P;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={title}
       style={{
         position: 'fixed',
         inset: 0,
@@ -101,49 +160,24 @@ export function SeatPickerModal({
         alignItems: 'center',
         justifyContent: 'center',
         padding: 20,
+        overflow: 'auto',
       }}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 360,
-          background: 'var(--bg-card, #150E08)',
-          color: 'var(--ink, #F0E8D8)',
-          borderRadius: 20,
-          border: '1px solid var(--border-accent, rgba(226,184,88,0.18))',
-          padding: 24,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-        }}
-      >
-        <div
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 20,
-            lineHeight: 1.2,
-            marginBottom: 6,
-            textAlign: 'center',
-          }}
-        >
-          {title}
-        </div>
-        <div
-          style={{
-            fontFamily: 'var(--font-ui)',
-            fontSize: 13,
-            opacity: 0.7,
-            textAlign: 'center',
-            marginBottom: 18,
-          }}
-        >
-          {subtitle}
-        </div>
-
-        {renderSeats()}
-
+      <ChooseYourSeatStyles />
+      <div style={{ position: 'relative' }}>
+        <SeatModal
+          claimed={claimed}
+          onClaim={handleClaim}
+          justClaimedId={justClaimedId}
+          you={you}
+        />
         {errorText && (
           <div
             style={{
-              marginTop: 14,
+              position: 'absolute',
+              bottom: -38,
+              left: 0,
+              right: 0,
               padding: '8px 12px',
               borderRadius: 10,
               background: 'rgba(158,43,43,0.18)',
@@ -151,132 +185,13 @@ export function SeatPickerModal({
               color: '#E78A85',
               fontSize: 12,
               textAlign: 'center',
+              fontFamily: 'var(--font-ui)',
             }}
           >
             {errorText}
           </div>
         )}
-
-        <div
-          style={{
-            marginTop: 14,
-            fontSize: 11,
-            opacity: 0.45,
-            textAlign: 'center',
-            fontFamily: 'var(--font-ui)',
-            letterSpacing: '0.04em',
-          }}
-        >
-          {podSize}-player pod · placeholder layout
-        </div>
       </div>
     </div>
-  );
-}
-
-function SeatButton({
-  seat,
-  onPick,
-  busy,
-  disabled,
-}: {
-  seat: SeatInfo;
-  onPick: () => void;
-  busy: boolean;
-  disabled: boolean;
-}) {
-  const isTaken = seat.taken;
-  const isClickable = !isTaken && !disabled;
-  return (
-    <button
-      onClick={isClickable ? onPick : undefined}
-      disabled={!isClickable}
-      style={{
-        appearance: 'none',
-        textAlign: 'left',
-        padding: '12px 14px',
-        borderRadius: 14,
-        border: `1px solid ${isTaken ? 'rgba(226,184,88,0.22)' : 'var(--copper, #E2B858)'}`,
-        background: isTaken
-          ? 'var(--bg-elevated, #0A0604)'
-          : 'rgba(226,184,88,0.06)',
-        color: 'inherit',
-        cursor: isClickable ? 'pointer' : 'not-allowed',
-        opacity: isTaken ? 0.85 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        minHeight: 56,
-        fontFamily: 'var(--font-ui)',
-      }}
-    >
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 999,
-          overflow: 'hidden',
-          background: 'rgba(226,184,88,0.10)',
-          border: '1px solid rgba(226,184,88,0.18)',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'var(--font-display)',
-          fontSize: 14,
-          opacity: 0.7,
-        }}
-      >
-        {seat.art ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={seat.art}
-            alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          <>{seat.seat}</>
-        )}
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.20em',
-            textTransform: 'uppercase',
-            opacity: 0.6,
-          }}
-        >
-          Seat {seat.seat}
-        </div>
-        <div
-          style={{
-            fontSize: 13,
-            lineHeight: 1.2,
-            marginTop: 2,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {isTaken ? seat.label : 'Empty — tap to take this seat'}
-        </div>
-      </div>
-
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.16em',
-          textTransform: 'uppercase',
-          opacity: 0.8,
-          flexShrink: 0,
-        }}
-      >
-        {busy ? '…' : isTaken ? (seat.isMe ? 'You' : 'Taken') : 'Pick'}
-      </div>
-    </button>
   );
 }
