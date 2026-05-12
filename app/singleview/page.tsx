@@ -83,11 +83,11 @@ const TOKENS_CSS = `
   --forest-line:      rgba(47,93,58,0.22);
   --shadow-rest:      0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12);
 
-  --bg-elevated:      #FAF5EA;
+  --bg-elevated:      #F5EFE2;
   --bg-surface:       #FAF5EA;
   --bg-well:          #EDE4D0;
-  --border-accent:    rgba(43,33,24,0.08);
-  --border-accent-subtle: rgba(43,33,24,0.06);
+  --border-accent:    rgba(43,33,24,0.13);
+  --border-accent-subtle: rgba(43,33,24,0.08);
   --overlay-dim:      rgba(43,33,24,0.45);
   --copper:           #2F5D3A;
   --copper-ink:       #FAF5EA;
@@ -1221,9 +1221,13 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
           return (
             <div key={opp.id} style={{
               background: 'var(--bg-elevated)',
-              border: dmg > 0 ? `1.5px solid ${accent}66` : '1px solid rgba(226,184,88,0.18)',
+              border: `1.5px solid ${dmg > 0 ? `${accent}66` : 'rgba(226,184,88,0.18)'}`,
               borderRadius: 16, padding: '12px 14px',
               display: 'flex', alignItems: 'center', gap: 12,
+              transform: dmg > 0 ? 'scale(1.02)' : 'scale(1)',
+              transformOrigin: 'center',
+              transition: 'transform 200ms cubic-bezier(.4,.0,.2,1), border-color 200ms ease',
+              willChange: 'transform',
             }}>
               <CommAvatar src={opp.art} size={36} ring={dmg > 0 ? accent : 'rgba(226,184,88,0.18)'}/>
               <div style={{ flex: 1, minWidth: 0 }}>
