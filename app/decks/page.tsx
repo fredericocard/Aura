@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { registerCommander, getMyCommanders, BRACKETS, type Deck } from '../../lib/commanders';
+import { registerCommander, getMyCommanders, confirmBracketAndApplyScoring, BRACKETS, type Deck } from '../../lib/commanders';
 import { useAuth } from '../../lib/auth-context';
 import { validateCommander, searchCommanders, type CardData } from '../../lib/scryfall';
 
@@ -443,6 +443,9 @@ export default function Page() {
   const [sortBy, setSortBy] = useState<'aura' | 'badges' | 'recent'>('aura');
   const [totalGames, setTotalGames] = useState(0);
   const [deckGameCounts, setDeckGameCounts] = useState<Record<string, number>>({});
+  const [pendingBracketDeck, setPendingBracketDeck] = useState<Deck | null>(null);
+  const [confirmingBracket, setConfirmingBracket] = useState(false);
+  const [forcedBracket, setForcedBracket] = useState(2);
 
   const addSheetDrag = useSheetDrag(() => setShowAdd(false));
   const bracketSheetDrag = useSheetDrag(() => setPendingCard(null));
@@ -453,6 +456,12 @@ export default function Page() {
     getMyCommanders().then(async ({ data }) => {
       setDecks(data);
       setLoadingDecks(false);
+      // Check for decks with NULL bracket — force picker
+      const unconfirmed = data.find(d => d.bracket === null);
+      if (unconfirmed) {
+        setPendingBracketDeck(unconfirmed);
+        setForcedBracket(2);
+      }
       // Fetch game counts per deck
       if (data.length > 0) {
         const { supabase: sb } = await import('../../lib/supabase');
@@ -558,6 +567,36 @@ export default function Page() {
     displayToast(`${pendingCard.cardName} added at Bracket ${selectedBracket}!`);
     setPendingCard(null);
     setRegistering(false);
+  };
+
+  // Handle forced bracket confirmation for quick-add decks
+  const handleConfirmForcedBracket = async () => {
+    if (!pendingBracketDeck) return;
+    setConfirmingBracket(true);
+
+    const { error: confirmError } = await confirmBracketAndApplyScoring(pendingBracketDeck.id, forcedBracket);
+    if (confirmError) {
+      displayToast(`Error: ${confirmError}`);
+      setConfirmingBracket(false);
+      return;
+    }
+
+    // Update local state
+    setDecks(prev => prev.map(d =>
+      d.id === pendingBracketDeck.id ? { ...d, bracket: forcedBracket } : d
+    ));
+
+    displayToast(`${pendingBracketDeck.commander_name} set to Bracket ${forcedBracket}!`);
+
+    // Check for more decks with NULL bracket
+    const remaining = decks.filter(d => d.bracket === null && d.id !== pendingBracketDeck.id);
+    if (remaining.length > 0) {
+      setPendingBracketDeck(remaining[0]);
+      setForcedBracket(2);
+    } else {
+      setPendingBracketDeck(null);
+    }
+    setConfirmingBracket(false);
   };
 
   // Map a Deck to the row's expected shape. Fields the Deck doesn't carry
@@ -913,6 +952,61 @@ export default function Page() {
               </div>
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forced bracket picker — appears when a deck has NULL bracket */}
+      {pendingBracketDeck && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          fontFamily: 'var(--font-ui)',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 430,
+            background: 'var(--parchment)',
+            borderRadius: '24px 24px 0 0',
+            padding: '14px 16px 28px',
+            boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
+            maxHeight: '90%', overflow: 'auto',
+            borderTop: '1px solid var(--line-strong)',
+            animation: 'popIn 240ms var(--ease)',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 6px' }}/>
+
+            <div style={{ textAlign: 'center', marginBottom: 14, marginTop: 10 }}>
+              <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Before we continue</div>
+              <div style={{
+                fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 24,
+                color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
+              }}>Set bracket for {pendingBracketDeck.commander_name}</div>
+              <div style={{
+                fontSize: 13, color: 'var(--ink-2)',
+                marginTop: 4, padding: '0 12px',
+              }}>Pick a power level so your scores and badges can be applied.</div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {BRACKETS.map(b => (
+                <BracketTile key={b.value} n={b.value} label={b.label} description={b.desc}
+                  selected={forcedBracket === b.value}
+                  onSelect={() => setForcedBracket(b.value)}/>
+              ))}
+            </div>
+
+            <button onClick={handleConfirmForcedBracket} disabled={confirmingBracket} style={{
+              width: '100%', marginTop: 18, cursor: confirmingBracket ? 'default' : 'pointer',
+              background: confirmingBracket ? 'var(--ink-3)' : 'var(--forest)',
+              border: 'none',
+              borderRadius: 'var(--r-card)',
+              padding: '16px 16px',
+              color: 'var(--parchment)',
+              fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 16,
+              boxShadow: 'var(--shadow-rest)',
+            }}>{confirmingBracket ? 'Applying scores…' : 'Confirm Bracket'}</button>
           </div>
         </div>
       )}
