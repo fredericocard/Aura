@@ -1222,7 +1222,7 @@ function CmdrDmgSheet({ onClose, opponents, cmdrDmg, onAdjust }: any) {
             <div key={opp.id} style={{
               background: 'var(--bg-elevated)',
               border: `1.5px solid ${dmg > 0 ? `${accent}66` : 'rgba(226,184,88,0.18)'}`,
-              borderRadius: 16, padding: '12px 14px',
+              borderRadius: 14, padding: '8px 14px',
               display: 'flex', alignItems: 'center', gap: 12,
               transform: dmg > 0 ? 'scale(1.02)' : 'scale(1)',
               transformOrigin: 'center',
