@@ -82,11 +82,6 @@ export function ActiveGameGuard() {
     setTimeout(() => setShowModal(false), 300);
   };
 
-  const handleClose = () => {
-    setSlideUp(false);
-    setTimeout(() => setShowModal(false), 300);
-  };
-
   if (!showModal || !activeGame) return null;
 
   return (
@@ -96,7 +91,7 @@ export function ActiveGameGuard() {
       fontFamily: "'Instrument Sans', 'Inter', sans-serif",
     }}>
       {/* Backdrop */}
-      <div onClick={handleClose} style={{
+      <div style={{
         position: 'absolute', inset: 0,
         background: 'rgba(43,33,24,0.55)',
         backdropFilter: 'blur(6px)',
@@ -120,19 +115,6 @@ export function ActiveGameGuard() {
           background: '#FAF5EA',
           padding: '8px 22px 32px',
         }}>
-          {/* Close button */}
-          <button onClick={handleClose} aria-label="Close" style={{
-            position: 'absolute', top: 14, right: 16,
-            width: 32, height: 32, borderRadius: 999,
-            border: '1px solid rgba(43,33,24,0.08)',
-            background: '#EDE4D0',
-            color: '#5C5043', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
-          }}>
-            ×
-          </button>
-
           {/* Header */}
           <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
             {/* Aura mark */}
