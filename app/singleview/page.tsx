@@ -67,6 +67,8 @@ const TOKENS_CSS = `
   --sheet-gold-edge:  linear-gradient(90deg, #8C5A28 0%, #E2B858 25%, #C99B2F 50%, #E2B858 75%, #8C5A28 100%);
   --dial-well-opacity: 1;
   --dial-ring:        rgba(240,232,216,0.08);
+  --drag-handle:      var(--border-accent);
+  --avatar-placeholder: var(--ink-4);
 }
 
 .aura-light {
@@ -108,7 +110,9 @@ const TOKENS_CSS = `
   --copper-glow:      rgba(47,93,58,0.08);
   --sheet-gold-edge:  linear-gradient(90deg, #4A8B55 0%, #3A7245 25%, #2F5D3A 50%, #3A7245 75%, #4A8B55 100%);
   --dial-well-opacity: 0.8;
-  --dial-ring:        rgba(47,93,58,0.45);
+  --dial-ring:        rgba(181,165,139,0.70);
+  --drag-handle:      rgba(43,33,24,0.28);
+  --avatar-placeholder: #8A7E6F;
 }
 
 @keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
@@ -235,7 +239,7 @@ function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = fals
           opacity: dim ? 0.5 : 1, filter: dim ? 'grayscale(0.4)' : 'none',
         }}/>
       ) : (
-        <Icon name="user" size={size * 0.5} stroke="var(--ink-4)" width={1.5}/>
+        <Icon name="user" size={size * 0.5} stroke="var(--avatar-placeholder)" width={1.5}/>
       )}
     </div>
   );
@@ -479,7 +483,7 @@ function LifeDial({ life, dead = false, cmdrDmgSegments = [] }: any) {
 
         {/* Outer ring — neutral gray so it doesn't clash with cmdr damage arcs */}
         <circle cx={cx} cy={cx} r={radius}
-          fill="none" stroke="var(--ink-3)" strokeWidth="2" strokeOpacity="0.35"/>
+          fill="none" stroke="var(--dial-ring)" strokeWidth="2"/>
 
         {/* Commander damage segments */}
         {segments.map((seg: any, i: number) => (
@@ -778,7 +782,7 @@ function MiniLifeDial({ life, cmdrDmgSegments = [] }: any) {
           })}
         </g>
 
-        <circle cx={cx} cy={cx} r={radius} fill="none" stroke="var(--line-strong)" strokeWidth="1.5"/>
+        <circle cx={cx} cy={cx} r={radius} fill="none" stroke="var(--dial-ring)" strokeWidth="1.5"/>
 
         {/* Commander damage segments */}
         {segments.map((seg: any, i: number) => (
@@ -958,7 +962,7 @@ function BottomSheet({ children, onClose }: any) {
           >
             <div style={{
               width: 40, height: 4, borderRadius: 999,
-              background: 'var(--border-accent)', margin: '0 auto',
+              background: 'var(--drag-handle)', margin: '0 auto',
             }}/>
           </div>
 
