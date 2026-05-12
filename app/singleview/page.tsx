@@ -69,6 +69,7 @@ const TOKENS_CSS = `
   --dial-ring:        rgba(240,232,216,0.08);
   --drag-handle:      var(--border-accent);
   --avatar-placeholder: var(--ink-4);
+  --avatar-outer-ring: #0A0604;
 }
 
 .aura-light {
@@ -113,6 +114,7 @@ const TOKENS_CSS = `
   --dial-ring:        rgba(181,165,139,0.70);
   --drag-handle:      rgba(43,33,24,0.28);
   --avatar-placeholder: #8A7E6F;
+  --avatar-outer-ring: #8A7E6F;
 }
 
 @keyframes overlayFadeIn { from{opacity:0} to{opacity:1} }
@@ -229,7 +231,7 @@ function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = fals
     <div style={{
       width: size, height: size, borderRadius: 999, flexShrink: 0,
       background: 'var(--bg-well)',
-      boxShadow: `0 0 0 1.5px ${ring}, 0 0 0 4px #0A0604`,
+      boxShadow: `0 0 0 1.5px ${ring}, 0 0 0 4px var(--avatar-outer-ring)`,
       overflow: 'hidden', position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
