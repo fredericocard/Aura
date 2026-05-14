@@ -1094,7 +1094,7 @@ export default function Page() {
         </div>
       )}
 
-      {/* Bracket Picker — bottom sheet */}
+      {/* Bracket Picker — compact bottom sheet */}
       {pendingCard && (
         <div onClick={() => setPendingCard(null)} style={{
           position: 'fixed', inset: 0, zIndex: 100,
@@ -1107,70 +1107,103 @@ export default function Page() {
             width: '100%', maxWidth: 430,
             background: '#F5EFE2',
             borderRadius: '24px 24px 0 0',
-            padding: '14px 16px 28px',
+            padding: '12px 16px 24px',
             boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
-            maxHeight: '90%', overflow: 'auto',
             borderTop: '1px solid rgba(43,33,24,0.14)',
             animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
           }}>
-            {/* Drag handle + close */}
+            {/* Drag handle */}
             <div
               onTouchStart={bracketSheetDrag.onTouchStart}
               onTouchMove={bracketSheetDrag.onTouchMove}
               onTouchEnd={bracketSheetDrag.onTouchEnd}
               style={{ cursor: 'grab', touchAction: 'none' }}
             >
-              <div style={{ width: 40, height: 4, borderRadius: 999, background: '#B8AE9E', margin: '0 auto 6px' }}/>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', padding: '8px 0 10px' }}>
-                <button onClick={() => setPendingCard(null)} style={{
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  fontFamily: "'Instrument Sans', sans-serif", fontSize: 13, fontWeight: 600,
-                  color: '#8A7E6F', padding: 0,
-                }}>Done</button>
-              </div>
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: '#B8AE9E', margin: '0 auto 4px' }}/>
             </div>
 
-            <div style={{ textAlign: 'center', marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8A7E6F' }}>Power level</div>
-              <div style={{ fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 26, color: '#2B2118', letterSpacing: '-0.01em', marginTop: 2 }}>Choose a bracket</div>
-              <div style={{ fontSize: 13, color: '#5C5043', marginTop: 4, padding: '0 12px' }}>
-                How this commander reads at the table. Set honestly so the pod knows what to bring.
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {BRACKETS.map(b => (
-                <button key={b.value} onClick={() => setSelectedBracket(b.value)} style={{
-                  width: '100%', textAlign: 'left', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 12px', borderRadius: 14,
-                  background: selectedBracket === b.value ? '#EDE4D0' : 'transparent',
-                  border: selectedBracket === b.value ? '1.5px solid #B06B2C' : '1px solid rgba(43,33,24,0.08)',
-                  fontFamily: "'Instrument Sans', sans-serif",
-                  transition: 'background 0.15s ease, border-color 0.15s ease',
+            {/* Commander art + info header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, marginBottom: 12 }}>
+              {pendingCard.artUrl && (
+                <div style={{
+                  width: 52, height: 52, borderRadius: 14, overflow: 'hidden', flexShrink: 0,
+                  border: '2px solid #B06B2C',
+                  boxShadow: '0 6px 16px -6px rgba(43,33,24,0.35)',
                 }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 999,
-                    background: selectedBracket === b.value ? '#B06B2C' : '#F5EFE2',
-                    color: selectedBracket === b.value ? '#F5EFE2' : '#8A7E6F',
-                    border: selectedBracket === b.value ? 'none' : '1px solid rgba(43,33,24,0.14)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: "'Young Serif', serif", fontSize: 15, fontWeight: 400,
-                  }}>{b.value}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#2B2118' }}>{b.label}</div>
-                    <div style={{ fontSize: 11, color: '#8A7E6F', marginTop: 1 }}>{b.desc}</div>
-                  </div>
-                  {selectedBracket === b.value && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B06B2C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </button>
-              ))}
+                  <img src={pendingCard.artUrl} alt={pendingCard.cardName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }}/>
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+                  color: '#8A7E6F',
+                }}>Power level</div>
+                <div style={{
+                  fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 20,
+                  color: '#2B2118', letterSpacing: '-0.01em', marginTop: 1, lineHeight: 1.15,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>Bracket for {pendingCard.cardName.split(',')[0]}</div>
+                <div style={{ fontSize: 11, color: '#5C5043', marginTop: 2 }}>
+                  Set honestly so the pod knows what to expect.
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+            {/* Compact bracket tiles — horizontal row */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              {BRACKETS.map(b => {
+                const selected = selectedBracket === b.value;
+                return (
+                  <button key={b.value} onClick={() => setSelectedBracket(b.value)} style={{
+                    flex: 1, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                    padding: '10px 4px 8px',
+                    background: selected ? '#F3E3D1' : '#FAF5EA',
+                    border: selected ? '2px solid #B06B2C' : '1px solid rgba(43,33,24,0.1)',
+                    borderRadius: 14,
+                    boxShadow: selected ? '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)' : '0 1px 3px rgba(43,33,24,0.06)',
+                    fontFamily: "'Instrument Sans', sans-serif",
+                    transition: 'all 140ms cubic-bezier(.22,.61,.36,1)',
+                    position: 'relative',
+                  }}>
+                    <span style={{
+                      fontFamily: "'Young Serif', serif",
+                      fontSize: 26, fontWeight: 400,
+                      color: selected ? '#B06B2C' : '#2B2118',
+                      lineHeight: 1, letterSpacing: '-0.02em',
+                    }}>{b.value}</span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 600, color: selected ? '#8C5422' : '#8A7E6F',
+                      letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center',
+                    }}>{b.desc.split(' ')[0]}</span>
+                    {selected && (
+                      <div style={{
+                        position: 'absolute', top: -5, right: -5,
+                        width: 18, height: 18, borderRadius: 999,
+                        background: '#B06B2C', color: '#F5EFE2',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(43,33,24,0.25)',
+                      }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Description of selected bracket */}
+            <div style={{
+              textAlign: 'center', fontSize: 12, color: '#5C5043',
+              padding: '4px 8px 8px', lineHeight: 1.4,
+            }}>
+              {BRACKETS.find(b => b.value === selectedBracket)?.desc}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
               <button onClick={() => setPendingCard(null)} style={{
                 flex: 1, cursor: 'pointer',
                 background: 'transparent',

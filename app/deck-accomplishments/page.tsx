@@ -825,7 +825,7 @@ function PageContent() {
         }}
       />
 
-      {/* Bracket picker */}
+      {/* Bracket picker — compact horizontal */}
       {showBracket && (
         <div onClick={() => setShowBracket(false)} style={{
           position: 'fixed', inset: 0, zIndex: 100,
@@ -838,34 +838,92 @@ function PageContent() {
             width: '100%', maxWidth: 430,
             background: 'var(--parchment)',
             borderRadius: '24px 24px 0 0',
-            padding: '14px 16px 28px',
+            padding: '12px 16px 24px',
             boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
-            maxHeight: '90%', overflow: 'auto',
             borderTop: '1px solid var(--line-strong)',
             animation: 'slideUp 240ms var(--ease)',
           }}>
-            <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 14px' }}/>
-            <div style={{ textAlign: 'center', marginBottom: 14 }}>
-              <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Power level</div>
-              <div style={{
-                fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 26,
-                color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
-              }}>Choose a bracket</div>
-              <div style={{
-                fontSize: 13, color: 'var(--ink-2)',
-                marginTop: 4, padding: '0 12px',
-              }}>How this commander reads at the table. Set honestly so the pod knows what to bring.</div>
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 4px' }}/>
+
+            {/* Commander art + info header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, marginBottom: 12 }}>
+              {c?.art && (
+                <div style={{
+                  width: 52, height: 52, borderRadius: 14, overflow: 'hidden', flexShrink: 0,
+                  border: '2px solid var(--copper)',
+                  boxShadow: '0 6px 16px -6px rgba(43,33,24,0.35)',
+                }}>
+                  <img src={c.art} alt={c.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }}/>
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="ph-stamp" style={{ fontSize: 9, color: 'var(--ink-3)' }}>Power level</div>
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 20,
+                  color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 1, lineHeight: 1.15,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>Bracket for {c?.name?.split(',')[0] ?? 'Commander'}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-2)', marginTop: 2 }}>
+                  Set honestly so the pod knows what to expect.
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {BRACKETS.map(b => (
-                <BracketTile key={b.value} n={b.value} label={b.label} description={b.desc}
-                  selected={selectedBracket === b.value}
-                  onSelect={() => setSelectedBracket(b.value)}/>
-              ))}
+            {/* Compact bracket tiles — horizontal row */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              {BRACKETS.map(b => {
+                const selected = selectedBracket === b.value;
+                return (
+                  <button key={b.value} onClick={() => setSelectedBracket(b.value)} style={{
+                    flex: 1, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                    padding: '10px 4px 8px',
+                    background: selected ? 'var(--copper-soft)' : 'var(--parchment-card)',
+                    border: selected ? '2px solid var(--copper)' : '1px solid var(--line)',
+                    borderRadius: 14,
+                    boxShadow: selected ? 'var(--shadow-active)' : 'var(--shadow-rest)',
+                    fontFamily: 'var(--font-ui)',
+                    transition: 'all 140ms var(--ease)',
+                    position: 'relative',
+                  }}>
+                    <span style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 26, fontWeight: 400,
+                      color: selected ? 'var(--copper)' : 'var(--ink)',
+                      lineHeight: 1, letterSpacing: '-0.02em',
+                    }}>{b.value}</span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 600, color: selected ? 'var(--copper-dark, #8C5422)' : 'var(--ink-3)',
+                      letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center',
+                    }}>{b.desc.split(' ')[0]}</span>
+                    {selected && (
+                      <div style={{
+                        position: 'absolute', top: -5, right: -5,
+                        width: 18, height: 18, borderRadius: 999,
+                        background: 'var(--copper)', color: 'var(--parchment)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(43,33,24,0.25)',
+                      }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+            {/* Description of selected bracket */}
+            <div style={{
+              textAlign: 'center', fontSize: 12, color: 'var(--ink-2)',
+              padding: '4px 8px 8px', lineHeight: 1.4,
+            }}>
+              {BRACKETS.find(b => b.value === selectedBracket)?.desc}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
               <button onClick={() => setShowBracket(false)} style={{
                 flex: 1, cursor: 'pointer',
                 background: 'transparent',
