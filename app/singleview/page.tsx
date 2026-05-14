@@ -1534,10 +1534,11 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
         )}
 
         {/* Commander damage boxes */}
-        <div style={{
-          marginTop: 'auto',
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
-        }}>
+        <div style={{ marginTop: 'auto' }}>
+          <div style={kicker(9)}>Commander damage</div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 6,
+          }}>
           <div style={{
             background: 'var(--parchment)', border: '1px solid rgba(226,184,88,0.10)',
             borderRadius: 12, padding: '8px 12px',
@@ -1566,6 +1567,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
               letterSpacing: '-0.03em', color: '#8C5422', marginTop: 2,
               fontVariantNumeric: 'tabular-nums',
             }}>{p.cmdrDmgFromYou ?? 0}<span style={{ fontSize: 16, color: '#8A7E6F' }}> /21</span></div>
+          </div>
           </div>
         </div>
       </div>
