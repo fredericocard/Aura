@@ -188,10 +188,29 @@ function PageContent() {
   // Login sheet animation
   const [loginSlideUp, setLoginSlideUp] = useState(false);
 
+  // Cancelling the auth gate (Cancel button, backdrop click, swipe-down)
+  // returns the user to the empty join screen with the camera scanner live —
+  // they cleared the code and want to scan a different pod.
+  const cancelAuthGate = useCallback(() => {
+    setShowAuthGate(false);
+    setAuthError('');
+    setAuthEmail('');
+    setAuthPassword('');
+    setError(null);
+    setJoining(false);
+    setScannedCode(null);
+    setCodeChars(['', '', '', '', '', '']);
+    consumedUrlCodeRef.current = false;
+    // Restart the scan loop if the camera is still running.
+    if (!scanTimerRef.current && streamRef.current && videoRef.current) {
+      startScanning();
+    }
+  }, []);
+
   // Swipe-down dismiss for the my-commanders + add-commander sheets.
   // my-commanders → fully close the auth gate (same as Cancel).
   // add-commander → return to the my-commanders view (same as Back).
-  const myCmdrDrag = useSheetDrag(() => setShowAuthGate(false));
+  const myCmdrDrag = useSheetDrag(cancelAuthGate);
   const addCmdrDrag = useSheetDrag(() => { setAuthView('my-commanders'); setAuthError(''); });
 
   // Pre-fill from ?code= query param. If the code is a complete 6-char value
@@ -591,7 +610,7 @@ function PageContent() {
 
       {/* ── Auth gate overlay ── */}
       {showAuthGate && (
-        <div onClick={() => !authSubmitting && setShowAuthGate(false)} style={{
+        <div onClick={() => { if (!authSubmitting) cancelAuthGate(); }} style={{
           position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(43,33,24,0.55)',
           backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -617,7 +636,7 @@ function PageContent() {
                   <div style={{ fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: '#B06B2C', marginBottom: 2 }}>Join the pod</div>
                   <div style={{ fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 24, color: '#2B2118', letterSpacing: '-0.01em' }}>Choose a commander</div>
                 </div>
-                <button onClick={() => setShowAuthGate(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: "'Instrument Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#8A7E6F', padding: 0 }}>Cancel</button>
+                <button onClick={cancelAuthGate} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: "'Instrument Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#8A7E6F', padding: 0 }}>Cancel</button>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)', borderRadius: 14 }}>
@@ -892,7 +911,7 @@ function PageContent() {
                   <div style={{ fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: '#B06B2C', marginBottom: 2 }}>Welcome back</div>
                   <div style={{ fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 24, color: '#2B2118', letterSpacing: '-0.01em' }}>Choose a commander</div>
                 </div>
-                <button onClick={() => setShowAuthGate(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: "'Instrument Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#8A7E6F', padding: 0 }}>Cancel</button>
+                <button onClick={cancelAuthGate} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: "'Instrument Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#8A7E6F', padding: 0 }}>Cancel</button>
               </div>
 
               {authError && (<div style={{ background: 'rgba(158,43,43,0.08)', border: '1px solid rgba(158,43,43,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#9E2B2B', textAlign: 'center', marginBottom: 10 }}>{authError}</div>)}
