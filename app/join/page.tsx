@@ -55,14 +55,21 @@ function PageContent() {
   const [camStatus, setCamStatus] = useState<'idle' | 'requesting' | 'active' | 'denied' | 'unavailable'>('idle');
   const [scannedCode, setScannedCode] = useState<string | null>(null);
 
-  // Pre-fill from ?code= query param
+  // Pre-fill from ?code= query param. If the code is a complete 6-char value
+  // (i.e. the user landed here via a scanned/shared deep link), skip the
+  // "Enter the pod" button and auto-join right away.
   useEffect(() => {
     const prefill = searchParams.get('code');
-    if (prefill) {
-      const chars = prefill.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6).split('');
-      while (chars.length < 6) chars.push('');
-      setCodeChars(chars);
+    if (!prefill) return;
+    const cleaned = prefill.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    const chars = cleaned.split('');
+    while (chars.length < 6) chars.push('');
+    setCodeChars(chars);
+    if (cleaned.length === 6) {
+      // Slight delay so codeChars state is committed before handleJoin reads it.
+      setTimeout(() => { handleJoin(cleaned); }, 50);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   /* ── Camera lifecycle ─────────────────────────────────────────────────── */
@@ -162,6 +169,8 @@ function PageContent() {
     setCodeChars(chars);
     // Stop scanning once we have a code
     if (scanTimerRef.current) { clearInterval(scanTimerRef.current); scanTimerRef.current = null; }
+    // Auto-join: scanned codes skip the manual "Enter the pod" button.
+    setTimeout(() => { handleJoin(code); }, 50);
   }
 
   function handleCodeInput(value: string) {
@@ -220,8 +229,9 @@ function PageContent() {
     router.push(`/gridview-${podSize}p?podId=${pod.id}&gameId=${gameId}`);
   }
 
-  async function handleJoin() {
-    const fullCode = codeChars.join('');
+  async function handleJoin(codeOverride?: string) {
+    if (joining) return;
+    const fullCode = (codeOverride ?? codeChars.join('')).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     if (fullCode.length < 6) { setError('Enter the full 6-character code'); return; }
 
     // If user is already logged in (full or guest), go straight to join
@@ -669,7 +679,7 @@ function PageContent() {
         <div className="cta-wrap">
           <button
             className="join-btn"
-            onClick={handleJoin}
+            onClick={() => handleJoin()}
             disabled={joining || codeChars.join('').length < 6}
             style={{ opacity: (joining || codeChars.join('').length < 6) ? 0.5 : 1 }}
           >
