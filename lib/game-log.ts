@@ -33,6 +33,8 @@ export interface PodCommanderEntry {
   artUrl: string | null;
   isWinner: boolean;
   userId: string;
+  /** True if this player abandoned the game (seat treated as empty). */
+  abandoned?: boolean;
 }
 
 export interface GameLogPage {
@@ -65,10 +67,12 @@ export async function getGameLog(
   const offset = (page - 1) * pageSize;
 
   // 1. Get the player's game_players entries (with game info)
+  //    Exclude games the user abandoned (is_eliminated + can_review = false).
+  //    Normal eliminations (life → 0) have can_review = true and ARE included.
   let query = supabase
     .from("game_players")
     .select(
-      "game_id, deck_id, is_winner, joined_at, " +
+      "game_id, deck_id, is_winner, is_eliminated, can_review, joined_at, " +
         "games!inner(id, state, pod_size, winner_deck_id, created_at), " +
         "decks!inner(commander_name, commander_art_url)",
       { count: "exact" }
@@ -83,16 +87,22 @@ export async function getGameLog(
     query = query.eq("deck_id", filters.deckId);
   }
 
-  const { data: playerGames, error, count } = await query as any;
+  const { data: rawPlayerGames, error, count } = await query as any;
 
   if (error) {
     throw new Error(`Failed to fetch game log: ${error.message}`);
   }
 
-  if (!playerGames || playerGames.length === 0) {
+  // Filter out games the user abandoned (eliminated + can't review = abandoned).
+  // Normal eliminations (life → 0) have can_review = true and stay in the list.
+  const playerGames = (rawPlayerGames ?? []).filter(
+    (pg: any) => !(pg.is_eliminated && !pg.can_review)
+  );
+
+  if (playerGames.length === 0) {
     return {
       entries: [],
-      totalCount: count ?? 0,
+      totalCount: Math.max(0, (count ?? 0) - ((rawPlayerGames?.length ?? 0) - playerGames.length)),
       page,
       pageSize,
       hasMore: false,
@@ -107,7 +117,7 @@ export async function getGameLog(
     supabase
       .from("game_players")
       .select(
-        "game_id, user_id, is_winner, " +
+        "game_id, user_id, is_winner, is_eliminated, can_review, " +
           "decks!inner(commander_name, commander_art_url)"
       )
       .in("game_id", gameIds) as unknown as Promise<{ data: any; error: any }>,
@@ -124,12 +134,15 @@ export async function getGameLog(
       commander_name: string;
       commander_art_url: string | null;
     };
+    // A player who was eliminated AND can't review = abandoned (empty seat)
+    const isAbandoned = p.is_eliminated === true && p.can_review === false;
     const entries = playersByGame.get(p.game_id) ?? [];
     entries.push({
-      commanderName: deck.commander_name,
-      artUrl: deck.commander_art_url,
-      isWinner: p.is_winner,
+      commanderName: isAbandoned ? "Empty Seat" : deck.commander_name,
+      artUrl: isAbandoned ? null : deck.commander_art_url,
+      isWinner: isAbandoned ? false : p.is_winner,
       userId: p.user_id,
+      abandoned: isAbandoned,
     });
     playersByGame.set(p.game_id, entries);
   }

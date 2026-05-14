@@ -357,11 +357,12 @@ function EarnedRow({ badge, players, glyphBase }: any) {
 function TableSeat({ playerId, isYou, isWinner, players }: any) {
   const p = findById(players, playerId);
   if (!p) return null;
+  const isEmpty = p.name === 'Empty Seat' || !p.art;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 6, flex: 1, minWidth: 0 }}>
+      gap: 6, flex: 1, minWidth: 0, opacity: isEmpty ? 0.45 : 1 }}>
       <div style={{ position: 'relative' }}>
-        {isWinner && (
+        {isWinner && !isEmpty && (
           <div style={{ position: 'absolute', top: -13, left: '50%',
             transform: 'translateX(-50%)', color: 'var(--ink)', zIndex: 2, lineHeight: 0 }}>
             <svg width="22" height="15" viewBox="0 0 24 18" fill="currentColor"
@@ -375,14 +376,22 @@ function TableSeat({ playerId, isYou, isWinner, players }: any) {
         )}
         <div style={{
           width: 52, height: 52, borderRadius: 999, overflow: 'hidden',
-          border: `2px solid ${isYou ? 'var(--forest)' : 'var(--parchment-card)'}`,
+          border: `2px solid ${isEmpty ? 'var(--line-strong)' : isYou ? 'var(--forest)' : 'var(--parchment-card)'}`,
           boxShadow: isYou ? '0 0 0 1px var(--forest-line)' : '0 0 0 1px var(--line)',
           background: 'var(--parchment-deep)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <img src={p.art} alt="" style={{ width: '100%', height: '100%',
-            objectFit: 'cover', objectPosition: '50% 25%', display: 'block' }}/>
+          {p.art ? (
+            <img src={p.art} alt="" style={{ width: '100%', height: '100%',
+              objectFit: 'cover', objectPosition: '50% 25%', display: 'block' }}/>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          )}
         </div>
-        {isYou && (
+        {isYou && !isEmpty && (
           <div style={{
             position: 'absolute', bottom: -3, right: -3,
             background: 'var(--forest)', color: 'var(--parchment)',
@@ -394,10 +403,13 @@ function TableSeat({ playerId, isYou, isWinner, players }: any) {
         )}
       </div>
       <div style={{ textAlign: 'center', lineHeight: 1.2, maxWidth: '100%' }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-        <div style={{ fontSize: 9.5, color: 'var(--fg-subtle)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.commanderShort}</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: isEmpty ? 'var(--ink-3)' : 'var(--ink)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontStyle: isEmpty ? 'italic' : 'normal' }}>{isEmpty ? 'Left game' : p.name}</div>
+        {!isEmpty && (
+          <div style={{ fontSize: 9.5, color: 'var(--fg-subtle)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.commanderShort}</div>
+        )}
       </div>
     </div>
   );
