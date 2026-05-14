@@ -22,6 +22,7 @@ interface PlayerInfo {
   short: string;
   art: string;
   isEmptySeat: boolean;
+  bracket: number | null;
 }
 
 const CATEGORIES = [
@@ -201,6 +202,22 @@ function BracketActiveCard({ selected, onSelect, players }: { selected: string |
               <div style={{ fontSize: 14, fontWeight: 600, color: '#2B2118', lineHeight: 1.2 }}>{p.isEmptySeat ? `P${p.seat}` : p.short}</div>
               <div style={{ fontSize: 11, color: '#8A7E6F', marginTop: 1 }}>{p.isEmptySeat ? 'Empty seat' : p.name}</div>
             </div>
+            {/* Bracket pip */}
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: 28, height: 20, padding: '0 6px',
+              borderRadius: 6,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+              fontFamily: "'Instrument Sans', sans-serif",
+              ...(p.isEmptySeat
+                ? { background: '#EDE4D0', color: '#B8AD9E', border: '1px dashed rgba(43,33,24,.14)' }
+                : p.bracket == null
+                  ? { background: 'rgba(176,107,44,0.08)', color: '#B06B2C', border: '1px dashed rgba(176,107,44,0.35)' }
+                  : { background: 'rgba(47,93,58,0.08)', color: '#2F5D3A', border: '1px solid rgba(47,93,58,0.2)' }
+              ),
+            }}>
+              {p.isEmptySeat ? '—' : p.bracket == null ? 'B?' : `B${p.bracket}`}
+            </span>
           </button>
         ))}
       </div>
@@ -570,7 +587,7 @@ function PageContent() {
       if (deckIds.length > 0) {
         const { data: decks } = await supabase
           .from('decks')
-          .select('id, commander_name, commander_art_url')
+          .select('id, commander_name, commander_art_url, bracket')
           .in('id', deckIds) as { data: any };
         deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
       }
@@ -594,6 +611,7 @@ function PageContent() {
             short: commanderName ? commanderName.split(',')[0] : `P${seat}`,
             art: deck?.commander_art_url ?? '',
             isEmptySeat,
+            bracket: deck?.bracket ?? null,
           };
         })
         .filter((pl) => !myUserId || pl.userId !== myUserId)
