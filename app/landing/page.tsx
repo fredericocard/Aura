@@ -188,7 +188,7 @@ function SSOButton({ provider, onClick }: { provider: 'google' | 'apple'; onClic
 }
 
 /* ── FieldInput — form fields for sign up / sign in ── */
-function FieldInput({ label, type = 'text', placeholder, value, onChange }: { label: string; type?: string; placeholder?: string; value: string; onChange: (v: string) => void }) {
+function FieldInput({ label, type = 'text', placeholder, value, onChange, autoComplete }: { label: string; type?: string; placeholder?: string; value: string; onChange: (v: string) => void; autoComplete?: string }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span style={{
@@ -200,6 +200,7 @@ function FieldInput({ label, type = 'text', placeholder, value, onChange }: { la
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        autoComplete={autoComplete ?? 'off'}
         style={{
           width: '100%',
           background: '#F5EFE2',
@@ -328,9 +329,9 @@ function SignUpView({ setView }: { setView: (v: string) => void }) {
       <SheetMasthead eyebrow="New player" title="Create account" subtitle="Join your first pod." />
       <ErrorBanner message={error} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-        <FieldInput label="Email" type="email" placeholder="you@table.cards" value={email} onChange={setEmail} />
-        <FieldInput label="Confirm email" type="email" placeholder="you@table.cards" value={confirmEmail} onChange={setConfirmEmail} />
-        <FieldInput label="Password" type="password" placeholder="••••••••" value={password} onChange={setPassword} />
+        <FieldInput label="Email" type="email" placeholder="you@table.cards" value={email} onChange={setEmail} autoComplete="off" />
+        <FieldInput label="Confirm email" type="email" placeholder="you@table.cards" value={confirmEmail} onChange={setConfirmEmail} autoComplete="off" />
+        <FieldInput label="Password" type="password" placeholder="••••••••" value={password} onChange={setPassword} autoComplete="new-password" />
       </div>
       <button onClick={handleSignUp} disabled={submitting} style={{
         background: submitting ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
@@ -381,8 +382,8 @@ function SignInView({ setView }: { setView: (v: string) => void }) {
       <SheetMasthead eyebrow="Returning" title="Welcome back" subtitle="The pod's been waiting." />
       <ErrorBanner message={error} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-        <FieldInput label="Email" type="email" placeholder="you@table.cards" value={email} onChange={setEmail} />
-        <FieldInput label="Password" type="password" placeholder="••••••••" value={password} onChange={setPassword} />
+        <FieldInput label="Email" type="email" placeholder="you@table.cards" value={email} onChange={setEmail} autoComplete="off" />
+        <FieldInput label="Password" type="password" placeholder="••••••••" value={password} onChange={setPassword} autoComplete="off" />
       </div>
       <button onClick={handleSignIn} disabled={submitting} style={{
         background: submitting ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
