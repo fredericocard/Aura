@@ -3,7 +3,9 @@
 import { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { joinPod } from '@/lib/pods';
+import { createGame } from '@/lib/games';
 import { useAuth } from '@/lib/auth-context';
+import { createClient } from '@/lib/supabase/client';
 
 /* ── BarcodeDetector type shim (native API, not in TS lib) ──────────────── */
 interface DetectedBarcode { rawValue: string; }
@@ -183,7 +185,39 @@ function PageContent() {
     }
 
     stopCamera();
-    router.push(`/singleview?podId=${pod.id}`);
+
+    // Check if a game already exists for this pod
+    const supabase = createClient();
+    const { data: existingGames } = await supabase
+      .from('games')
+      .select('id, pod_size')
+      .eq('pod_id', pod.id)
+      .in('state', ['active', 'in_questionnaire'])
+      .order('created_at', { ascending: false })
+      .limit(1) as { data: any };
+
+    let gameId: string;
+    let podSize: number;
+
+    if (existingGames && existingGames.length > 0) {
+      // Game already exists — use it
+      gameId = existingGames[0].id;
+      podSize = existingGames[0].pod_size;
+    } else {
+      // No game yet — create one using the pod's max_players
+      const seats = pod.max_players ?? 2;
+      const { data: newGame, error: gameErr } = await createGame(pod.id, seats);
+      if (gameErr || !newGame) {
+        setError(gameErr ?? 'Failed to start the game');
+        setJoining(false);
+        return;
+      }
+      gameId = newGame.id;
+      podSize = seats;
+    }
+
+    // Navigate to the right gridview for the player count
+    router.push(`/gridview-${podSize}p?podId=${pod.id}&gameId=${gameId}`);
   }
 
   async function handleJoin() {
