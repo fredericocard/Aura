@@ -483,6 +483,7 @@ function PageContent() {
   const [deleting, setDeleting] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const bracketSheetDrag = useSheetDrag(() => setShowBracket(false));
 
   const displayToast = (msg: string) => {
     setToastMsg(msg);
@@ -834,7 +835,7 @@ function PageContent() {
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           fontFamily: 'var(--font-ui)',
         }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
+          <div ref={bracketSheetDrag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
             width: '100%', maxWidth: 430,
             background: 'var(--parchment)',
             borderRadius: '24px 24px 0 0',
@@ -843,7 +844,14 @@ function PageContent() {
             borderTop: '1px solid var(--line-strong)',
             animation: 'slideUp 240ms var(--ease)',
           }}>
-            <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 4px' }}/>
+            <div
+              onTouchStart={bracketSheetDrag.onTouchStart}
+              onTouchMove={bracketSheetDrag.onTouchMove}
+              onTouchEnd={bracketSheetDrag.onTouchEnd}
+              style={{ cursor: 'grab', touchAction: 'none' }}
+            >
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 4px' }}/>
+            </div>
 
             {/* Commander art + info header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, marginBottom: 12 }}>
