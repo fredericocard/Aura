@@ -163,7 +163,8 @@ function ActiveCard({ idx, cat, selectedId, onSelect, players }: { idx: number; 
   );
 }
 
-function BracketActiveCard({ selected, onSelect, players }: { selected: string | null; onSelect: (val: string) => void; players: PlayerInfo[] }) {
+function BracketActiveCard({ selectedIds, onToggle, onSelectOnBracket, players }: { selectedIds: Set<string>; onToggle: (playerId: string) => void; onSelectOnBracket: () => void; players: PlayerInfo[] }) {
+  const isOnBracket = selectedIds.has('on-bracket');
   return (
     <div style={{ background: '#FAF5EA', border: '1.5px solid #8A7E6F', borderLeft: '6px solid #8A7E6F', borderRadius: 20, padding: '22px 20px 24px', boxShadow: '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
@@ -176,8 +177,8 @@ function BracketActiveCard({ selected, onSelect, players }: { selected: string |
         </div>
       </div>
 
-      <button onClick={() => onSelect('on-bracket')} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: selected === 'on-bracket' ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif", transition: 'background 120ms' }}>
-        <div style={{ width: 36, height: 36, borderRadius: 999, background: selected === 'on-bracket' ? '#2F5D3A' : '#EDE4D0', color: selected === 'on-bracket' ? '#F5EFE2' : '#5C5043', border: selected === 'on-bracket' ? 'none' : '1.5px dashed rgba(43,33,24,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button onClick={onSelectOnBracket} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: isOnBracket ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif", transition: 'background 120ms' }}>
+        <div style={{ width: 36, height: 36, borderRadius: 999, background: isOnBracket ? '#2F5D3A' : '#EDE4D0', color: isOnBracket ? '#F5EFE2' : '#5C5043', border: isOnBracket ? 'none' : '1.5px dashed rgba(43,33,24,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="check" size={20} width={2.5} />
         </div>
         <div style={{ flex: 1 }}>
@@ -188,45 +189,48 @@ function BracketActiveCard({ selected, onSelect, players }: { selected: string |
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '12px 2px' }}>
         <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,.08)' }} />
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: '#8A7E6F', textTransform: 'uppercase' }}>Or flag a deck</span>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: '#8A7E6F', textTransform: 'uppercase' }}>Or flag decks</span>
         <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,.08)' }} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {players.map((p: any) => (
-          <button key={p.id} onClick={() => onSelect(p.id)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: selected === p.id ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif" }}>
-            <div style={{ position: 'relative' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: selected === p.id ? '0 0 0 2px #9E2B2B' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
-                {p.art ? <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#8A7E6F', background: '#F5EFE2' }}>{`P${p.seat}`}</div>}
-              </div>
-              {selected === p.id && (
-                <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'rgba(158,43,43,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                  <Icon name="check" size={18} width={2.5} />
+        {players.map((p: any) => {
+          const isFlagged = selectedIds.has(p.id);
+          return (
+            <button key={p.id} onClick={() => onToggle(p.id)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: isFlagged ? '#EDE4D0' : 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif" }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: isFlagged ? '0 0 0 2px #9E2B2B' : '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
+                  {p.art ? <img src={p.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#8A7E6F', background: '#F5EFE2' }}>{`P${p.seat}`}</div>}
                 </div>
-              )}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#2B2118', lineHeight: 1.2 }}>{p.isEmptySeat ? `P${p.seat}` : p.short}</div>
-              <div style={{ fontSize: 11, color: '#8A7E6F', marginTop: 1 }}>{p.isEmptySeat ? 'Empty seat' : p.name}</div>
-            </div>
-            {/* Bracket pip */}
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              minWidth: 28, height: 20, padding: '0 6px',
-              borderRadius: 6,
-              fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
-              fontFamily: "'Instrument Sans', sans-serif",
-              ...(p.isEmptySeat
-                ? { background: '#EDE4D0', color: '#B8AD9E', border: '1px dashed rgba(43,33,24,.14)' }
-                : p.bracket == null
-                  ? { background: 'rgba(176,107,44,0.08)', color: '#B06B2C', border: '1px dashed rgba(176,107,44,0.35)' }
-                  : { background: 'rgba(47,93,58,0.08)', color: '#2F5D3A', border: '1px solid rgba(47,93,58,0.2)' }
-              ),
-            }}>
-              {p.isEmptySeat ? '—' : p.bracket == null ? 'B?' : `B${p.bracket}`}
-            </span>
-          </button>
-        ))}
+                {isFlagged && (
+                  <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'rgba(158,43,43,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                    <Icon name="check" size={18} width={2.5} />
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#2B2118', lineHeight: 1.2 }}>{p.isEmptySeat ? `P${p.seat}` : p.short}</div>
+                <div style={{ fontSize: 11, color: '#8A7E6F', marginTop: 1 }}>{p.isEmptySeat ? 'Empty seat' : p.name}</div>
+              </div>
+              {/* Bracket pip */}
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                minWidth: 28, height: 20, padding: '0 6px',
+                borderRadius: 6,
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                fontFamily: "'Instrument Sans', sans-serif",
+                ...(p.isEmptySeat
+                  ? { background: '#EDE4D0', color: '#B8AD9E', border: '1px dashed rgba(43,33,24,.14)' }
+                  : p.bracket == null
+                    ? { background: 'rgba(176,107,44,0.08)', color: '#B06B2C', border: '1px dashed rgba(176,107,44,0.35)' }
+                    : { background: 'rgba(47,93,58,0.08)', color: '#2F5D3A', border: '1px solid rgba(47,93,58,0.2)' }
+                ),
+              }}>
+                {p.isEmptySeat ? '—' : p.bracket == null ? 'B?' : `B${p.bracket}`}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -573,7 +577,7 @@ function PageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [activeIdx, setActiveIdx] = useState(0);
-  const [bracketAnswer, setBracketAnswer] = useState<string | null>(null);
+  const [bracketAnswers, setBracketAnswers] = useState<Set<string>>(new Set());
   const [showMemory, setShowMemory] = useState(false);
   const [showPromotion, setShowPromotion] = useState(false);
   const [gameCard, setGameCard] = useState<GameCard | null>(null);
@@ -637,7 +641,7 @@ function PageContent() {
     }
   }, [activeIdx]);
 
-  const allAnswered = CATEGORIES.every(c => answers[c.id] != null) && (bracketAnswer != null);
+  const allAnswered = CATEGORIES.every(c => answers[c.id] != null) && (bracketAnswers.size > 0);
 
   useEffect(() => {
     if (allAnswered && doneCardRef.current) {
@@ -685,23 +689,43 @@ function PageContent() {
     setTimeout(() => {
       const nextIdx = CATEGORIES.findIndex((c, i) => i > activeIdx && !answers[c.id] && c.id !== catId);
       if (nextIdx >= 0) setActiveIdx(nextIdx);
-      else if (!bracketAnswer && !answers.bracket) setActiveIdx(5);
+      else if (bracketAnswers.size === 0 && !answers.bracket) setActiveIdx(5);
     }, 180);
   };
 
-  const handleBracketSelect = (val: string) => {
-    setBracketAnswer(val);
-    // Fire bracket check vote
-    if (gameId) {
-      if (val === 'on-bracket') {
-        castBracketCheck(gameId, []).catch(() => {});
-      } else {
-        // val is the selection id ('seat-N'); look up the player to find deckId
-        const sel = players.find((pl) => pl.id === val);
-        if (!sel || !sel.deckId) return;
-        castBracketCheck(gameId, [sel.deckId]).catch(() => {});
-      }
+  // Fire bracket check vote to backend with current flagged deck IDs
+  const fireBracketVote = (nextAnswers: Set<string>) => {
+    if (!gameId) return;
+    if (nextAnswers.has('on-bracket') || nextAnswers.size === 0) {
+      castBracketCheck(gameId, []).catch(() => {});
+    } else {
+      const flaggedDeckIds = players
+        .filter(pl => nextAnswers.has(pl.id) && pl.deckId)
+        .map(pl => pl.deckId!);
+      castBracketCheck(gameId, flaggedDeckIds).catch(() => {});
     }
+  };
+
+  const handleBracketTogglePlayer = (playerId: string) => {
+    setBracketAnswers(prev => {
+      const next = new Set(prev);
+      // Remove "on-bracket" if user is flagging a player
+      next.delete('on-bracket');
+      // Toggle this player
+      if (next.has(playerId)) {
+        next.delete(playerId);
+      } else {
+        next.add(playerId);
+      }
+      fireBracketVote(next);
+      return next;
+    });
+  };
+
+  const handleBracketOnBracket = () => {
+    const next = new Set(['on-bracket']);
+    setBracketAnswers(next);
+    fireBracketVote(next);
   };
 
   const handleAcceptReview = async () => {
@@ -765,24 +789,21 @@ function PageContent() {
 
         {activeIdx === 5 ? (
           <div ref={activeCardRef} style={{ margin: '10px 0' }}>
-            <BracketActiveCard selected={bracketAnswer} onSelect={handleBracketSelect} players={players} />
+            <BracketActiveCard selectedIds={bracketAnswers} onToggle={handleBracketTogglePlayer} onSelectOnBracket={handleBracketOnBracket} players={players} />
           </div>
-        ) : bracketAnswer != null ? (
+        ) : bracketAnswers.size > 0 ? (
           <button onClick={() => setActiveIdx(5)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: '#FAF5EA', border: '1px solid rgba(43,33,24,.08)', borderLeft: '4px solid #2F5D3A', borderRadius: 20, padding: '14px 16px 14px 14px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)', fontFamily: "'Instrument Sans', sans-serif" }}>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#8A7E6F', minWidth: 28 }}>6/6</span>
             <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: '#2B2118' }}>Did any deck play above its bracket?</span>
-            {bracketAnswer === 'on-bracket' ? (
+            {bracketAnswers.has('on-bracket') ? (
               <span style={{ fontSize: 13, color: '#5C5043', fontWeight: 500 }}>On bracket</span>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {(() => { const pl = players.find(p => p.deckId === bracketAnswer); return pl ? (
-                  <>
-                    <div style={{ width: 26, height: 26, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: '0 0 0 1px rgba(43,33,24,.08)', background: '#EDE4D0' }}>
-                      {pl.art ? <img src={pl.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : null}
-                    </div>
-                    <span style={{ fontSize: 13, color: '#5C5043', fontWeight: 500 }}>{pl.short}</span>
-                  </>
-                ) : null; })()}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {players.filter(p => bracketAnswers.has(p.id)).map(pl => (
+                  <div key={pl.id} style={{ width: 26, height: 26, borderRadius: 999, overflow: 'hidden', border: '2px solid #FAF5EA', boxShadow: '0 0 0 1px rgba(158,43,43,.25)', background: '#EDE4D0' }}>
+                    {pl.art ? <img src={pl.art} alt="" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}/> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#8A7E6F' }}>{`P${pl.seat}`}</div>}
+                  </div>
+                ))}
               </div>
             )}
           </button>
