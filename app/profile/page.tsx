@@ -911,28 +911,28 @@ export default function ProfilePage() {
     if (!pendingBracketCommander) return;
     setConfirmingBracket(true);
 
-    try {
-      const { error: confirmError } = await confirmBracketAndApplyScoring(pendingBracketCommander.deckId, forcedBracket);
-      if (confirmError) {
-        showToastMsg(`Error: ${confirmError}`);
-        setConfirmingBracket(false);
-        return;
-      }
-    } catch (e: any) {
-      // Scoring might throw — still dismiss the popup since the bracket was set
-      console.error('Bracket scoring error (non-fatal):', e);
+    const deckId = pendingBracketCommander.deckId;
+    const commanderName = pendingBracketCommander.commanderName;
+
+    // 1. Write the bracket to Supabase (fast — single UPDATE)
+    const { error: updateErr } = await supabase
+      .from('decks')
+      .update({ bracket: forcedBracket, bracket_set_at: new Date().toISOString() })
+      .eq('id', deckId);
+
+    if (updateErr) {
+      showToastMsg(`Error: ${updateErr.message}`);
+      setConfirmingBracket(false);
+      return;
     }
 
-    // Update local state
-    const updatedDeckId = pendingBracketCommander.deckId;
+    // 2. Dismiss popup immediately — don't wait for scoring
     setCommanders(prev => prev.map(c =>
-      c.deckId === updatedDeckId ? { ...c, bracket: forcedBracket } : c
+      c.deckId === deckId ? { ...c, bracket: forcedBracket } : c
     ));
+    showToastMsg(`${commanderName} set to Bracket ${forcedBracket}!`);
 
-    showToastMsg(`${pendingBracketCommander.commanderName} set to Bracket ${forcedBracket}!`);
-
-    // Check for more NULL-bracket commanders (use current state snapshot, exclude the one we just set)
-    const remaining = commanders.filter(c => c.bracket === null && c.deckId !== updatedDeckId);
+    const remaining = commanders.filter(c => c.bracket === null && c.deckId !== deckId);
     if (remaining.length > 0) {
       setPendingBracketCommander(remaining[0]);
       setForcedBracket(2);
@@ -940,6 +940,11 @@ export default function ProfilePage() {
       setPendingBracketCommander(null);
     }
     setConfirmingBracket(false);
+
+    // 3. Fire scoring in the background — non-blocking
+    confirmBracketAndApplyScoring(deckId, forcedBracket).catch(e =>
+      console.error('Background scoring error (non-fatal):', e)
+    );
   };
 
   const initial = (nameInputValue || '?').charAt(0).toUpperCase();
