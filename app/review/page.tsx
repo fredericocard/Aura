@@ -142,9 +142,16 @@ function ActiveCard({ idx, cat, selectedId, onSelect, players }: { idx: number; 
             </div>
           </button>
         ))}
-        <button onClick={() => onSelect('__skip')} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', opacity: faded && selectedId !== '__skip' ? 0.28 : 1 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 999, border: '1.5px dashed rgba(43,33,24,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E6F', background: '#F5EFE2' }}>
-            <Icon name="arrow-right" size={22} />
+        <button onClick={() => onSelect('__skip')} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', opacity: faded && selectedId !== '__skip' ? 0.28 : 1, transition: 'opacity 160ms cubic-bezier(.22,.61,.36,1)' }}>
+          <div style={{ position: 'relative' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 999, border: selectedId === '__skip' ? '2px solid #FAF5EA' : '1.5px dashed rgba(43,33,24,.14)', boxShadow: selectedId === '__skip' ? '0 0 0 3px #B06B2C' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E6F', background: '#F5EFE2' }}>
+              <Icon name="arrow-right" size={22} />
+            </div>
+            {selectedId === '__skip' && (
+              <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'rgba(176,107,44,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                <Icon name="check" size={26} width={2.5} />
+              </div>
+            )}
           </div>
           <div style={{ textAlign: 'center', lineHeight: 1.25 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#2B2118' }}>Skip</div>
