@@ -7,7 +7,8 @@ import { createGame } from '@/lib/games';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { searchCommanders } from '@/lib/scryfall';
-import { getMyCommanders, type Deck } from '@/lib/commanders';
+import { getMyCommanders, registerCommander, type Deck } from '@/lib/commanders';
+import { validateCommander } from '@/lib/scryfall';
 
 /* ── BarcodeDetector type shim (native API, not in TS lib) ──────────────── */
 interface DetectedBarcode { rawValue: string; }
@@ -120,7 +121,7 @@ function PageContent() {
 
   // Auth gate state
   const [showAuthGate, setShowAuthGate] = useState(false);
-  const [authView, setAuthView] = useState<'commander' | 'sso' | 'signin' | 'signup' | 'my-commanders'>('commander');
+  const [authView, setAuthView] = useState<'commander' | 'sso' | 'signin' | 'signup' | 'my-commanders' | 'add-commander'>('commander');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
@@ -334,17 +335,40 @@ function PageContent() {
     await proceedToJoin();
   }
 
+  // Logged-in user picks a new commander from Scryfall -> register (skipBracket) -> join
+  async function handleAddNewCommander(card: any) {
+    setAuthSubmitting(true); setAuthError('');
+    // Validate the card
+    const { data: validated, error: valError } = await validateCommander(card.name);
+    if (valError || !validated) { setAuthError(valError || 'Could not validate commander'); setAuthSubmitting(false); return; }
+    if (!validated.isValidCommander) { setAuthError(`${validated.cardName} can't be used as a commander`); setAuthSubmitting(false); return; }
+    // Register with skipBracket — bracket picker shows on profile after the game
+    const { error: regError } = await registerCommander(validated.cardName, 2, true);
+    if (regError) { setAuthError(regError); setAuthSubmitting(false); return; }
+    setShowAuthGate(false); setAuthSubmitting(false);
+    await proceedToJoin();
+  }
+
   async function handleJoin(codeOverride?: string) {
     if (joining) return;
     const fullCode = (codeOverride ?? codeChars.join('')).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     if (fullCode.length < 6) { setError('Enter the full 6-character code'); return; }
-    if (user) { await proceedToJoin(); return; }
-    // Not logged in - show auth gate with commander search
-    setShowAuthGate(true);
+    // Logged in (non-anonymous): pick from their saved commanders.
+    // Set the auth-gate view BEFORE opening so the popup never flashes the
+    // wrong (guest) view while the async fetch is in flight.
+    if (user && !user.is_anonymous) {
+      setAuthView('my-commanders');
+      setAuthError('');
+      setShowAuthGate(true);
+      fetchMyCommanders();
+      return;
+    }
+    // Not logged in → show auth gate with guest commander search
     setAuthView('commander');
     setAuthError(''); setAuthEmail(''); setAuthPassword(''); setConfirmEmail('');
     setCmdSearchQuery(''); setCmdSearchResults([]);
     setSignupSuccess(false);
+    setShowAuthGate(true);
   }
 
   // Email/password login
@@ -405,6 +429,7 @@ function PageContent() {
   ];
 
   const isLoginView = authView === 'sso' || authView === 'signin' || authView === 'signup';
+  const isAddCmdView = authView === 'add-commander';
 
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Young+Serif&display=swap');
@@ -810,9 +835,7 @@ function PageContent() {
 
                 {!loadingMyCommanders && myCommanders.length === 0 && (
                   <div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>
-                    {"You haven't added any commanders yet. Add one from the Decks page, or "}
-                    <button onClick={() => { setAuthView('commander'); setAuthError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2F5D3A', fontWeight: 700, fontSize: 13, fontFamily: "'Instrument Sans', sans-serif", padding: 0, textDecoration: 'underline', textUnderlineOffset: 3 }}>search Scryfall</button>
-                    {" to join as guest."}
+                    {"You haven't added any commanders yet."}
                   </div>
                 )}
 
@@ -837,6 +860,87 @@ function PageContent() {
                     </button>
                   ))}
                 </div>
+
+                {/* Add new commander button */}
+                {!loadingMyCommanders && (
+                  <div style={{ padding: '16px 0 8px' }}>
+                    <button onClick={() => { setAuthView('add-commander'); setAuthError(''); setCmdSearchQuery(''); setCmdSearchResults([]); }} style={{
+                      width: '100%', padding: '14px 18px', background: 'transparent',
+                      border: '1.5px dashed rgba(43,33,24,0.2)', borderRadius: 14, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      fontSize: 14, fontWeight: 600, color: '#2F5D3A',
+                      fontFamily: "'Instrument Sans', sans-serif",
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Add new commander
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Add Commander View (Scryfall search for logged-in users) ── */}
+          {isAddCmdView && (
+            <div onClick={(e) => e.stopPropagation()} style={{
+              width: '100%', maxWidth: 430,
+              height: '100%',
+              background: '#FAF5EA', borderRadius: '24px 24px 0 0',
+              padding: '14px 16px 0',
+              boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
+              display: 'flex', flexDirection: 'column',
+              borderTop: '1px solid rgba(43,33,24,0.14)',
+              animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
+              position: 'relative',
+            }}>
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: '#C8BCA8', margin: '0 auto 6px' }}/>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '8px 0 14px' }}>
+                <div>
+                  <div style={{ fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: '#B06B2C', marginBottom: 2 }}>New commander</div>
+                  <div style={{ fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 24, color: '#2B2118', letterSpacing: '-0.01em' }}>Search Scryfall</div>
+                </div>
+                <button onClick={() => { setAuthView('my-commanders'); setAuthError(''); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: "'Instrument Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#8A7E6F', padding: 0 }}>Back</button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)', borderRadius: 14 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A7E6F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" value={cmdSearchQuery} onChange={(e) => handleCmdSearch(e.target.value)}
+                  placeholder="Search legendary creatures..." autoFocus
+                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: "'Instrument Sans', sans-serif", fontSize: 16, color: '#2B2118' }}/>
+                {cmdSearchQuery && (
+                  <button onClick={() => { setCmdSearchQuery(''); setCmdSearchResults([]); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#8A7E6F', padding: 4, display: 'flex' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                )}
+              </div>
+
+              {authError && (<div style={{ background: 'rgba(158,43,43,0.08)', border: '1px solid rgba(158,43,43,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#9E2B2B', textAlign: 'center', marginTop: 10 }}>{authError}</div>)}
+
+              <div style={{ flex: 1, overflowY: 'auto', marginTop: 14, paddingBottom: 20 }}>
+                {cmdSearching && <div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>Searching...</div>}
+                {!cmdSearching && cmdSearchQuery.length < 2 && (<div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>Type a commander name to search</div>)}
+                {!cmdSearching && cmdSearchQuery.length >= 2 && cmdSearchResults.length === 0 && (<div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>No commanders found</div>)}
+                {cmdSearchResults.length > 0 && (<div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 700, color: '#8A7E6F', padding: '0 4px 8px' }}>{cmdSearchResults.length} matches</div>)}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {cmdSearchResults.map((r: any, i: number) => {
+                    const art = r.image_uris?.art_crop ?? r.card_faces?.[0]?.image_uris?.art_crop ?? null;
+                    return (
+                      <button key={i} onClick={() => handleAddNewCommander(r)} disabled={authSubmitting} style={{
+                        width: '100%', textAlign: 'left', cursor: authSubmitting ? 'default' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 10px', borderRadius: 14,
+                        background: 'transparent', border: 'none', fontFamily: "'Instrument Sans', sans-serif", opacity: authSubmitting ? 0.5 : 1,
+                      }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(43,33,24,0.14)', background: '#F5EFE2' }}>
+                          {art && <img src={art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }}/>}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 16, color: '#2B2118', lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                          <div style={{ fontSize: 12, color: '#8A7E6F', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.type_line}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -845,7 +949,6 @@ function PageContent() {
     </>
   );
 }
-
 export default function Page() {
   return (
     <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading...</div>}>
