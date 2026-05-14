@@ -113,7 +113,9 @@ function SSOButton({ provider, onClick }: { provider: 'google' | 'apple'; onClic
 function PageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, signIn, signInAsGuest, signUp, isLoggedIn } = useAuth();
+  const { user, signIn, signInAsGuest, signUp, isLoggedIn, loading: authLoading } = useAuth();
+  // Code captured by a scan or URL prefill, queued until auth state is known.
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const [codeChars, setCodeChars] = useState<string[]>(['', '', '', '', '', '']);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,7 +166,9 @@ function PageContent() {
     setCodeChars(chars);
     if (cleaned.length === 6) {
       consumedUrlCodeRef.current = true;
-      setTimeout(() => { handleJoin(cleaned); }, 50);
+      // Queue rather than fire immediately — the auth context may still be
+      // resolving the session on first page load.
+      setPendingJoinCode(cleaned);
       // Strip ?code= so a back+forward / bfcache restore doesn't re-fire it.
       router.replace('/join', { scroll: false });
     }
@@ -272,8 +276,21 @@ function PageContent() {
     const chars = code.split(''); while (chars.length < 6) chars.push('');
     setCodeChars(chars);
     if (scanTimerRef.current) { clearInterval(scanTimerRef.current); scanTimerRef.current = null; }
-    setTimeout(() => { handleJoin(code); }, 50);
+    // Queue the join; the effect below will run it once authLoading clears,
+    // so logged-in users land on the my-commanders picker reliably even on
+    // first page load (when useAuth is still resolving the session).
+    setPendingJoinCode(code);
   }
+
+  // Drain any queued auto-join code once the auth context has finished loading.
+  useEffect(() => {
+    if (!pendingJoinCode) return;
+    if (authLoading) return;
+    const code = pendingJoinCode;
+    setPendingJoinCode(null);
+    handleJoin(code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingJoinCode, authLoading]);
 
   function handleCodeInput(value: string) {
     const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
@@ -354,9 +371,10 @@ function PageContent() {
     const fullCode = (codeOverride ?? codeChars.join('')).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     if (fullCode.length < 6) { setError('Enter the full 6-character code'); return; }
     // Logged in (non-anonymous): pick from their saved commanders.
-    // Set the auth-gate view BEFORE opening so the popup never flashes the
-    // wrong (guest) view while the async fetch is in flight.
-    if (user && !user.is_anonymous) {
+    // Use the auth-context `isLoggedIn` flag (which already excludes anonymous
+    // / guest sessions) so a still-loading session doesn't fall through to the
+    // guest path. Set the view BEFORE opening to avoid flashing the wrong UI.
+    if (isLoggedIn) {
       setAuthView('my-commanders');
       setAuthError('');
       setShowAuthGate(true);
