@@ -258,7 +258,19 @@ function PageContent() {
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className="app">
         <div className="header">
-          <button onClick={() => router.back()} className="header-back">
+          <button
+            onClick={() => {
+              // If there's no previous history entry (e.g. the user landed
+              // here directly via a scanned QR deep-link), fall back to the
+              // landing page instead of leaving them stranded.
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/');
+              }
+            }}
+            className="header-back"
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
           </button>
           <h1 className="header-title" style={{ margin: 0 }}>Join a pod</h1>
@@ -315,7 +327,7 @@ function PageContent() {
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
             width: '100%', maxWidth: 430,
-            height: authView === 'commander' ? '82%' : 'auto',
+            height: authView === 'commander' ? '100%' : 'auto',
             background: '#FAF5EA', borderRadius: '24px 24px 0 0',
             padding: authView === 'commander' ? '14px 16px 0' : '24px 20px',
             boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
