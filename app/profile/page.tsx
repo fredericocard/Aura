@@ -302,9 +302,8 @@ function PodCard() {
    CommanderMiniCard — vertical card: art + parchment banner
    ────────────────────────────────────────────────────────────── */
 function CommanderMiniCard({ commander }: { commander: CommanderSummary }) {
-  // Pick a vibe/category based on the commander's top badge or default
-  const vibeId = getTopBadge(commander);
-  const cat = CATEGORIES.find(c => c.id === vibeId) || CATEGORIES[0];
+  // Only show badge sigil if the commander has actually earned badges
+  const cat = commander.topBadge ? CATEGORIES.find(c => c.id === commander.topBadge) : null;
 
   return (
     <Link href={`/deck-accomplishments?deckId=${commander.deckId}`} style={{
@@ -338,19 +337,21 @@ function CommanderMiniCard({ commander }: { commander: CommanderSummary }) {
           position: 'absolute', inset: 0,
           background: 'linear-gradient(180deg, transparent 40%, rgba(10,6,4,0.55) 100%)',
         }}/>
-        {/* vibe sigil top-left */}
-        <div style={{
-          position: 'absolute', top: 8, left: 8,
-          width: 22, height: 22, borderRadius: 999,
-          background: 'rgba(10,6,4,0.55)',
-          border: `1px solid ${cat.color}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: cat.color,
-          backdropFilter: 'blur(6px)',
-          WebkitBackdropFilter: 'blur(6px)',
-        }}>
-          <BadgeGlyph name={cat.id} size={13} stroke={cat.color}/>
-        </div>
+        {/* vibe sigil top-left — only if commander has earned badges */}
+        {cat && (
+          <div style={{
+            position: 'absolute', top: 8, left: 8,
+            width: 22, height: 22, borderRadius: 999,
+            background: 'rgba(10,6,4,0.55)',
+            border: `1px solid ${cat.color}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: cat.color,
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+          }}>
+            <BadgeGlyph name={cat.id} size={13} stroke={cat.color}/>
+          </div>
+        )}
       </div>
       <div style={{
         background: T.parchmentCard,
@@ -373,12 +374,6 @@ function CommanderMiniCard({ commander }: { commander: CommanderSummary }) {
   );
 }
 
-/** Pick the strongest badge category for a commander */
-function getTopBadge(c: CommanderSummary): string {
-  // Commander summary doesn't carry per-badge counts, so default to brilliance
-  // This will be refined when we have badge breakdown in the summary
-  return 'brilliance';
-}
 
 /* ──────────────────────────────────────────────────────────────────
    CommandersSection

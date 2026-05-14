@@ -219,6 +219,8 @@ export interface CommanderSummary {
   totalGames: number;
   totalBadges: number;
   confidenceBand: ConfidenceBand;
+  /** The badge category this commander has earned the most (null if no badges) */
+  topBadge: string | null;
 }
 
 /**
@@ -256,12 +258,22 @@ export async function getUserCommanderSummaries(
     ]);
 
     const totalGames = (gamesResult as any).count ?? 0;
-    const totalBadges =
-      (deck.badge_fun ?? 0) +
-      (deck.badge_rivalry ?? 0) +
-      (deck.badge_allegiance ?? 0) +
-      (deck.badge_brilliance ?? 0) +
-      (deck.badge_flavor ?? 0);
+    const badgeCounts: Record<string, number> = {
+      fun: deck.badge_fun ?? 0,
+      rivalry: deck.badge_rivalry ?? 0,
+      allegiance: deck.badge_allegiance ?? 0,
+      brilliance: deck.badge_brilliance ?? 0,
+      flavor: deck.badge_flavor ?? 0,
+    };
+    const totalBadges = Object.values(badgeCounts).reduce((s, v) => s + v, 0);
+
+    // Find the badge category with the highest count (null if none earned)
+    let topBadge: string | null = null;
+    if (totalBadges > 0) {
+      topBadge = Object.entries(badgeCounts).reduce((best, [key, val]) =>
+        val > (badgeCounts[best] ?? 0) ? key : best
+      , Object.keys(badgeCounts)[0]);
+    }
 
     summaries.push({
       deckId: deck.id,
@@ -273,6 +285,7 @@ export async function getUserCommanderSummaries(
       totalGames,
       totalBadges,
       confidenceBand: getConfidenceBand(totalGames),
+      topBadge,
     });
   }
 
