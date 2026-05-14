@@ -4,6 +4,7 @@ import Link from 'next/link';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { getUserCommanderSummaries, type CommanderSummary } from '@/lib/commander-profile';
+import { confirmBracketAndApplyScoring, BRACKETS } from '@/lib/commanders';
 import { supabase } from '@/lib/supabase';
 
 /* ──────────────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ function ProfileIcon({ name, size = 22, stroke = 'currentColor', width = 1.75 }:
     'chevron-left':  <polyline points="15 18 9 12 15 6"/>,
     profile:  <><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></>,
     layers:   <><path d="M3 6h18M3 12h18M3 18h12"/></>,
+    check:    <polyline points="20 6 9 17 4 12"/>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -862,6 +864,9 @@ export default function ProfilePage() {
   const [userEmail, setUserEmail] = useState('');
   const [joinDate, setJoinDate] = useState('');
   const [gameCount, setGameCount] = useState(0);
+  const [pendingBracketCommander, setPendingBracketCommander] = useState<CommanderSummary | null>(null);
+  const [forcedBracket, setForcedBracket] = useState(2);
+  const [confirmingBracket, setConfirmingBracket] = useState(false);
   const { signOut } = useAuth();
 
   useEffect(() => {
@@ -884,6 +889,12 @@ export default function ProfilePage() {
         // Total game count across all commanders
         const total = summaries.reduce((sum, s) => sum + s.totalGames, 0);
         setGameCount(total);
+        // Check for any commander with NULL bracket — show forced picker
+        const needsBracket = summaries.find(s => s.bracket === null);
+        if (needsBracket) {
+          setPendingBracketCommander(needsBracket);
+          setForcedBracket(2);
+        }
       } catch {}
       setLoadingDecks(false);
     }
@@ -894,6 +905,35 @@ export default function ProfilePage() {
     setToastMessage(msg);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
+  };
+
+  const handleConfirmForcedBracket = async () => {
+    if (!pendingBracketCommander) return;
+    setConfirmingBracket(true);
+
+    const { error: confirmError } = await confirmBracketAndApplyScoring(pendingBracketCommander.deckId, forcedBracket);
+    if (confirmError) {
+      showToastMsg(`Error: ${confirmError}`);
+      setConfirmingBracket(false);
+      return;
+    }
+
+    // Update local state
+    setCommanders(prev => prev.map(c =>
+      c.deckId === pendingBracketCommander.deckId ? { ...c, bracket: forcedBracket } : c
+    ));
+
+    showToastMsg(`${pendingBracketCommander.commanderName} set to Bracket ${forcedBracket}!`);
+
+    // Check for more NULL-bracket commanders
+    const remaining = commanders.filter(c => c.bracket === null && c.deckId !== pendingBracketCommander.deckId);
+    if (remaining.length > 0) {
+      setPendingBracketCommander(remaining[0]);
+      setForcedBracket(2);
+    } else {
+      setPendingBracketCommander(null);
+    }
+    setConfirmingBracket(false);
   };
 
   const initial = (nameInputValue || '?').charAt(0).toUpperCase();
@@ -985,6 +1025,121 @@ export default function ProfilePage() {
           }}
           onChangePhoto={() => showToastMsg('Change Photo — Coming Soon')}
         />
+      )}
+
+      {/* Forced bracket picker — appears when a commander has NULL bracket */}
+      {pendingBracketCommander && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          fontFamily: T.fontUI,
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 430,
+            background: T.parchment,
+            borderRadius: '24px 24px 0 0',
+            padding: '14px 16px 28px',
+            boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
+            maxHeight: '90%', overflow: 'auto',
+            borderTop: `1px solid ${T.lineStrong}`,
+            animation: 'popIn 240ms cubic-bezier(.22,.61,.36,1)',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: T.ink4, margin: '0 auto 6px' }}/>
+
+            {/* Commander art + info header */}
+            <div style={{ textAlign: 'center', marginBottom: 14, marginTop: 10 }}>
+              {pendingBracketCommander.commanderArtUrl && (
+                <div style={{
+                  width: 80, height: 80, borderRadius: 20, overflow: 'hidden',
+                  margin: '0 auto 12px',
+                  border: `2px solid ${T.copper}`,
+                  boxShadow: `0 8px 24px -8px rgba(43,33,24,0.4)`,
+                }}>
+                  <img src={pendingBracketCommander.commanderArtUrl} alt={pendingBracketCommander.commanderName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }}/>
+                </div>
+              )}
+              <div style={{
+                fontFamily: T.fontUI, fontWeight: 700,
+                fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+                color: T.ink3,
+              }}>Before we continue</div>
+              <div style={{
+                fontFamily: T.fontDisplay, fontWeight: 400, fontSize: 24,
+                color: T.ink, letterSpacing: '-0.01em', marginTop: 2,
+              }}>Set bracket for {pendingBracketCommander.commanderName}</div>
+              <div style={{
+                fontSize: 13, color: T.ink2,
+                marginTop: 4, padding: '0 12px',
+              }}>Pick a power level so your scores and badges can be applied.</div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {BRACKETS.map(b => {
+                const selected = forcedBracket === b.value;
+                return (
+                  <button key={b.value} onClick={() => setForcedBracket(b.value)} style={{
+                    width: '100%', textAlign: 'left', cursor: 'pointer',
+                    display: 'flex', alignItems: 'stretch', gap: 14,
+                    padding: 14,
+                    background: selected ? T.copperSoft : T.parchmentCard,
+                    border: selected ? `1.5px solid ${T.copper}` : `1px solid rgba(43,33,24,0.08)`,
+                    borderLeft: selected ? `6px solid ${T.copper}` : `4px solid ${T.ink4}`,
+                    borderRadius: 20,
+                    boxShadow: selected ? T.shadowActive : T.shadowRest,
+                    fontFamily: T.fontUI,
+                    transition: 'all 160ms cubic-bezier(.22,.61,.36,1)',
+                  }}>
+                    <div style={{
+                      width: 56, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: selected ? T.parchmentCard : T.parchmentDeep,
+                      borderRadius: 12,
+                      border: selected ? `1px solid ${T.copper}` : `1px solid rgba(43,33,24,0.08)`,
+                    }}>
+                      <span style={{
+                        fontFamily: T.fontDisplay,
+                        fontSize: 38, fontWeight: 400,
+                        color: selected ? T.copper : T.ink,
+                        lineHeight: 1, letterSpacing: '-0.02em',
+                      }}>{b.value}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2 }}>
+                      <div style={{
+                        fontFamily: T.fontDisplay, fontWeight: 400, fontSize: 18,
+                        color: T.ink, letterSpacing: '-0.005em', lineHeight: 1.15,
+                      }}>{b.label}</div>
+                      <div style={{ fontSize: 12, color: T.ink2, lineHeight: 1.35 }}>{b.desc}</div>
+                    </div>
+                    {selected && (
+                      <div style={{
+                        flexShrink: 0, alignSelf: 'center',
+                        width: 24, height: 24, borderRadius: 999,
+                        background: T.copper, color: T.parchment,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <ProfileIcon name="check" size={14} width={2.5}/>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button onClick={handleConfirmForcedBracket} disabled={confirmingBracket} style={{
+              width: '100%', marginTop: 18, cursor: confirmingBracket ? 'default' : 'pointer',
+              background: confirmingBracket ? T.ink3 : T.forest,
+              border: 'none',
+              borderRadius: 20,
+              padding: '16px 16px',
+              color: T.parchment,
+              fontFamily: T.fontUI, fontWeight: 600, fontSize: 16,
+              boxShadow: T.shadowRest,
+            }}>{confirmingBracket ? 'Applying scores…' : 'Confirm Bracket'}</button>
+          </div>
+        </div>
       )}
 
       {/* Toast */}

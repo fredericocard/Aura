@@ -213,7 +213,7 @@ export interface CommanderSummary {
   deckId: string;
   commanderName: string;
   commanderArtUrl: string | null;
-  bracket: number;
+  bracket: number | null;
   auraScore: number;
   tier: string;
   totalGames: number;
