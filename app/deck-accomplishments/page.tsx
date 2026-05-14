@@ -3,6 +3,7 @@
 import React, { Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { deleteCommander, BRACKETS } from '@/lib/commanders';
+import { CommanderArtPicker } from '@/app/components/CommanderArtPicker';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type CategoryId = 'brilliance' | 'flavor' | 'rivalry' | 'allegiance' | 'fun';
@@ -97,6 +98,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
     layers: <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
     scroll: <><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M19 17V5a2 2 0 0 0-2-2H6"/></>,
+    image: <><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M21 15l-5-5L5 21"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -477,6 +479,7 @@ function PageContent() {
   const [savingBracket, setSavingBracket] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showArtPicker, setShowArtPicker] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -801,10 +804,26 @@ function PageContent() {
           commander={c}
           onClose={() => setShowMenu(false)}
           onChangeBracket={() => { setShowMenu(false); setSelectedBracket(c.bracket || 2); setShowBracket(true); }}
+          onChangeArt={() => { setShowMenu(false); setShowArtPicker(true); }}
           onRecentGames={() => { setShowMenu(false); router.push(`/recent-games?deckId=${c.id}`); }}
           onDelete={() => { setShowMenu(false); setShowDelete(true); }}
         />
       )}
+
+      {/* Commander art picker */}
+      <CommanderArtPicker
+        open={showArtPicker}
+        deckId={c.id}
+        commanderName={c.name}
+        currentArtUrl={c.art}
+        onClose={() => setShowArtPicker(false)}
+        onSaved={(newArtUrl) => {
+          // Reflect change locally so the hero image refreshes on next render.
+          (c as any).art = newArtUrl;
+          if (profile) setProfile({ ...profile, commanderArtUrl: newArtUrl });
+          displayToast('Commander art updated.');
+        }}
+      />
 
       {/* Bracket picker */}
       {showBracket && (
@@ -1017,10 +1036,11 @@ function useSheetDrag(onDismiss: () => void) {
 }
 
 // ── ActionsSheet — three-dots menu, matches unified sheet pattern ──────────
-function ActionsSheet({ commander, onClose, onChangeBracket, onRecentGames, onDelete }: {
+function ActionsSheet({ commander, onClose, onChangeBracket, onChangeArt, onRecentGames, onDelete }: {
   commander: any;
   onClose: () => void;
   onChangeBracket: () => void;
+  onChangeArt: () => void;
   onRecentGames: () => void;
   onDelete: () => void;
 }) {
@@ -1095,6 +1115,27 @@ function ActionsSheet({ commander, onClose, onChangeBracket, onRecentGames, onDe
                 <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>Currently bracket {commander.bracket || '—'}</div>
               </div>
             </button>
+            <button onClick={onChangeArt} style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              width: '100%', padding: '14px 14px',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              borderRadius: 16, textAlign: 'left',
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: 'var(--parchment-deep)',
+                border: '1.5px solid var(--line-strong)',
+                color: 'var(--ink-2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Icon name="image" size={20} stroke="currentColor" width={1.6}/>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>Change commander art</div>
+                <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>Pick a different printing</div>
+              </div>
+            </button>
             <button onClick={onRecentGames} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               width: '100%', padding: '14px 14px',
@@ -1142,7 +1183,7 @@ export default function Page() {
         Loading…
       </div>
     }>
-      <PageContent />
+       <PageContent />
     </Suspense>
   );
 }

@@ -2058,7 +2058,7 @@ function PageContent() {
         if (deckIds.length > 0) {
           const { data: decks } = await supabase
             .from('decks')
-            .select('id, commander_name, color_identity, aura_score, badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor')
+            .select('id, commander_name, color_identity, commander_art_url, aura_score, badge_fun, badge_rivalry, badge_allegiance, badge_brilliance, badge_flavor')
             .in('id', deckIds) as { data: any };
           deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
         }
@@ -2115,6 +2115,10 @@ function PageContent() {
             setCmdrDmg(loadedCmdrDmg);
             setMyName(displayName);
             setMyColors(colorIdentityArray);
+            // Prefer the persisted deck art over Scryfall fuzzy lookup so
+            // the user's chosen variant shows up. Scryfall fetch below stays
+            // as a fallback when commander_art_url is null.
+            if (deck?.commander_art_url) setMyArt(deck.commander_art_url);
 
             // Check if player is already eliminated on load
             if (loadedLife <= 0) {
@@ -2241,9 +2245,11 @@ function PageContent() {
     });
   }, [opponents]);
 
-  // Fetch current user's commander art from Scryfall
+  // Fetch current user's commander art from Scryfall.
+  // Only runs as a fallback when decks.commander_art_url wasn't populated.
   useEffect(() => {
     if (!myName || myName === 'Your Commander') return;
+    if (myArt) return;
     async function fetchMyArt() {
       try {
         const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(myName)}`);
@@ -2255,7 +2261,7 @@ function PageContent() {
       } catch { /* Scryfall fetch failed */ }
     }
     fetchMyArt();
-  }, [myName]);
+  }, [myName, myArt]);
 
   // Long press logic
   const longPressRef = useRef<{ timeout: NodeJS.Timeout | null; interval: NodeJS.Timeout | null }>({ timeout: null, interval: null });

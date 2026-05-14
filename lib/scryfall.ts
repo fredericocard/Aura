@@ -178,6 +178,64 @@ async function upsertCache(nameLower: string, card: CardData) {
     }, { onConflict: 'card_name_lower' });
 }
 
+export interface CommanderPrinting {
+  id: string;                  // Scryfall id of this printing
+  set_code: string;            // e.g. "neo"
+  set_name: string;            // e.g. "Kamigawa: Neon Dynasty"
+  set_icon_uri: string | null; // SVG icon URL
+  collector_number: string;    // e.g. "117"
+  released_at: string;         // YYYY-MM-DD
+  art_crop: string | null;
+  normal: string | null;       // full-card image for preview
+  border_color: string;        // 'black' | 'white' | 'borderless' | etc.
+  frame: string;
+  promo: boolean;
+}
+
+/**
+ * Fetch every printing of a commander (different art variants) so the user
+ * can pick which one to display. Newest releases first.
+ *
+ * Uses Scryfall's `unique=prints` filter so we get every distinct printing
+ * rather than collapsing them by name.
+ */
+export async function getCommanderPrintings(name: string): Promise<CommanderPrinting[]> {
+  const trimmed = name.trim();
+  if (!trimmed) return [];
+  try {
+    const q = encodeURIComponent(`!"${trimmed}"`);
+    const res = await fetch(
+      `https://api.scryfall.com/cards/search?q=${q}&unique=prints&order=released&dir=desc`,
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    const rows: any[] = Array.isArray(data?.data) ? data.data : [];
+    return rows
+      .map((card): CommanderPrinting | null => {
+        const imgs = card.image_uris ?? card.card_faces?.[0]?.image_uris;
+        const artCrop: string | null = imgs?.art_crop ?? null;
+        const normal: string | null = imgs?.normal ?? imgs?.large ?? imgs?.png ?? null;
+        if (!artCrop && !normal) return null;
+        return {
+          id: card.id,
+          set_code: (card.set || '').toLowerCase(),
+          set_name: card.set_name ?? card.set ?? '',
+          set_icon_uri: card.set_icon_svg_uri ?? null,
+          collector_number: String(card.collector_number ?? ''),
+          released_at: card.released_at ?? '',
+          art_crop: artCrop,
+          normal,
+          border_color: card.border_color ?? 'black',
+          frame: card.frame ?? '',
+          promo: !!card.promo,
+        };
+      })
+      .filter((p): p is CommanderPrinting => p !== null);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Search Scryfall for commanders (used by the search popup).
  * Returns only cards that can legally be commanders.

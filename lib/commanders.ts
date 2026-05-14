@@ -121,6 +121,23 @@ export async function updateBracket(deckId: string, bracket: number): Promise<{ 
 }
 
 /**
+ * Update the art_crop URL displayed for a deck's commander.
+ * Persisted on decks.commander_art_url — every surface in the app reads from
+ * this column (gridviews, singleview, game card, recent games, profile, etc.)
+ * so updating here propagates the new art everywhere.
+ *
+ * RLS ensures only the deck owner can update.
+ */
+export async function updateCommanderArt(deckId: string, artUrl: string): Promise<{ error: string | null }> {
+  if (!artUrl) return { error: 'Art URL is required' };
+  const { error } = await supabase
+    .from('decks')
+    .update({ commander_art_url: artUrl })
+    .eq('id', deckId);
+  return { error: error?.message ?? null };
+}
+
+/**
  * Get all commander decks for the current user.
  * RLS ensures only the user's own decks are returned.
  */

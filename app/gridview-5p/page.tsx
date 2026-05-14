@@ -2158,7 +2158,7 @@ function PageContent() {
       if (deckIds.length > 0) {
         const { data: decks } = await supabase
           .from('decks')
-          .select('id, commander_name, color_identity')
+          .select('id, commander_name, color_identity, commander_art_url')
           .in('id', deckIds) as { data: any };
         deckMap = new Map((decks ?? []).map((d: any) => [d.id, d]) as any);
       }
@@ -2217,6 +2217,21 @@ function PageContent() {
       });
       setCmdrDamage(loadedCmdrDmg);
 
+          // Seed commanderArt from each deck's persisted commander_art_url
+          // so the gridview reads from the canonical source. The Scryfall
+          // fallback effect only fires for names with no saved URL.
+          {
+            const seedArt: Record<string, string> = {};
+            deckMap.forEach((deck: any) => {
+              if (deck?.commander_name && deck?.commander_art_url) {
+                seedArt[deck.commander_name] = deck.commander_art_url;
+              }
+            });
+            if (Object.keys(seedArt).length > 0) {
+              setCommanderArt(prev => ({ ...seedArt, ...prev }));
+            }
+          }
+
       const channel = supabase
         .channel(`game-${gameId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
@@ -2257,7 +2272,7 @@ function PageContent() {
               const claimedDeckId = row.deck_id as string;
               supabase
                 .from('decks')
-                .select('id, commander_name, color_identity')
+                .select('id, commander_name, color_identity, commander_art_url')
                 .eq('id', claimedDeckId)
                 .single()
                 .then(({ data: deck }: any) => {
@@ -2283,6 +2298,9 @@ function PageContent() {
                     };
                   });
                   setPlayerUserIds(m => m[num] === claimedUid ? m : ({ ...m, [num]: claimedUid }));
+                  if (deck.commander_art_url && commanderName) {
+                    setCommanderArt(prev => prev[commanderName] ? prev : { ...prev, [commanderName]: deck.commander_art_url });
+                  }
                 });
             }
           }

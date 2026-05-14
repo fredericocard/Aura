@@ -383,7 +383,14 @@ export async function createGameCard(gameId: string): Promise<GameCard> {
 
 // ── Card readers ───────────────────────────────────────
 
-/** Get the Game Card for a specific game */
+/** Get the Game Card for a specific game.
+ *
+ * The persisted `commanders` JSONB column has an `art_url` for each player,
+ * but that's a snapshot from compose time. Per app policy (decks.commander_art_url
+ * is the single source of truth and is never frozen), we refresh each art_url
+ * from the live decks row before returning. Players who change their commander
+ * art will see the new art on every past game card immediately.
+ */
 export async function getGameCard(gameId: string): Promise<GameCard | null> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -393,6 +400,25 @@ export async function getGameCard(gameId: string): Promise<GameCard | null> {
     .single() as { data: any; error: any };
 
   if (error || !data) return null;
+
+  // Live art refresh from the decks table.
+  if (Array.isArray(data.commanders) && data.commanders.length > 0) {
+    const deckIds: string[] = data.commanders
+      .map((c: any) => c?.deck_id)
+      .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+    if (deckIds.length > 0) {
+      const { data: decks } = await supabase
+        .from('decks')
+        .select('id, commander_art_url')
+        .in('id', deckIds) as { data: any };
+      const artMap = new Map<string, string | null>((decks ?? []).map((d: any) => [d.id, d.commander_art_url ?? null]));
+      data.commanders = data.commanders.map((c: any) => ({
+        ...c,
+        art_url: artMap.has(c?.deck_id) ? (artMap.get(c.deck_id) ?? c.art_url ?? null) : c.art_url,
+      }));
+    }
+  }
+
   return data as GameCard;
 }
 
