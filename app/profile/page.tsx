@@ -1040,87 +1040,78 @@ export default function ProfilePage() {
             width: '100%', maxWidth: 430,
             background: T.parchment,
             borderRadius: '24px 24px 0 0',
-            padding: '14px 16px 28px',
+            padding: '12px 16px 24px',
             boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
-            maxHeight: '90%', overflow: 'auto',
             borderTop: `1px solid ${T.lineStrong}`,
             animation: 'popIn 240ms cubic-bezier(.22,.61,.36,1)',
           }}>
-            <div style={{ width: 40, height: 4, borderRadius: 999, background: T.ink4, margin: '0 auto 6px' }}/>
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: T.ink4, margin: '0 auto 4px' }}/>
 
             {/* Commander art + info header */}
-            <div style={{ textAlign: 'center', marginBottom: 14, marginTop: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, marginBottom: 12 }}>
               {pendingBracketCommander.commanderArtUrl && (
                 <div style={{
-                  width: 80, height: 80, borderRadius: 20, overflow: 'hidden',
-                  margin: '0 auto 12px',
+                  width: 52, height: 52, borderRadius: 14, overflow: 'hidden', flexShrink: 0,
                   border: `2px solid ${T.copper}`,
-                  boxShadow: `0 8px 24px -8px rgba(43,33,24,0.4)`,
+                  boxShadow: `0 6px 16px -6px rgba(43,33,24,0.35)`,
                 }}>
                   <img src={pendingBracketCommander.commanderArtUrl} alt={pendingBracketCommander.commanderName}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }}/>
                 </div>
               )}
-              <div style={{
-                fontFamily: T.fontUI, fontWeight: 700,
-                fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase' as const,
-                color: T.ink3,
-              }}>Before we continue</div>
-              <div style={{
-                fontFamily: T.fontDisplay, fontWeight: 400, fontSize: 24,
-                color: T.ink, letterSpacing: '-0.01em', marginTop: 2,
-              }}>Set bracket for {pendingBracketCommander.commanderName}</div>
-              <div style={{
-                fontSize: 13, color: T.ink2,
-                marginTop: 4, padding: '0 12px',
-              }}>Pick a power level so your scores and badges can be applied.</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: T.fontUI, fontWeight: 700,
+                  fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+                  color: T.ink3,
+                }}>Before we continue</div>
+                <div style={{
+                  fontFamily: T.fontDisplay, fontWeight: 400, fontSize: 20,
+                  color: T.ink, letterSpacing: '-0.01em', marginTop: 1, lineHeight: 1.15,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>Set bracket for {pendingBracketCommander.commanderName.split(',')[0]}</div>
+                <div style={{ fontSize: 11, color: T.ink2, marginTop: 2 }}>
+                  Pick a power level for scoring.
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Compact bracket tiles — horizontal row */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
               {BRACKETS.map(b => {
                 const selected = forcedBracket === b.value;
                 return (
                   <button key={b.value} onClick={() => setForcedBracket(b.value)} style={{
-                    width: '100%', textAlign: 'left', cursor: 'pointer',
-                    display: 'flex', alignItems: 'stretch', gap: 14,
-                    padding: 14,
+                    flex: 1, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                    padding: '10px 4px 8px',
                     background: selected ? T.copperSoft : T.parchmentCard,
-                    border: selected ? `1.5px solid ${T.copper}` : `1px solid rgba(43,33,24,0.08)`,
-                    borderLeft: selected ? `6px solid ${T.copper}` : `4px solid ${T.ink4}`,
-                    borderRadius: 20,
-                    boxShadow: selected ? T.shadowActive : T.shadowRest,
+                    border: selected ? `2px solid ${T.copper}` : `1px solid rgba(43,33,24,0.1)`,
+                    borderRadius: 14,
+                    boxShadow: selected ? T.shadowActive : '0 1px 3px rgba(43,33,24,0.06)',
                     fontFamily: T.fontUI,
-                    transition: 'all 160ms cubic-bezier(.22,.61,.36,1)',
+                    transition: 'all 140ms cubic-bezier(.22,.61,.36,1)',
+                    position: 'relative',
                   }}>
-                    <div style={{
-                      width: 56, flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: selected ? T.parchmentCard : T.parchmentDeep,
-                      borderRadius: 12,
-                      border: selected ? `1px solid ${T.copper}` : `1px solid rgba(43,33,24,0.08)`,
-                    }}>
-                      <span style={{
-                        fontFamily: T.fontDisplay,
-                        fontSize: 38, fontWeight: 400,
-                        color: selected ? T.copper : T.ink,
-                        lineHeight: 1, letterSpacing: '-0.02em',
-                      }}>{b.value}</span>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2 }}>
-                      <div style={{
-                        fontFamily: T.fontDisplay, fontWeight: 400, fontSize: 18,
-                        color: T.ink, letterSpacing: '-0.005em', lineHeight: 1.15,
-                      }}>{b.label}</div>
-                      <div style={{ fontSize: 12, color: T.ink2, lineHeight: 1.35 }}>{b.desc}</div>
-                    </div>
+                    <span style={{
+                      fontFamily: T.fontDisplay,
+                      fontSize: 26, fontWeight: 400,
+                      color: selected ? T.copper : T.ink,
+                      lineHeight: 1, letterSpacing: '-0.02em',
+                    }}>{b.value}</span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 600, color: selected ? T.copperDeep : T.ink3,
+                      letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center',
+                    }}>{b.desc.split(' ')[0]}</span>
                     {selected && (
                       <div style={{
-                        flexShrink: 0, alignSelf: 'center',
-                        width: 24, height: 24, borderRadius: 999,
+                        position: 'absolute', top: -5, right: -5,
+                        width: 18, height: 18, borderRadius: 999,
                         background: T.copper, color: T.parchment,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(43,33,24,0.25)',
                       }}>
-                        <ProfileIcon name="check" size={14} width={2.5}/>
+                        <ProfileIcon name="check" size={11} width={2.5}/>
                       </div>
                     )}
                   </button>
@@ -1128,14 +1119,22 @@ export default function ProfilePage() {
               })}
             </div>
 
+            {/* Description of selected bracket */}
+            <div style={{
+              textAlign: 'center', fontSize: 12, color: T.ink2,
+              padding: '4px 8px 8px', lineHeight: 1.4,
+            }}>
+              {BRACKETS.find(b => b.value === forcedBracket)?.desc}
+            </div>
+
             <button onClick={handleConfirmForcedBracket} disabled={confirmingBracket} style={{
-              width: '100%', marginTop: 18, cursor: confirmingBracket ? 'default' : 'pointer',
+              width: '100%', marginTop: 4, cursor: confirmingBracket ? 'default' : 'pointer',
               background: confirmingBracket ? T.ink3 : T.forest,
               border: 'none',
               borderRadius: 20,
-              padding: '16px 16px',
+              padding: '14px 16px',
               color: T.parchment,
-              fontFamily: T.fontUI, fontWeight: 600, fontSize: 16,
+              fontFamily: T.fontUI, fontWeight: 600, fontSize: 15,
               boxShadow: T.shadowRest,
             }}>{confirmingBracket ? 'Applying scores…' : 'Confirm Bracket'}</button>
           </div>
