@@ -196,40 +196,66 @@ export interface CommanderPrinting {
  * Fetch every printing of a commander (different art variants) so the user
  * can pick which one to display. Newest releases first.
  *
- * Uses Scryfall's `unique=prints` filter so we get every distinct printing
- * rather than collapsing them by name.
+ * Strategy: resolve the card via a fuzzy named-lookup (handles commas,
+ * apostrophes, and casing forgivingly), then follow its `prints_search_uri`
+ * which Scryfall already builds with `unique=prints`. Falls back to a
+ * direct exact-name search if the fuzzy step doesn't yield a URI.
  */
 export async function getCommanderPrintings(name: string): Promise<CommanderPrinting[]> {
   const trimmed = name.trim();
   if (!trimmed) return [];
+
+  const mapCard = (card: any): CommanderPrinting | null => {
+    const imgs = card.image_uris ?? card.card_faces?.[0]?.image_uris;
+    const artCrop: string | null = imgs?.art_crop ?? null;
+    const normal: string | null = imgs?.normal ?? imgs?.large ?? imgs?.png ?? null;
+    if (!artCrop && !normal) return null;
+    return {
+      id: card.id,
+      set_code: (card.set || '').toLowerCase(),
+      set_name: card.set_name ?? card.set ?? '',
+      set_icon_uri: card.set_icon_svg_uri ?? null,
+      collector_number: String(card.collector_number ?? ''),
+      released_at: card.released_at ?? '',
+      art_crop: artCrop,
+      normal,
+      border_color: card.border_color ?? 'black',
+      frame: card.frame ?? '',
+      promo: !!card.promo,
+    };
+  };
+
   try {
-    const q = encodeURIComponent(`!"${trimmed}"`);
-    const res = await fetch(
-      `https://api.scryfall.com/cards/search?q=${q}&unique=prints&order=released&dir=desc`,
+    // Step 1: resolve the canonical card via fuzzy lookup.
+    const namedRes = await fetch(
+      `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(trimmed)}`,
     );
-    if (!res.ok) return [];
-    const data = await res.json();
+
+    let printsUri: string | null = null;
+    if (namedRes.ok) {
+      const namedCard = await namedRes.json();
+      printsUri = namedCard?.prints_search_uri ?? null;
+    }
+
+    // Step 2: fetch all printings.
+    let url: string;
+    if (printsUri) {
+      // Scryfall's prints_search_uri already has unique=prints, but sort
+      // newest-first by appending order/dir (Scryfall ignores duplicates).
+      const sep = printsUri.includes('?') ? '&' : '?';
+      url = `${printsUri}${sep}order=released&dir=desc`;
+    } else {
+      // Fallback: direct search with name operator (case-insensitive).
+      const q = encodeURIComponent(`name:"${trimmed}"`);
+      url = `https://api.scryfall.com/cards/search?q=${q}&unique=prints&order=released&dir=desc`;
+    }
+
+    const printsRes = await fetch(url);
+    if (!printsRes.ok) return [];
+    const data = await printsRes.json();
     const rows: any[] = Array.isArray(data?.data) ? data.data : [];
     return rows
-      .map((card): CommanderPrinting | null => {
-        const imgs = card.image_uris ?? card.card_faces?.[0]?.image_uris;
-        const artCrop: string | null = imgs?.art_crop ?? null;
-        const normal: string | null = imgs?.normal ?? imgs?.large ?? imgs?.png ?? null;
-        if (!artCrop && !normal) return null;
-        return {
-          id: card.id,
-          set_code: (card.set || '').toLowerCase(),
-          set_name: card.set_name ?? card.set ?? '',
-          set_icon_uri: card.set_icon_svg_uri ?? null,
-          collector_number: String(card.collector_number ?? ''),
-          released_at: card.released_at ?? '',
-          art_crop: artCrop,
-          normal,
-          border_color: card.border_color ?? 'black',
-          frame: card.frame ?? '',
-          promo: !!card.promo,
-        };
-      })
+      .map(mapCard)
       .filter((p): p is CommanderPrinting => p !== null);
   } catch {
     return [];
