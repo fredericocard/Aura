@@ -421,96 +421,109 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
       transition: 'box-shadow 200ms var(--ease)',
     }}>
       <button onClick={onToggle} style={{
-        width: '100%', padding: 14,
-        display: 'flex', alignItems: 'center', gap: 12,
+        width: '100%', padding: 0,
+        display: 'block', position: 'relative',
         background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+        overflow: 'hidden',
+        borderRadius: 'inherit',
       }}>
-        {/* Commander art tile */}
+        {/* Commander art — full bleed background */}
+        {cmd?.art && (
+          <img src={cmd.art} alt="" style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: '50% 18%', display: 'block',
+            filter: 'saturate(0.85) contrast(1.05)',
+          }}/>
+        )}
+        {/* Gradient overlay — dark from right/bottom so text is readable */}
         <div style={{
-          width: 54, height: 70, borderRadius: 10, flexShrink: 0,
-          overflow: 'hidden', position: 'relative',
-          background: 'var(--parchment-deep)',
-          boxShadow: 'inset 0 0 0 1px var(--line-strong)',
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(105deg, rgba(10,6,4,0.78) 0%, rgba(10,6,4,0.62) 50%, rgba(10,6,4,0.30) 100%)',
+        }}/>
+
+        {/* Content overlay */}
+        <div style={{
+          position: 'relative', zIndex: 1,
+          padding: '14px 14px 14px 18px',
+          display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          {cmd && (
-            <img src={cmd.art} alt="" style={{ width: '100%', height: '100%',
-              objectFit: 'cover', objectPosition: '50% 18%', display: 'block',
-              filter: 'saturate(0.95) contrast(1.02)' }}/>
-          )}
-          <div style={{ position: 'absolute', inset: 0,
-            background: 'linear-gradient(180deg, transparent 60%, rgba(10,6,4,0.55) 100%)' }}/>
-        </div>
-
-        {/* Body */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8,
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
-            textTransform: 'uppercase', color: 'var(--fg-subtle)' }}>
-            <span style={{ color: cat ? cat.color : 'var(--ink-3)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-              {game.pod}
-            </span>
-            <span style={{ opacity: 0.5 }}>·</span>
-            <span style={{ color: 'var(--fg-subtle)', fontWeight: 600 }}>{game.date}</span>
-          </div>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
-            fontSize: 18, lineHeight: 1.15, color: 'var(--ink)',
-            letterSpacing: '-0.01em', marginTop: 4,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {cmd ? cmd.short : game.myCommanderId}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6,
-            fontSize: 12, color: 'var(--fg-muted)', fontWeight: 500,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {primary ? (
-              <>
-                <span style={{ color: cat.color, fontWeight: 700 }}>{cat.label}</span>
-                {extra > 0 && <span style={{ color: 'var(--fg-subtle)' }}>+{extra}</span>}
-              </>
-            ) : (
-              <span style={{ color: 'var(--fg-subtle)', fontStyle: 'italic' }}>No badges earned</span>
-            )}
-            <span style={{ opacity: 0.5 }}>·</span>
-            <span style={{ color: 'var(--fg-subtle)' }}>{game.duration}</span>
-          </div>
-        </div>
-
-        {/* Right cluster — primary glyph + chevron */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-          {primary ? (
-            <div style={{
-              width: 44, height: 44, borderRadius: 999,
-              background: cat.soft, color: cat.color,
-              border: `1.5px solid ${cat.color}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              position: 'relative',
-            }}>
-              <BadgeGlyph name={primary.id} size={26} stroke={cat.color} glyphBase={glyphBase}/>
-              {extra > 0 && (
-                <div style={{
-                  position: 'absolute', bottom: -4, right: -4,
-                  minWidth: 18, height: 18, borderRadius: 999,
-                  background: 'var(--ink)', color: 'var(--parchment)',
-                  fontSize: 10, fontWeight: 700, padding: '0 5px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '1.5px solid var(--parchment-card)',
-                }}>+{extra}</div>
+          {/* Body */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: 'rgba(240,232,216,0.55)' }}>
+              <span style={{ color: cat ? cat.color : 'rgba(240,232,216,0.5)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+                filter: 'brightness(1.3) saturate(1.2)' }}>
+                {game.pod}
+              </span>
+              <span style={{ opacity: 0.5 }}>·</span>
+              <span style={{ fontWeight: 600 }}>{game.date}</span>
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 18, lineHeight: 1.15, color: '#F0E8D8',
+              letterSpacing: '-0.01em', marginTop: 4,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+              {cmd ? cmd.short : game.myCommanderId}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6,
+              fontSize: 12, fontWeight: 500,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              color: 'rgba(240,232,216,0.5)' }}>
+              {primary ? (
+                <>
+                  <span style={{ color: cat.color, fontWeight: 700,
+                    filter: 'brightness(1.3) saturate(1.2)' }}>{cat.label}</span>
+                  {extra > 0 && <span>+{extra}</span>}
+                </>
+              ) : (
+                <span style={{ fontStyle: 'italic' }}>No badges earned</span>
               )}
+              <span style={{ opacity: 0.5 }}>·</span>
+              <span>{game.duration}</span>
             </div>
-          ) : (
-            <div style={{
-              width: 44, height: 44, borderRadius: 999,
-              border: '1.5px dashed var(--line-strong)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--fg-subtle)',
-            }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>—</span>
+          </div>
+
+          {/* Right cluster — primary glyph + chevron */}
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+            {primary ? (
+              <div style={{
+                width: 44, height: 44, borderRadius: 999,
+                background: 'rgba(10,6,4,0.45)', color: cat.color,
+                border: `1.5px solid ${cat.color}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'relative',
+                backdropFilter: 'blur(6px)',
+                filter: 'brightness(1.2) saturate(1.15)',
+              }}>
+                <BadgeGlyph name={primary.id} size={26} stroke={cat.color} glyphBase={glyphBase}/>
+                {extra > 0 && (
+                  <div style={{
+                    position: 'absolute', bottom: -4, right: -4,
+                    minWidth: 18, height: 18, borderRadius: 999,
+                    background: '#F0E8D8', color: '#0A0604',
+                    fontSize: 10, fontWeight: 700, padding: '0 5px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1.5px solid rgba(10,6,4,0.3)',
+                  }}>+{extra}</div>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                width: 44, height: 44, borderRadius: 999,
+                border: '1.5px dashed rgba(240,232,216,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'rgba(240,232,216,0.4)',
+              }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>—</span>
+              </div>
+            )}
+            <div style={{ color: 'rgba(240,232,216,0.5)',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 200ms var(--ease)' }}>
+              <Icon name="chevron-down" size={16}/>
             </div>
-          )}
-          <div style={{ color: 'var(--fg-subtle)',
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 200ms var(--ease)' }}>
-            <Icon name="chevron-down" size={16}/>
           </div>
         </div>
       </button>
