@@ -110,6 +110,42 @@ function SSOButton({ provider, onClick }: { provider: 'google' | 'apple'; onClic
   );
 }
 
+/* ── Reusable swipe-down-to-dismiss for bottom sheets ─────────────────── */
+function useSheetDrag(onDismiss: () => void) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const currentY = useRef(0);
+  const dragging = useRef(false);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+    currentY.current = 0;
+    dragging.current = true;
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragging.current) return;
+    const dy = e.touches[0].clientY - startY.current;
+    currentY.current = Math.max(0, dy);
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${currentY.current}px)`;
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    dragging.current = false;
+    if (sheetRef.current) sheetRef.current.style.transition = 'transform 0.25s cubic-bezier(.22,.61,.36,1)';
+    if (currentY.current > 100) {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(100%)';
+      setTimeout(onDismiss, 250);
+    } else {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(0)';
+    }
+    currentY.current = 0;
+  }, [onDismiss]);
+
+  return { sheetRef, onTouchStart, onTouchMove, onTouchEnd };
+}
+
 function PageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -151,6 +187,12 @@ function PageContent() {
 
   // Login sheet animation
   const [loginSlideUp, setLoginSlideUp] = useState(false);
+
+  // Swipe-down dismiss for the my-commanders + add-commander sheets.
+  // my-commanders → fully close the auth gate (same as Cancel).
+  // add-commander → return to the my-commanders view (same as Back).
+  const myCmdrDrag = useSheetDrag(() => setShowAuthGate(false));
+  const addCmdrDrag = useSheetDrag(() => { setAuthView('my-commanders'); setAuthError(''); });
 
   // Pre-fill from ?code= query param. If the code is a complete 6-char value
   // (the user landed here via a scanned/shared deep link), auto-join and then
@@ -826,7 +868,7 @@ function PageContent() {
 
           {/* ── My Commanders View (after login) ── */}
           {authView === 'my-commanders' && (
-            <div onClick={(e) => e.stopPropagation()} style={{
+            <div ref={myCmdrDrag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
               width: '100%', maxWidth: 430,
               maxHeight: '85%',
               background: '#FAF5EA', borderRadius: '24px 24px 0 0',
@@ -837,7 +879,14 @@ function PageContent() {
               animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
               position: 'relative',
             }}>
-              <div style={{ width: 40, height: 4, borderRadius: 999, background: '#C8BCA8', margin: '0 auto 6px' }}/>
+              <div
+                onTouchStart={myCmdrDrag.onTouchStart}
+                onTouchMove={myCmdrDrag.onTouchMove}
+                onTouchEnd={myCmdrDrag.onTouchEnd}
+                style={{ cursor: 'grab', touchAction: 'none', padding: '4px 0' }}
+              >
+                <div style={{ width: 40, height: 4, borderRadius: 999, background: '#C8BCA8', margin: '0 auto' }}/>
+              </div>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '8px 0 14px' }}>
                 <div>
                   <div style={{ fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: '#B06B2C', marginBottom: 2 }}>Welcome back</div>
@@ -900,7 +949,7 @@ function PageContent() {
 
           {/* ── Add Commander View (Scryfall search for logged-in users) ── */}
           {isAddCmdView && (
-            <div onClick={(e) => e.stopPropagation()} style={{
+            <div ref={addCmdrDrag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
               width: '100%', maxWidth: 430,
               height: '100%',
               background: '#FAF5EA', borderRadius: '24px 24px 0 0',
@@ -911,7 +960,14 @@ function PageContent() {
               animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
               position: 'relative',
             }}>
-              <div style={{ width: 40, height: 4, borderRadius: 999, background: '#C8BCA8', margin: '0 auto 6px' }}/>
+              <div
+                onTouchStart={addCmdrDrag.onTouchStart}
+                onTouchMove={addCmdrDrag.onTouchMove}
+                onTouchEnd={addCmdrDrag.onTouchEnd}
+                style={{ cursor: 'grab', touchAction: 'none', padding: '4px 0' }}
+              >
+                <div style={{ width: 40, height: 4, borderRadius: 999, background: '#C8BCA8', margin: '0 auto' }}/>
+              </div>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '8px 0 14px' }}>
                 <div>
                   <div style={{ fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: '#B06B2C', marginBottom: 2 }}>New commander</div>
