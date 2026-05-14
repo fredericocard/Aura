@@ -289,10 +289,17 @@ function KeepsakeCard({ card }: { card: GameCard }) {
             return (
               <div key={c.deck_id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', height: 72, background: '#0A0604', overflow: 'hidden', borderBottom: i < commanders.length - 1 ? '1px solid rgba(201,155,47,0.22)' : 'none' }}>
                 <div style={{ position: 'relative', width: '65%', flexShrink: 0, overflow: 'hidden' }}>
-                  {c.art_url ? (
-                    <img src={c.art_url} alt="" crossOrigin="anonymous" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 12%', transform: 'scale(1.15)' }}/>
-                  ) : (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a140e', color: '#E2B858', fontSize: 28, fontFamily: "'Young Serif', Georgia, serif" }}>{c.commander_name.charAt(0)}</div>
+                  {/* Initial-letter fallback always rendered underneath; image overlays on top when it loads. */}
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a140e', color: '#E2B858', fontSize: 28, fontFamily: "'Young Serif', Georgia, serif" }}>{c.commander_name.charAt(0)}</div>
+                  {c.art_url && (
+                    <img
+                      src={c.art_url}
+                      alt=""
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 12%', transform: 'scale(1.15)' }}
+                    />
                   )}
                   <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 80, background: 'linear-gradient(90deg, transparent 0%, rgba(10,6,4,0.55) 55%, #0A0604 100%)', pointerEvents: 'none' }} />
                   {isWinner && (
