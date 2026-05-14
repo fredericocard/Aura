@@ -911,22 +911,28 @@ export default function ProfilePage() {
     if (!pendingBracketCommander) return;
     setConfirmingBracket(true);
 
-    const { error: confirmError } = await confirmBracketAndApplyScoring(pendingBracketCommander.deckId, forcedBracket);
-    if (confirmError) {
-      showToastMsg(`Error: ${confirmError}`);
-      setConfirmingBracket(false);
-      return;
+    try {
+      const { error: confirmError } = await confirmBracketAndApplyScoring(pendingBracketCommander.deckId, forcedBracket);
+      if (confirmError) {
+        showToastMsg(`Error: ${confirmError}`);
+        setConfirmingBracket(false);
+        return;
+      }
+    } catch (e: any) {
+      // Scoring might throw — still dismiss the popup since the bracket was set
+      console.error('Bracket scoring error (non-fatal):', e);
     }
 
     // Update local state
+    const updatedDeckId = pendingBracketCommander.deckId;
     setCommanders(prev => prev.map(c =>
-      c.deckId === pendingBracketCommander.deckId ? { ...c, bracket: forcedBracket } : c
+      c.deckId === updatedDeckId ? { ...c, bracket: forcedBracket } : c
     ));
 
     showToastMsg(`${pendingBracketCommander.commanderName} set to Bracket ${forcedBracket}!`);
 
-    // Check for more NULL-bracket commanders
-    const remaining = commanders.filter(c => c.bracket === null && c.deckId !== pendingBracketCommander.deckId);
+    // Check for more NULL-bracket commanders (use current state snapshot, exclude the one we just set)
+    const remaining = commanders.filter(c => c.bracket === null && c.deckId !== updatedDeckId);
     if (remaining.length > 0) {
       setPendingBracketCommander(remaining[0]);
       setForcedBracket(2);
