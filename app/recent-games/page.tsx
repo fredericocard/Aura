@@ -449,16 +449,21 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
         }}>
           {/* Body */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8,
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 0,
               fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
-              textTransform: 'uppercase', color: 'rgba(240,232,216,0.55)' }}>
+              textTransform: 'uppercase', color: 'rgba(240,232,216,0.55)',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <span style={{ color: cat ? cat.color : 'rgba(240,232,216,0.5)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
-                filter: 'brightness(1.3) saturate(1.2)' }}>
+                flexShrink: 0,
+                filter: cat ? 'brightness(1.3) saturate(1.2)' : 'none' }}>
                 {game.pod}
               </span>
-              <span style={{ opacity: 0.5 }}>·</span>
+              <span style={{ opacity: 0.5, margin: '0 6px' }}>·</span>
               <span style={{ fontWeight: 600 }}>{game.date}</span>
+              {game.time && (<>
+                <span style={{ opacity: 0.5, margin: '0 6px' }}>·</span>
+                <span style={{ fontWeight: 600 }}>{game.time}</span>
+              </>)}
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 18, lineHeight: 1.15, color: '#F0E8D8',
@@ -467,22 +472,20 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
               textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
               {cmd ? cmd.short : game.myCommanderId}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6,
-              fontSize: 12, fontWeight: 500,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              color: 'rgba(240,232,216,0.5)' }}>
-              {primary ? (
-                <>
-                  <span style={{ color: cat.color, fontWeight: 700,
-                    filter: 'brightness(1.3) saturate(1.2)' }}>{cat.label}</span>
-                  {extra > 0 && <span>+{extra}</span>}
-                </>
-              ) : (
-                <span style={{ fontStyle: 'italic' }}>No badges earned</span>
-              )}
-              <span style={{ opacity: 0.5 }}>·</span>
-              <span>{game.duration}</span>
-            </div>
+            {primary && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6,
+                fontSize: 12, fontWeight: 500,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                color: 'rgba(240,232,216,0.5)' }}>
+                <span style={{ color: cat.color, fontWeight: 700,
+                  filter: 'brightness(1.3) saturate(1.2)' }}>{cat.label}</span>
+                {extra > 0 && <span>+{extra}</span>}
+                {game.duration && (<>
+                  <span style={{ opacity: 0.5 }}>·</span>
+                  <span>{game.duration}</span>
+                </>)}
+              </div>
+            )}
           </div>
 
           {/* Right cluster — primary glyph + chevron */}
@@ -1090,6 +1093,15 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
+
 function GameFinishedPopup({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div style={{
@@ -1231,9 +1243,9 @@ function RecentGamesPageInner() {
         const winner = e.podCommanders.find((p: any) => p.isWinner);
         return {
           id: e.gameId,
-          pod: `${e.podSize}-player game`,
+          pod: `${e.podSize}-player`,
           date: formatDate(e.gameDate),
-          time: '',
+          time: e.gameDate ? formatTime(e.gameDate) : '',
           duration: '',
           myCommanderId: e.deckId,
           players: e.podCommanders.map((p: any) => p.userId),
