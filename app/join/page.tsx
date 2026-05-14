@@ -3,6 +3,7 @@
 import { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { joinPod } from '@/lib/pods';
+import { useAuth } from '@/lib/auth-context';
 
 /* ── BarcodeDetector type shim (native API, not in TS lib) ──────────────── */
 interface DetectedBarcode { rawValue: string; }
@@ -31,10 +32,18 @@ function extractCode(raw: string): string | null {
 function PageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, isLoggedIn, isGuest, signIn, signInAsGuest, signUp } = useAuth();
   const [codeChars, setCodeChars] = useState<string[]>(['', '', '', '', '', '']);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Auth gate state
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const [authView, setAuthView] = useState<'choose' | 'login' | 'signup'>('choose');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authSubmitting, setAuthSubmitting] = useState(false);
 
   // Camera state
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -161,9 +170,8 @@ function PageContent() {
     setScannedCode(null); // Allow re-scanning if user edits
   }
 
-  async function handleJoin() {
+  async function proceedToJoin() {
     const fullCode = codeChars.join('');
-    if (fullCode.length < 6) { setError('Enter the full 6-character code'); return; }
     setJoining(true);
     setError(null);
 
@@ -176,6 +184,54 @@ function PageContent() {
 
     stopCamera();
     router.push(`/singleview?podId=${pod.id}`);
+  }
+
+  async function handleJoin() {
+    const fullCode = codeChars.join('');
+    if (fullCode.length < 6) { setError('Enter the full 6-character code'); return; }
+
+    // If user is already logged in (full or guest), go straight to join
+    if (user) {
+      await proceedToJoin();
+      return;
+    }
+
+    // Not logged in — show auth gate popup
+    setShowAuthGate(true);
+    setAuthView('choose');
+    setAuthError('');
+    setAuthEmail('');
+    setAuthPassword('');
+  }
+
+  async function handleGuestJoin() {
+    setAuthSubmitting(true);
+    setAuthError('');
+    const { error: guestErr } = await signInAsGuest();
+    if (guestErr) {
+      setAuthError(guestErr);
+      setAuthSubmitting(false);
+      return;
+    }
+    setShowAuthGate(false);
+    setAuthSubmitting(false);
+    await proceedToJoin();
+  }
+
+  async function handleAuthLogin() {
+    if (!authEmail || !authPassword) { setAuthError('Please fill in all fields'); return; }
+    setAuthSubmitting(true);
+    setAuthError('');
+    const { error: loginErr } = await signIn(authEmail, authPassword);
+    if (loginErr) {
+      setAuthError(loginErr);
+      setAuthSubmitting(false);
+      return;
+    }
+    setShowAuthGate(false);
+    setAuthSubmitting(false);
+    // Small delay for auth state to propagate
+    setTimeout(() => proceedToJoin(), 300);
   }
 
   // Build display array with dash separator: [0,1,2, '-', 3,4,5]
@@ -587,6 +643,225 @@ function PageContent() {
           </button>
         </div>
       </div>
+
+      {/* Auth gate popup — shown when user is not logged in */}
+      {showAuthGate && (
+        <div onClick={() => !authSubmitting && setShowAuthGate(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20, fontFamily: "'Instrument Sans', sans-serif",
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 380,
+            background: '#FAF5EA',
+            borderRadius: 24,
+            padding: '24px 20px',
+            boxShadow: '0 30px 60px -16px rgba(43,33,24,0.45)',
+            border: '1px solid rgba(43,33,24,0.14)',
+            animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
+          }}>
+            {authView === 'choose' && (<>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <div style={{
+                  fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
+                  fontWeight: 700, color: '#B06B2C', marginBottom: 6,
+                }}>Join this pod</div>
+                <div style={{
+                  fontFamily: "'Young Serif', serif", fontSize: 22, color: '#2B2118', lineHeight: 1.15,
+                }}>How do you want to play?</div>
+                <div style={{ fontSize: 13, color: '#5C5043', marginTop: 6 }}>
+                  Log in to track your AURA, or jump in as a guest.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button onClick={() => setAuthView('login')} style={{
+                  width: '100%', padding: '16px 18px',
+                  background: '#2F5D3A', color: '#F5EFE2',
+                  border: 'none', borderRadius: 20, cursor: 'pointer',
+                  fontSize: 15, fontWeight: 600,
+                  fontFamily: "'Instrument Sans', sans-serif",
+                  boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+                }}>Log in</button>
+                <button onClick={handleGuestJoin} disabled={authSubmitting} style={{
+                  width: '100%', padding: '16px 18px',
+                  background: 'transparent', color: '#2B2118',
+                  border: '1.5px solid rgba(43,33,24,0.14)', borderRadius: 20, cursor: 'pointer',
+                  fontSize: 15, fontWeight: 600,
+                  fontFamily: "'Instrument Sans', sans-serif",
+                }}>{authSubmitting ? 'Joining as guest…' : 'Play as guest'}</button>
+              </div>
+              <div style={{ textAlign: 'center', fontSize: 11, color: '#8A7E6F', marginTop: 14, lineHeight: 1.4 }}>
+                Guests can play and review. You&apos;ll be asked to create an account before your game card is saved.
+              </div>
+            </>)}
+
+            {authView === 'login' && (<>
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <div style={{
+                  fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
+                  fontWeight: 700, color: '#B06B2C', marginBottom: 6,
+                }}>Returning player</div>
+                <div style={{
+                  fontFamily: "'Young Serif', serif", fontSize: 22, color: '#2B2118', lineHeight: 1.15,
+                }}>Welcome back</div>
+              </div>
+
+              {authError && (
+                <div style={{
+                  background: 'rgba(158,43,43,0.08)', border: '1px solid rgba(158,43,43,0.2)',
+                  borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#9E2B2B',
+                  textAlign: 'center', marginBottom: 10,
+                }}>{authError}</div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A7E6F' }}>Email</span>
+                  <input type="email" placeholder="you@table.cards" value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)} autoComplete="off"
+                    style={{
+                      width: '100%', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)',
+                      borderRadius: 12, padding: '12px 14px', fontSize: 15, color: '#2B2118',
+                      fontFamily: "'Instrument Sans', sans-serif", outline: 'none',
+                    }}/>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A7E6F' }}>Password</span>
+                  <input type="password" placeholder="••••••••" value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)} autoComplete="off"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAuthLogin(); }}
+                    style={{
+                      width: '100%', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)',
+                      borderRadius: 12, padding: '12px 14px', fontSize: 15, color: '#2B2118',
+                      fontFamily: "'Instrument Sans', sans-serif", outline: 'none',
+                    }}/>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                <button onClick={() => { setAuthView('choose'); setAuthError(''); }} style={{
+                  flex: 1, padding: '14px 16px', background: 'transparent',
+                  border: '1px solid rgba(43,33,24,0.14)', borderRadius: 20,
+                  color: '#2B2118', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: "'Instrument Sans', sans-serif",
+                }}>Back</button>
+                <button onClick={handleAuthLogin} disabled={authSubmitting} style={{
+                  flex: 1.4, padding: '14px 16px',
+                  background: authSubmitting ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
+                  border: 'none', borderRadius: 20, cursor: authSubmitting ? 'default' : 'pointer',
+                  fontSize: 15, fontWeight: 600,
+                  fontFamily: "'Instrument Sans', sans-serif",
+                  boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+                }}>{authSubmitting ? 'Logging in…' : 'Log in'}</button>
+              </div>
+
+              <div style={{ textAlign: 'center', fontSize: 13, color: '#5C5043', marginTop: 14 }}>
+                Don&apos;t have an account?{' '}
+                <button onClick={() => { setAuthView('signup'); setAuthError(''); }} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#2F5D3A', fontWeight: 700, fontSize: 13, padding: 0,
+                  fontFamily: "'Instrument Sans', sans-serif",
+                  textDecoration: 'underline', textUnderlineOffset: 3,
+                }}>Sign up</button>
+              </div>
+            </>)}
+
+            {authView === 'signup' && (<>
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <div style={{
+                  fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
+                  fontWeight: 700, color: '#B06B2C', marginBottom: 6,
+                }}>New player</div>
+                <div style={{
+                  fontFamily: "'Young Serif', serif", fontSize: 22, color: '#2B2118', lineHeight: 1.15,
+                }}>Create account</div>
+              </div>
+
+              {authError && (
+                <div style={{
+                  background: 'rgba(158,43,43,0.08)', border: '1px solid rgba(158,43,43,0.2)',
+                  borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#9E2B2B',
+                  textAlign: 'center', marginBottom: 10,
+                }}>{authError}</div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A7E6F' }}>Email</span>
+                  <input type="email" placeholder="you@table.cards" value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)} autoComplete="off"
+                    style={{
+                      width: '100%', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)',
+                      borderRadius: 12, padding: '12px 14px', fontSize: 15, color: '#2B2118',
+                      fontFamily: "'Instrument Sans', sans-serif", outline: 'none',
+                    }}/>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A7E6F' }}>Password</span>
+                  <input type="password" placeholder="••••••••" value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)} autoComplete="new-password"
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter') {
+                        if (!authEmail || !authPassword) { setAuthError('Please fill in all fields'); return; }
+                        if (authPassword.length < 6) { setAuthError('Password must be at least 6 characters'); return; }
+                        setAuthSubmitting(true); setAuthError('');
+                        const { error: signUpErr } = await signUp(authEmail, authPassword);
+                        setAuthSubmitting(false);
+                        if (signUpErr) { setAuthError(signUpErr); return; }
+                        setShowAuthGate(false);
+                        setTimeout(() => proceedToJoin(), 300);
+                      }
+                    }}
+                    style={{
+                      width: '100%', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)',
+                      borderRadius: 12, padding: '12px 14px', fontSize: 15, color: '#2B2118',
+                      fontFamily: "'Instrument Sans', sans-serif", outline: 'none',
+                    }}/>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                <button onClick={() => { setAuthView('choose'); setAuthError(''); }} style={{
+                  flex: 1, padding: '14px 16px', background: 'transparent',
+                  border: '1px solid rgba(43,33,24,0.14)', borderRadius: 20,
+                  color: '#2B2118', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: "'Instrument Sans', sans-serif",
+                }}>Back</button>
+                <button onClick={async () => {
+                  if (!authEmail || !authPassword) { setAuthError('Please fill in all fields'); return; }
+                  if (authPassword.length < 6) { setAuthError('Password must be at least 6 characters'); return; }
+                  setAuthSubmitting(true); setAuthError('');
+                  const { error: signUpErr } = await signUp(authEmail, authPassword);
+                  setAuthSubmitting(false);
+                  if (signUpErr) { setAuthError(signUpErr); return; }
+                  setShowAuthGate(false);
+                  setTimeout(() => proceedToJoin(), 300);
+                }} disabled={authSubmitting} style={{
+                  flex: 1.4, padding: '14px 16px',
+                  background: authSubmitting ? '#8A7E6F' : '#2F5D3A', color: '#F5EFE2',
+                  border: 'none', borderRadius: 20, cursor: authSubmitting ? 'default' : 'pointer',
+                  fontSize: 15, fontWeight: 600,
+                  fontFamily: "'Instrument Sans', sans-serif",
+                  boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+                }}>{authSubmitting ? 'Creating…' : 'Create & join'}</button>
+              </div>
+
+              <div style={{ textAlign: 'center', fontSize: 13, color: '#5C5043', marginTop: 14 }}>
+                Already have an account?{' '}
+                <button onClick={() => { setAuthView('login'); setAuthError(''); }} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#2F5D3A', fontWeight: 700, fontSize: 13, padding: 0,
+                  fontFamily: "'Instrument Sans', sans-serif",
+                  textDecoration: 'underline', textUnderlineOffset: 3,
+                }}>Log in</button>
+              </div>
+            </>)}
+          </div>
+        </div>
+      )}
     </>
   );
 }
