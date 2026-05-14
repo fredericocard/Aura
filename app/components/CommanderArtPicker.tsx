@@ -220,12 +220,29 @@ export function CommanderArtPicker({
                   style={{
                     width: '100%',
                     aspectRatio: '16 / 11',
-                    backgroundImage: thumb ? `url(${thumb})` : undefined,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    background: thumb ? undefined : 'rgba(176,107,44,0.12)',
+                    background: 'rgba(176,107,44,0.12)',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
-                />
+                >
+                  {thumb && (
+                    <img
+                      src={thumb}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                  )}
+                </div>
                 <div
                   style={{
                     padding: '6px 8px 8px',
