@@ -350,7 +350,7 @@ function PageContent() {
 
               {authError && (<div style={{ background: 'rgba(158,43,43,0.08)', border: '1px solid rgba(158,43,43,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#9E2B2B', textAlign: 'center', marginTop: 10 }}>{authError}</div>)}
 
-              <div style={{ flex: 1, overflowY: 'auto', marginTop: 14, paddingBottom: 80 }}>
+              <div style={{ flex: 1, overflowY: 'auto', marginTop: 14, paddingBottom: 20 }}>
                 {cmdSearching && <div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>Searching...</div>}
                 {!cmdSearching && cmdSearchQuery.length < 2 && (<div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>Type a commander name to search</div>)}
                 {!cmdSearching && cmdSearchQuery.length >= 2 && cmdSearchResults.length === 0 && (<div style={{ textAlign: 'center', padding: 24, color: '#8A7E6F', fontSize: 13 }}>No commanders found</div>)}
@@ -375,14 +375,15 @@ function PageContent() {
                     );
                   })}
                 </div>
-              </div>
 
-              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 28px', background: 'linear-gradient(to top, #FAF5EA 60%, rgba(250,245,234,0))' }}>
-                <button onClick={() => { setAuthView('login'); setAuthError(''); }} style={{
-                  width: '100%', padding: '15px 18px', background: '#2F5D3A', color: '#F5EFE2',
-                  border: 'none', borderRadius: 20, cursor: 'pointer', fontSize: 15, fontWeight: 600,
-                  fontFamily: "'Instrument Sans', sans-serif", boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
-                }}>Log in instead</button>
+                {/* Log in button — scrolls with content, hides under keyboard */}
+                <div style={{ padding: '20px 0 28px' }}>
+                  <button onClick={() => { setAuthView('login'); setAuthError(''); }} style={{
+                    width: '100%', padding: '15px 18px', background: '#2F5D3A', color: '#F5EFE2',
+                    border: 'none', borderRadius: 20, cursor: 'pointer', fontSize: 15, fontWeight: 600,
+                    fontFamily: "'Instrument Sans', sans-serif", boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+                  }}>Log in instead</button>
+                </div>
               </div>
             </>)}
 
