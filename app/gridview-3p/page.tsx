@@ -618,6 +618,177 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
   );
 }
 
+function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounters = {}, cmdrDamage = [], flipped = false, showQR = false, qrCodeUrl = null, podShortCode = null, onClaimSeat, onCloseQR, onRevive, onTapLeft, onTapRight, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { seatLabel?: string; life?: number; counters?: { poison?: number; energy?: number; experience?: number }; cmdrDamage?: { from: string; amount: number; colorIndex: number }[]; flipped?: boolean; showQR?: boolean; qrCodeUrl?: string | null; podShortCode?: string | null; onClaimSeat: () => void; onCloseQR?: () => void; onTapLeft?: () => void; onTapRight?: () => void; onRevive?: () => void; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
+  const counterEntries = Object.entries(cellCounters || {}).filter(([, n]) => (n as number) > 0);
+  const isLifeZero = (life ?? 1) <= 0;
+  const isPoisoned = (cellCounters?.poison || 0) >= 10;
+  const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
+  const isDefeated = isLifeZero || isPoisoned || isCmdrLethal;
+  const defeatTrigger = `${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`;
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 200 });
+  if (showQR) {
+    return (
+      <div style={{
+        position:'relative',
+        height:'100%',
+        borderRadius:'20px',
+        background: DARK.bgDeep,
+        border: `2.5px dashed rgba(226,184,88,0.25)`,
+        boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
+        overflow:'hidden',
+        transform: flipped ? 'rotate(180deg)' : 'none',
+      }}>
+        <button onClick={onCloseQR} aria-label="Close" style={{
+          position:'absolute', top:10, right:10, zIndex:30,
+          width:32, height:32, borderRadius:999,
+          background:'rgba(10,6,4,0.55)',
+          border:`1px solid ${DARK.lineStrong}`,
+          color: DARK.ink2, fontSize:18, fontWeight:600,
+          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          lineHeight:1, padding:0,
+        }}>×</button>
+        <div style={{
+          position:'absolute', inset:0, zIndex:20,
+          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14,
+          padding:20,
+        }}>
+          <div style={{
+            padding:10, background:'#FAF5EA', borderRadius:14,
+            boxShadow:'0 4px 20px -6px rgba(0,0,0,0.35)',
+          }}>
+            {qrCodeUrl ? (
+              <img src={qrCodeUrl} alt="QR code to join pod" width={140} height={140} style={{ imageRendering:'pixelated', display:'block' }}/>
+            ) : (
+              <div style={{ width:140, height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:11 }}>No pod code</div>
+            )}
+          </div>
+          {podShortCode && (
+            <div style={{
+              fontFamily:'var(--font-display)', fontSize:18, letterSpacing:'0.16em',
+              color: DARK.ink, fontVariantNumeric:'tabular-nums',
+            }}>{`${podShortCode.slice(0,3)}—${podShortCode.slice(3)}`}</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  const hasRing = (cmdrDamage || []).length > 0;
+  return (
+    <div style={{
+      position:'relative',
+      height:'100%',
+      borderRadius:'20px',
+      background: DARK.bgDeep,
+      border: `2.5px dashed rgba(226,184,88,0.25)`,
+      boxShadow: 'inset 0 0 0 1px rgba(226,184,88,0.06)',
+      overflow:'hidden',
+      transform: flipped ? 'rotate(180deg)' : 'none',
+    }}>
+      {hasRing && <CmdrDamageRing damages={cmdrDamage} radius={20} strokeWidth={3}/>}
+      {keyframesNode}
+      {isDefeated && (
+        <DefeatedButtonsLayer
+          reviveColor={DARK.forest}
+          reviveTextColor={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}
+          reviewBorder={DARK.lineStrong}
+          reviewTextColor={DARK.ink2}
+          onRevive={onRevive}
+          onReview={onClaimSeat}
+          showReviewButton={true}
+          zIndex={25}
+          triggerKey={defeatTrigger}
+        />
+      )}
+      {/* Header: seat label + compact Claim button */}
+      <div style={{
+        position:'absolute', top:14, left:16, right:16, zIndex:10,
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
+        ...fadeStyle,
+      }}>
+        <div style={{
+          fontFamily:'var(--font-ui)', fontSize:10, fontWeight:700,
+          letterSpacing:'0.20em', textTransform:'uppercase',
+          color: DARK.ink3, pointerEvents:'none',
+        }}>{seatLabel}</div>
+        <button onClick={onClaimSeat} style={{
+          display:'inline-flex', alignItems:'center', gap:5,
+          padding:'5px 10px',
+          background: DARK.forest,
+          color: DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink,
+          border:'none', borderRadius:999,
+          boxShadow: '0 2px 6px -2px rgba(47,93,58,0.4)',
+          fontFamily:'var(--font-ui)', fontSize:9, fontWeight:700,
+          letterSpacing:'0.14em', textTransform:'uppercase',
+          cursor:'pointer', whiteSpace:'nowrap',
+        }}>
+          <Icon name="plus-circle" size={12} stroke={DARK === LIGHT_THEME ? '#FAF5EA' : DARK.ink}/>
+          Claim
+        </button>
+      </div>
+
+      {/* Life + counters — same color/size as claimed cells */}
+      <div style={{
+        position:'absolute', inset:0, zIndex:5, pointerEvents:'none',
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16,
+      }}>
+        <div style={{
+          fontFamily:'var(--font-display)', fontWeight:400,
+          fontSize:96, lineHeight:1, letterSpacing:'-0.04em',
+          color: isDefeated ? undefined : DARK.ink,
+          fontVariantNumeric:'tabular-nums',
+          textShadow: isDefeated ? undefined : '0 0 40px rgba(226,184,88,0.12), 0 1px 0 rgba(10,6,4,0.6)',
+          ...lifeAnimationStyle,
+        }}>{life}</div>
+
+        {counterEntries.length > 0 && (
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', maxWidth:'90%', ...fadeStyle }}>
+            {counterEntries.map(([k, n]) => (
+              <CounterChip key={k} kind={k} count={n as number}/>
+            ))}
+          </div>
+        )}
+      </div>
+
+
+
+      {/* Tap-zone hints */}
+      <div style={{
+        position:'absolute', bottom:8, left:12, right:12, zIndex:3,
+        display:'flex', justifyContent:'space-between',
+        color: DARK.ink3,
+        fontFamily:'var(--font-display)', fontSize:22, lineHeight:1,
+        pointerEvents:'none',
+        ...fadeStyle,
+      }}>
+        <span>−</span><span>+</span>
+      </div>
+      {pulseAndWispsNode}
+
+      {/* Tap zones for life +/- */}
+      <div style={{ position:'absolute', inset:0, display:'flex', zIndex:6 }}>
+        <button style={{
+          flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
+        }}
+          onClick={onTapLeft}
+          onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,80,80,0.08)'; onHoldLeftStart && onHoldLeftStart(); }}
+          onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+          onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+          onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+        />
+        <button style={{
+          flex:1, background:'transparent', border:'none', cursor:'pointer', padding:0,
+        }}
+          onClick={onTapRight}
+          onPointerDown={(e: any) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; onHoldRightStart && onHoldRightStart(); }}
+          onPointerUp={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+          onPointerLeave={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+          onPointerCancel={(e: any) => { e.currentTarget.style.background = 'transparent'; onHoldEnd && onHoldEnd(); }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function NormalCell({ player, onTapLeft, onTapRight, onRevive, lifeSize = 100, onHoldLeftStart, onHoldRightStart, onHoldEnd }: { player: any; onTapLeft: () => void; onTapRight: () => void; onRevive?: () => void; lifeSize?: number; onHoldLeftStart?: () => void; onHoldRightStart?: () => void; onHoldEnd?: () => void }) {
   const hasRing = (player.cmdrDamage || []).length > 0;
   const isLifeZero = (player.life ?? 1) <= 0;
@@ -2691,16 +2862,37 @@ function PageContent() {
           {/* Bottom: P1 (You), normal orientation, full width */}
           <div className="grid-bottom-3p">
             <div className="grid-bottom-cell">
-              <NormalCell
-                player={enrichPlayer(1, true)}
-                onTapLeft={() => handleLifeChange(1, -1)}
-                onTapRight={() => handleLifeChange(1, 1)}
-                onHoldLeftStart={() => startLifeHold(1, -1)}
-                onHoldRightStart={() => startLifeHold(1, 1)}
-                onHoldEnd={() => stopLifeHold(1)}
-              onRevive={() => handleRevive(1)}
-                lifeSize={96}
-              />
+              {players[1].claimed ? (
+                <NormalCell
+                  player={enrichPlayer(1, true)}
+                  onTapLeft={() => handleLifeChange(1, -1)}
+                  onTapRight={() => handleLifeChange(1, 1)}
+                  onHoldLeftStart={() => startLifeHold(1, -1)}
+                  onHoldRightStart={() => startLifeHold(1, 1)}
+                  onHoldEnd={() => stopLifeHold(1)}
+                  onRevive={() => handleRevive(1)}
+                  lifeSize={96}
+                />
+              ) : (
+                <NormalEmptyCell
+                  seatLabel="Player 1"
+                  life={players[1].life}
+                  counters={counters[1]}
+                  cmdrDamage={enrichPlayer(1).cmdrDamage}
+                  flipped={false}
+                  onClaimSeat={() => openJoinModal(1)}
+                  showQR={joinModalOpen && joinSlot === 1}
+                  qrCodeUrl={qrCodeUrl}
+                  podShortCode={podShortCode}
+                  onCloseQR={() => setJoinModalOpen(false)}
+                  onTapLeft={() => handleLifeChange(1, -1)}
+                  onTapRight={() => handleLifeChange(1, 1)}
+                  onHoldLeftStart={() => startLifeHold(1, -1)}
+                  onHoldRightStart={() => startLifeHold(1, 1)}
+                  onHoldEnd={() => stopLifeHold(1)}
+                  onRevive={() => handleRevive(1)}
+                />
+              )}
             </div>
           </div>
         </div>

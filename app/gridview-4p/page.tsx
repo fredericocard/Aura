@@ -2613,16 +2613,37 @@ function PageContent() {
       <div className="app">
         <div className="grid-container">
           <div className="grid-column">
-            <SidewaysCell
-              player={enrichPlayer(1)}
-              rotation={90}
-              onTapLeft={() => handleLifeChange(1, -1)}
-              onTapRight={() => handleLifeChange(1, 1)}
-              onHoldLeftStart={() => startLifeHold(1, -1)}
-              onHoldRightStart={() => startLifeHold(1, 1)}
-              onHoldEnd={() => stopLifeHold(1)}
-              onRevive={() => handleRevive(1)}
-            />
+            {players[1].claimed ? (
+              <SidewaysCell
+                player={enrichPlayer(1)}
+                rotation={90}
+                onTapLeft={() => handleLifeChange(1, -1)}
+                onTapRight={() => handleLifeChange(1, 1)}
+                onHoldLeftStart={() => startLifeHold(1, -1)}
+                onHoldRightStart={() => startLifeHold(1, 1)}
+                onHoldEnd={() => stopLifeHold(1)}
+                onRevive={() => handleRevive(1)}
+              />
+            ) : (
+              <SidewaysEmptyCell
+                seatLabel="Player 1"
+                life={players[1].life}
+                counters={counters[1]}
+                cmdrDamage={enrichPlayer(1).cmdrDamage}
+                rotation={90}
+                onClaimSeat={() => openJoinModal(1)}
+                showQR={joinModalOpen && joinSlot === 1}
+                qrCodeUrl={qrCodeUrl}
+                podShortCode={podShortCode}
+                onCloseQR={() => setJoinModalOpen(false)}
+                onTapLeft={() => handleLifeChange(1, -1)}
+                onTapRight={() => handleLifeChange(1, 1)}
+                onHoldLeftStart={() => startLifeHold(1, -1)}
+                onHoldRightStart={() => startLifeHold(1, 1)}
+                onHoldEnd={() => stopLifeHold(1)}
+                onRevive={() => handleRevive(1)}
+              />
+            )}
             {players[3].claimed ? (
               <SidewaysCell
                 player={enrichPlayer(3)}

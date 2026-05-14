@@ -2210,16 +2210,37 @@ function PageContent() {
             />
           )}
           {/* Bottom: you (slot 1), normal orientation */}
-          <NormalCell
-            player={enrichPlayer(1, true)}
-            flipped={false}
-            onTapLeft={() => handleLifeChange(1, -1)}
-            onTapRight={() => handleLifeChange(1, 1)}
-            onHoldLeftStart={() => startLifeHold(1, -1)}
-            onHoldRightStart={() => startLifeHold(1, 1)}
-            onHoldEnd={() => stopLifeHold(1)}
+          {players[1].claimed ? (
+            <NormalCell
+              player={enrichPlayer(1, true)}
+              flipped={false}
+              onTapLeft={() => handleLifeChange(1, -1)}
+              onTapRight={() => handleLifeChange(1, 1)}
+              onHoldLeftStart={() => startLifeHold(1, -1)}
+              onHoldRightStart={() => startLifeHold(1, 1)}
+              onHoldEnd={() => stopLifeHold(1)}
               onRevive={() => handleRevive(1)}
-          />
+            />
+          ) : (
+            <NormalEmptyCell
+              seatLabel="Player 1"
+              life={players[1].life}
+              counters={counters[1]}
+              cmdrDamage={enrichPlayer(1).cmdrDamage}
+              flipped={false}
+              onClaimSeat={() => openJoinModal(1)}
+              showQR={joinModalOpen && joinSlot === 1}
+              qrCodeUrl={qrCodeUrl}
+              podShortCode={podShortCode}
+              onCloseQR={() => setJoinModalOpen(false)}
+              onTapLeft={() => handleLifeChange(1, -1)}
+              onTapRight={() => handleLifeChange(1, 1)}
+              onHoldLeftStart={() => startLifeHold(1, -1)}
+              onHoldRightStart={() => startLifeHold(1, 1)}
+              onHoldEnd={() => stopLifeHold(1)}
+              onRevive={() => handleRevive(1)}
+            />
+          )}
         </div>
 
         <GameNav
