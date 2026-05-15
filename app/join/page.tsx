@@ -806,7 +806,7 @@ function PageContent() {
                             background: 'none', border: 'none', cursor: 'pointer', padding: 4,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>
-                            <LIcon name={showPassword ? 'eye-off' : 'eye'} size={18} width={1.5} stroke="#8A7E6F" />
+                            <LIcon name={showPassword ? 'eye-off' : 'eye'} size={18} width={1.5} stroke="#5C5043" />
                           </button>
                         </div>
                       </label>
@@ -882,7 +882,7 @@ function PageContent() {
                                 background: 'none', border: 'none', cursor: 'pointer', padding: 4,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                               }}>
-                                <LIcon name={showPassword ? 'eye-off' : 'eye'} size={18} width={1.5} stroke="#8A7E6F" />
+                                <LIcon name={showPassword ? 'eye-off' : 'eye'} size={18} width={1.5} stroke="#5C5043" />
                               </button>
                             </div>
                           </label>
