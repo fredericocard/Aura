@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS decks (
   commander_name TEXT NOT NULL,
   commander_art_url TEXT,
   color_identity TEXT,
-  bracket INTEGER NOT NULL DEFAULT 2 CHECK (bracket BETWEEN 1 AND 5),
+  bracket INTEGER CHECK (bracket IS NULL OR (bracket BETWEEN 1 AND 5)),
   aura_score NUMERIC(6,2) NOT NULL DEFAULT 50.00,
   bracket_set_at TIMESTAMPTZ,
   -- Badge counts (accumulated)
@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS decks (
   votes_allegiance INTEGER NOT NULL DEFAULT 0,
   votes_brilliance INTEGER NOT NULL DEFAULT 0,
   votes_flavor INTEGER NOT NULL DEFAULT 0,
+  -- Chronic archenemy
   -- Chronic archenemy
   is_chronic_archenemy BOOLEAN NOT NULL DEFAULT FALSE,
   chronic_updated_at TIMESTAMPTZ,

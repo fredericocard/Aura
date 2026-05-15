@@ -102,10 +102,10 @@ export async function computeGameAura(
 
   const scaleFactor = scaling[String(game.pod_size)] ?? 1.0;
 
-  // 3. Load game players with their current AURA scores
+  // 3. Load game players with their current AURA scores + bracket
   const { data: players, error: playersErr } = await supabase
     .from("game_players")
-    .select("user_id, deck_id, decks!inner(aura_score)")
+    .select("user_id, deck_id, decks!inner(aura_score, bracket)")
     .eq("game_id", gameId) as { data: any; error: any };
 
   if (playersErr || !players) {
@@ -139,10 +139,13 @@ export async function computeGameAura(
 
   for (const player of players) {
     const deckId = player.deck_id;
+
+    // Skip decks with NULL bracket — scoring deferred until bracket is chosen
+    const deckData = (player as Record<string, unknown>).decks as Record<string, unknown> | undefined;
+    if (deckData && deckData.bracket === null) continue;
+
     const currentScore = Number(
-      (player as Record<string, unknown>).decks &&
-        ((player as Record<string, unknown>).decks as Record<string, unknown>)
-          .aura_score
+      deckData && deckData.aura_score
     ) || 50;
     const deckVotes = voteCounts[deckId] ?? {};
 

@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { joinPod } from '@/lib/pods';
+import { joinPod, getPodByCode, getPodMemberCount } from '@/lib/pods';
 import { createGame } from '@/lib/games';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
@@ -169,6 +169,7 @@ function PageContent() {
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [podFullPopup, setPodFullPopup] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   // Clear errors and reset state when switching auth views
@@ -455,6 +456,14 @@ function PageContent() {
     if (joining) return;
     const fullCode = (codeOverride ?? codeChars.join('')).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     if (fullCode.length < 6) { setError('Enter the full 6-character code'); return; }
+
+    // Check if pod exists and has room before showing the auth gate
+    const { data: pod, error: podErr } = await getPodByCode(fullCode);
+    if (podErr || !pod) { setError(podErr ?? 'Pod not found'); return; }
+    if (pod.state !== 'waiting') { setError('This pod has already started or ended.'); return; }
+    const memberCount = await getPodMemberCount(pod.id);
+    if (memberCount >= pod.max_players) { setPodFullPopup(true); return; }
+
     // Logged in (non-anonymous): pick from their saved commanders.
     // Use the auth-context `isLoggedIn` flag (which already excludes anonymous
     // / guest sessions) so a still-loading session doesn't fall through to the
@@ -1110,6 +1119,67 @@ function PageContent() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Pod Full Popup ── */}
+      {podFullPopup && (
+        <div onClick={() => setPodFullPopup(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: "'Instrument Sans', sans-serif",
+          padding: 24,
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 340,
+            background: '#FAF5EA',
+            borderRadius: 28,
+            padding: '32px 24px 24px',
+            boxShadow: '0 24px 80px -12px rgba(43,33,24,0.5)',
+            border: '1px solid rgba(43,33,24,0.10)',
+            textAlign: 'center',
+            animation: 'sheetUp 280ms cubic-bezier(.22,.61,.36,1)',
+          }}>
+            {/* Shield icon */}
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: 'rgba(176,107,44,0.10)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B06B2C" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+
+            <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6 }}>No seats left</div>
+            <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 26, letterSpacing: '-0.02em', color: '#2B2118', lineHeight: 1.1 }}>This pod is full</div>
+            <div style={{ marginTop: 10, fontSize: 14, color: '#5C5043', lineHeight: 1.45 }}>
+              All seats have been claimed. Ask the host to create a new pod, or try scanning a different code.
+            </div>
+
+            <button onClick={() => {
+              setPodFullPopup(false);
+              setCodeChars(['', '', '', '', '', '']);
+              setScannedCode(null);
+              setError(null);
+              consumedUrlCodeRef.current = false;
+              if (!scanTimerRef.current && streamRef.current && videoRef.current) {
+                startScanning();
+              }
+            }} style={{
+              width: '100%', marginTop: 20,
+              background: '#2F5D3A', color: '#F5EFE2',
+              border: 'none', borderRadius: 20,
+              padding: '15px 18px', cursor: 'pointer',
+              fontSize: 15, fontWeight: 600,
+              fontFamily: "'Instrument Sans', sans-serif",
+              boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+            }}>Scan another pod</button>
+          </div>
         </div>
       )}
     </>

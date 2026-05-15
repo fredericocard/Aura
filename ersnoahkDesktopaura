@@ -1,0 +1,75 @@
+warning: in the working copy of 'app/create/page.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/app/create/page.tsx b/app/create/page.tsx[m
+[1mindex 02743b8..0510ebc 100644[m
+[1m--- a/app/create/page.tsx[m
+[1m+++ b/app/create/page.tsx[m
+[36m@@ -184,7 +184,40 @@[m [mexport default function Page() {[m
+       return;[m
+     }[m
+ [m
+[31m-    // Show bracket picker step[m
+[32m+[m[32m    // If user has no decks, quick-add without bracket picker[m
+[32m+[m[32m    if (decks.length === 0) {[m
+[32m+[m[32m      setRegistering(true);[m
+[32m+[m[32m      setShowNewDeck(false);[m
+[32m+[m[32m      setSearchQuery('');[m
+[32m+[m[32m      setSearchResults([]);[m
+[32m+[m
+[32m+[m[32m      const { data: newDeck, error: regError } = await registerCommander(validated.cardName, 2, true);[m
+[32m+[m[32m      if (regError || !newDeck) {[m
+[32m+[m[32m        displayToast(regError || 'Failed to register commander');[m
+[32m+[m[32m        setRegistering(false);[m
+[32m+[m[32m        return;[m
+[32m+[m[32m      }[m
+[32m+[m
+[32m+[m[32m      // Update art + color identity[m
+[32m+[m[32m      const { supabase } = await import('@/lib/supabase');[m
+[32m+[m[32m      await supabase.from('decks').update({[m
+[32m+[m[32m        commander_art_url: validated.artUrl,[m
+[32m+[m[32m        color_identity: validated.colorIdentity || null,[m
+[32m+[m[32m      }).eq('id', newDeck.id);[m
+[32m+[m
+[32m+[m[32m      const enrichedDeck = {[m
+[32m+[m[32m        ...newDeck,[m
+[32m+[m[32m        commander_art_url: validated.artUrl,[m
+[32m+[m[32m        color_identity: validated.colorIdentity || null,[m
+[32m+[m[32m      };[m
+[32m+[m[32m      setDecks([enrichedDeck]);[m
+[32m+[m[32m      setSelectedDeck(0);[m
+[32m+[m[32m      setRegistering(false);[m
+[32m+[m[32m      displayToast(`${validated.cardName} added!`);[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // Show bracket picker step (normal flow when user already has decks)[m
+     setPendingCard(validated);[m
+     setSelectedBracket(2); // default[m
+     setShowNewDeck(false);[m
+[36m@@ -844,11 +877,22 @@[m [mexport default function Page() {[m
+             {loading ? ([m
+               <div style={{ textAlign: 'center', padding: 32, color: '#8A7E6F' }}>Loading your commanders...</div>[m
+             ) : decks.length === 0 ? ([m
+[31m-              <div style={{ textAlign: 'center', padding: 32, color: '#8A7E6F' }}>[m
+[31m-                No commanders registered yet.[m
+[31m-                <br />[m
+[31m-                <Link href="/profile" style={{ color: '#2F5D3A', fontWeight: 600 }}>Add a commander first</Link>[m
+[31m-              </div>[m
+[32m+[m[32m              <button onClick={openNewDeck} disabled={registering} style={{[m
+[32m+[m[32m                width: '100%', padding: '18px 16px',[m
+[32m+[m[32m                background: 'transparent', border: '1.5px dashed rgba(43,33,24,0.25)',[m
+[32m+[m[32m                borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,[m
+[32m+[m[32m                color: '#2F5D3A', fontSize: 15, fontWeight: 600, fontFamily: "'Instrument Sans', sans-serif",[m
+[32m+[m[32m                cursor: registering ? 'default' : 'pointer', transition: 'all 0.2s ease',[m
+[32m+[m[32m                opacity: registering ? 0.5 : 1,[m
+[32m+[m[32m              }}>[m
+[32m+[m[32m                {registering ? 'Adding...' : (<>[m
+[32m+[m[32m                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">[m
+[32m+[m[32m                    <line x1="12" y1="5" x2="12" y2="19" />[m
+[32m+[m[32m                    <line x1="5" y1="12" x2="19" y2="12" />[m
+[32m+[m[32m                  </svg>[m
+[32m+[m[32m                  Choose a Commander[m
+[32m+[m[32m                </>)}[m
+[32m+[m[32m              </button>[m
+             ) : ([m
+               decks.map((d, i) => ([m
+                 <div[m

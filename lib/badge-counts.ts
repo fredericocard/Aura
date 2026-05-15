@@ -216,7 +216,20 @@ export async function processGameBadges(gameId: string): Promise<{
   let votesRecorded = 0;
   let badgesRecorded = 0;
 
+  // Pre-fetch bracket status for all decks in this game
+  const deckIds = [...new Set(attributions.map((a: any) => a.deck_id).filter(Boolean))];
+  const { data: deckBrackets } = await supabase
+    .from('decks')
+    .select('id, bracket')
+    .in('id', deckIds) as { data: any; error: any };
+  const hasBracketSet = new Set(
+    (deckBrackets ?? []).filter((d: any) => d.bracket !== null).map((d: any) => d.id)
+  );
+
   for (const attr of attributions) {
+    // Skip scoring for decks with NULL bracket — scoring deferred until bracket is chosen
+    if (!hasBracketSet.has(attr.deck_id)) continue;
+
     // 1. Record badge votes (all categories)
     const voteCounts = attr.vote_counts as Record<BadgeKey, number>;
     const hasVotes = Object.values(voteCounts).some(v => v > 0);

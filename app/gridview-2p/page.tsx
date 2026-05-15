@@ -1485,6 +1485,7 @@ function PageContent() {
   const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
   const [commanderArt, setCommanderArt] = useState<Record<string, string>>({});
   const [showSeatPicker, setShowSeatPicker] = useState(false);
+  const [guestUserIds, setGuestUserIds] = useState<Set<string>>(new Set());
   const [myDeckArt, setMyDeckArt] = useState<string | undefined>(undefined);
 
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
@@ -1595,6 +1596,24 @@ function PageContent() {
       setPlayerSeatNumbers(newSeatNumbers);
       setCounters(newCounters);
       setGameLoaded(true);
+
+      // Identify guest-occupied seats so the seat picker shows them as available.
+      const occupantIds = Object.values(newUserIds).filter(Boolean);
+      if (occupantIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, account_type')
+          .in('id', occupantIds) as { data: any };
+        const guests = new Set<string>();
+        (profiles ?? []).forEach((pr: any) => {
+          if (pr.account_type === 'guest') guests.add(pr.id);
+        });
+        // Also treat user_ids with NO profile row as guests (e.g. orphaned anonymous sessions).
+        occupantIds.forEach((uid) => {
+          if (!(profiles ?? []).some((pr: any) => pr.id === uid)) guests.add(uid);
+        });
+        setGuestUserIds(guests);
+      }
 
       // Load commander damage from Supabase (stored as damage RECEIVED per player)
       // Convert to cmdrDamage[from][to] format used by gridview
@@ -2337,7 +2356,8 @@ function PageContent() {
           const uid = auth?.user?.id;
           for (let n = 1; n <= 2; n++) {
             const p = players[n];
-            const taken = !!(p && p.claimed);
+            const isGuestOccupied = !!(playerUserIds[n] && guestUserIds.has(playerUserIds[n]));
+            const taken = !!(p && p.claimed) && !isGuestOccupied;
             out.push({
               seat: n,
               label: taken ? (p?.commander ?? p?.name ?? `Player ${n}`) : `Player ${n}`,

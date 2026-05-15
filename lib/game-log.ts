@@ -198,7 +198,7 @@ export async function getGameLog(
 
     return {
       gameId: pg.game_id,
-      gameDate: game.created_at.split("T")[0],
+      gameDate: game.created_at,
       podSize: game.pod_size,
       gameState: game.state,
       commanderName: deck.commander_name,
