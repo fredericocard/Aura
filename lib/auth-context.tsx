@@ -43,14 +43,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, displayName?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { display_name: displayName || email.split('@')[0] },
       },
     });
-    return { error: error?.message ?? null };
+    if (error) return { error: error.message };
+    // Supabase returns a user with empty identities when the email is already taken
+    // (instead of an error, to prevent email enumeration)
+    if (data?.user && (!data.user.identities || data.user.identities.length === 0)) {
+      return { error: 'This email is already linked to an Aura account. Try logging in instead.' };
+    }
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
