@@ -226,7 +226,15 @@ function PageContent() {
   const consumedUrlCodeRef = useRef(false);
   useEffect(() => {
     if (consumedUrlCodeRef.current) return;
-    const prefill = searchParams.get('code');
+    let prefill = searchParams.get('code');
+    // Fallback: read from sessionStorage (set before Google SSO redirect)
+    if (!prefill && typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('joinPodCode');
+      if (stored) {
+        prefill = stored;
+        sessionStorage.removeItem('joinPodCode');
+      }
+    }
     if (!prefill) return;
     const cleaned = prefill.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     const chars = cleaned.split('');
@@ -491,12 +499,16 @@ function PageContent() {
 
   // Google SSO
   async function handleGoogleSSO() {
+    const code = codeChars.join('');
+    if (code && typeof window !== 'undefined') {
+      sessionStorage.setItem('joinPodCode', code);
+    }
     const { supabase } = await import('../../lib/supabase');
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: typeof window !== 'undefined'
-          ? window.location.origin + '/join?code=' + codeChars.join('')
+          ? window.location.origin + '/join' + (code ? '?code=' + code : '')
           : undefined,
       },
     });
