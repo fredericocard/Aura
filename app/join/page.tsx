@@ -170,6 +170,9 @@ function PageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
 
+  // Clear errors when switching auth views
+  useEffect(() => { setAuthError(''); }, [authView]);
+
   // Commander search state (for guest join)
   const [cmdSearchQuery, setCmdSearchQuery] = useState('');
   const [cmdSearchResults, setCmdSearchResults] = useState<any[]>([]);
@@ -512,6 +515,7 @@ function PageContent() {
   // Close login sheet back to commander
   function closeLoginSheet() {
     setLoginSlideUp(false);
+    setAuthError('');
     setTimeout(() => setAuthView('commander'), 300);
   }
 
