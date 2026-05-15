@@ -161,7 +161,7 @@ export async function claimSeat(gameId: string, seatNumber: number): Promise<{ e
   if (memberError) return { error: memberError.message };
   if (!member?.deck_id) return { error: 'No deck registered for this pod' };
 
-  // 3. Fast path: claim the seat if it's completely empty (user_id IS NULL).
+  // 3. Claim the seat — only if it's empty (user_id IS NULL).
   const { data, error } = await supabase
     .from('game_players')
     .update({
@@ -174,57 +174,9 @@ export async function claimSeat(gameId: string, seatNumber: number): Promise<{ e
     .select() as { data: any; error: any };
 
   if (error) return { error: error.message };
-  if (data && data.length > 0) return { error: null }; // Success — empty seat claimed.
+  if (data && data.length > 0) return { error: null };
 
-  // 4. Seat has a user_id. Check if that occupant is a guest (anonymous).
-  //    If so, the logged-in user can take over the seat while keeping all
-  //    game data (life, poison, energy, commander damage) intact.
-  const { data: seatRow } = await supabase
-    .from('game_players')
-    .select('user_id')
-    .eq('game_id', gameId)
-    .eq('seat_number', seatNumber)
-    .single() as { data: any; error: any };
-
-  if (!seatRow?.user_id) {
-    // Became empty between our two queries — retry the fast path.
-    const { data: retry } = await supabase
-      .from('game_players')
-      .update({ user_id: user.id, deck_id: member.deck_id })
-      .eq('game_id', gameId)
-      .eq('seat_number', seatNumber)
-      .is('user_id', null)
-      .select() as { data: any; error: any };
-    return retry && retry.length > 0 ? { error: null } : { error: 'Seat is already taken' };
-  }
-
-  // If the current occupant is ourselves, nothing to do.
-  if (seatRow.user_id === user.id) return { error: null };
-
-  // Look up the occupant's profile to see if they are a guest.
-  const { data: occupant } = await supabase
-    .from('profiles')
-    .select('account_type')
-    .eq('id', seatRow.user_id)
-    .maybeSingle() as { data: any; error: any };
-
-  const isGuest = !occupant || occupant.account_type === 'guest';
-
-  if (!isGuest) return { error: 'Seat is already taken' };
-
-  // 5. Take over the guest's seat — preserve all game counters, only swap identity.
-  const { error: takeoverErr } = await supabase
-    .from('game_players')
-    .update({
-      user_id: user.id,
-      deck_id: member.deck_id,
-    })
-    .eq('game_id', gameId)
-    .eq('seat_number', seatNumber)
-    .eq('user_id', seatRow.user_id) as { error: any }; // guard: only if occupant hasn't changed
-
-  if (takeoverErr) return { error: takeoverErr.message };
-  return { error: null };
+  return { error: 'Seat is already taken' };
 }
 
 /**

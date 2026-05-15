@@ -142,9 +142,13 @@ export async function updateCommanderArt(deckId: string, artUrl: string): Promis
  * RLS ensures only the user's own decks are returned.
  */
 export async function getMyCommanders(): Promise<{ data: Deck[]; error: string | null }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: [], error: 'Not authenticated' };
+
   const { data, error } = await supabase
     .from('decks')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false }) as { data: any; error: any };
 
   return { data: (data as Deck[]) ?? [], error: error?.message ?? null };
