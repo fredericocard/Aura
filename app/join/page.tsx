@@ -169,7 +169,7 @@ function PageContent() {
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const [podFullPopup, setPodFullPopup] = useState(false);
+  const [podBlockedReason, setPodBlockedReason] = useState<'full' | 'ended' | null>(null);
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   // Clear errors and reset state when switching auth views
@@ -191,6 +191,8 @@ function PageContent() {
   const streamRef = useRef<MediaStream | null>(null);
   const scanTimerRef = useRef<number | null>(null);
   const [camStatus, setCamStatus] = useState<'idle' | 'requesting' | 'active' | 'denied' | 'unavailable'>('idle');
+  // Bumping this re-runs the camera-start effect (used by tap-to-reset on the viewport).
+  const [cameraResetKey, setCameraResetKey] = useState(0);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
 
   // Login sheet animation
@@ -324,6 +326,18 @@ function PageContent() {
     startCamera();
     return () => { cancelled = true; stopCamera(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraResetKey]);
+
+  // Tap-to-reset on the camera viewport. Clears any scanned code and forces
+  // the camera + scan loop to restart — useful if the camera went idle after
+  // a previous scan or after the device put the page to sleep.
+  const resetScanner = useCallback(() => {
+    setScannedCode(null);
+    setCodeChars(['', '', '', '', '', '']);
+    setError(null);
+    setPendingJoinCode(null);
+    consumedUrlCodeRef.current = false;
+    setCameraResetKey((k) => k + 1);
   }, []);
 
   /* ── QR scanning loop ─────────────────────────────────────────────────── */
@@ -460,9 +474,26 @@ function PageContent() {
     // Check if pod exists and has room before showing the auth gate
     const { data: pod, error: podErr } = await getPodByCode(fullCode);
     if (podErr || !pod) { setError(podErr ?? 'Pod not found'); return; }
+
+    // Check if the game for this pod has already ended (completed, abandoned, or in questionnaire).
+    const supabaseClient = createClient();
+    const { data: latestGames } = await supabaseClient
+      .from('games')
+      .select('id, state')
+      .eq('pod_id', pod.id)
+      .order('created_at', { ascending: false })
+      .limit(1) as { data: any };
+
+    const latestGame = latestGames?.[0];
+    if (latestGame && (latestGame.state === 'completed' || latestGame.state === 'abandoned' || latestGame.state === 'in_questionnaire')) {
+      setPodBlockedReason('ended');
+      return;
+    }
+
+    // Check if all seats are taken
     if (pod.state !== 'waiting') { setError('This pod has already started or ended.'); return; }
     const memberCount = await getPodMemberCount(pod.id);
-    if (memberCount >= pod.max_players) { setPodFullPopup(true); return; }
+    if (memberCount >= pod.max_players) { setPodBlockedReason('full'); return; }
 
     // Logged in (non-anonymous): pick from their saved commanders.
     // Use the auth-context `isLoggedIn` flag (which already excludes anonymous
@@ -606,7 +637,14 @@ function PageContent() {
         </div>
 
         <div className="content">
-          <div className="scanner-viewport">
+          <div
+            className="scanner-viewport"
+            onClick={resetScanner}
+            role="button"
+            tabIndex={0}
+            aria-label="Tap to restart the scanner"
+            style={{ cursor: 'pointer' }}
+          >
             <video ref={videoRef} playsInline muted />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
             {camStatus === 'active' && !scannedCode && (<>
@@ -1122,9 +1160,9 @@ function PageContent() {
         </div>
       )}
 
-      {/* ── Pod Full Popup ── */}
-      {podFullPopup && (
-        <div onClick={() => setPodFullPopup(false)} style={{
+      {/* ── Pod Blocked Popup (full or ended) ── */}
+      {podBlockedReason && (
+        <div onClick={() => setPodBlockedReason(null)} style={{
           position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(43,33,24,0.55)',
           backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1141,28 +1179,41 @@ function PageContent() {
             textAlign: 'center',
             animation: 'sheetUp 280ms cubic-bezier(.22,.61,.36,1)',
           }}>
-            {/* Shield icon */}
+            {/* Icon */}
             <div style={{
               width: 56, height: 56, borderRadius: 16,
               background: 'rgba(176,107,44,0.10)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 16px',
             }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B06B2C" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
+              {podBlockedReason === 'full' ? (
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B06B2C" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              ) : (
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B06B2C" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              )}
             </div>
 
-            <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6 }}>No seats left</div>
-            <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 26, letterSpacing: '-0.02em', color: '#2B2118', lineHeight: 1.1 }}>This pod is full</div>
+            <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6 }}>
+              {podBlockedReason === 'full' ? 'No seats left' : 'Game over'}
+            </div>
+            <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 26, letterSpacing: '-0.02em', color: '#2B2118', lineHeight: 1.1 }}>
+              {podBlockedReason === 'full' ? 'This pod is full' : 'This game has ended'}
+            </div>
             <div style={{ marginTop: 10, fontSize: 14, color: '#5C5043', lineHeight: 1.45 }}>
-              All seats have been claimed. Ask the host to create a new pod, or try scanning a different code.
+              {podBlockedReason === 'full'
+                ? 'All seats have been claimed. Ask the host to create a new pod, or try scanning a different code.'
+                : 'This game is already over. Ask the host to start a new pod, or scan a different code to join another game.'}
             </div>
 
             <button onClick={() => {
-              setPodFullPopup(false);
+              setPodBlockedReason(null);
               setCodeChars(['', '', '', '', '', '']);
               setScannedCode(null);
               setError(null);

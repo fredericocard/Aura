@@ -135,14 +135,17 @@ export function Seat({
   onClaim,
   justClaimedId,
   idleIndex = 0,
+  youId,
 }: {
   seat: SeatDef & { _px: { left: number; top: number } };
   claim?: SeatClaim;
   onClaim: (id: string) => void;
   justClaimedId: string | null;
   idleIndex?: number;
+  youId?: string;
 }) {
   const isTaken = !!claim;
+  const isMe = !!(claim && youId && claim.id === youId);
   const box = SEAT_BOX[seat.side];
   const fresh = justClaimedId === seat.id;
   const theme = COMPASS_THEME;
@@ -174,7 +177,10 @@ export function Seat({
     </button>
   );
 
-  const taken = (
+  // Taken seats that are NOT the current user are still tappable —
+  // claimSeat() will decide server-side if the takeover is allowed
+  // (e.g. guest-occupied seats can be taken over).
+  const takenContent = (
     <div style={{
       position: 'absolute',
       width: 50, height: 50,
@@ -204,6 +210,24 @@ export function Seat({
         />
       )}
     </div>
+  );
+
+  const taken = isMe ? takenContent : (
+    <button
+      type="button"
+      onClick={() => onClaim(seat.id)}
+      aria-label={`Take over seat ${seat.id}`}
+      style={{
+        position: 'absolute', inset: 0,
+        background: 'transparent',
+        border: 'none',
+        padding: 0,
+        cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      {takenContent}
+    </button>
   );
 
   return (
@@ -367,7 +391,8 @@ export function SeatModalCompass({
               claim={claimed[s.id]}
               onClaim={onClaim}
               justClaimedId={justClaimedId ?? null}
-              idleIndex={i}/>
+              idleIndex={i}
+              youId={you.id}/>
           ))}
         </div>
       </div>
