@@ -151,7 +151,7 @@ function useSheetDrag(onDismiss: () => void) {
 function PageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, signIn, signInAsGuest, signUp, isLoggedIn, loading: authLoading } = useAuth();
+  const { user, signIn, signInAsGuest, signUp, resetPassword, isLoggedIn, loading: authLoading } = useAuth();
   // Code captured by a scan or URL prefill, queued until auth state is known.
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const [codeChars, setCodeChars] = useState<string[]>(['', '', '', '', '', '']);
@@ -168,10 +168,11 @@ function PageContent() {
   const [authError, setAuthError] = useState('');
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
 
-  // Clear errors when switching auth views
-  useEffect(() => { setAuthError(''); }, [authView]);
+  // Clear errors and reset state when switching auth views
+  useEffect(() => { setAuthError(''); setResetSent(false); }, [authView]);
 
   // Commander search state (for guest join)
   const [cmdSearchQuery, setCmdSearchQuery] = useState('');
@@ -749,7 +750,7 @@ function PageContent() {
                       </div>
                       <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6 }}>The Threshold</div>
                       <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 28, letterSpacing: '-0.02em', color: '#2B2118', lineHeight: 1.05 }}>Step into the pod</div>
-                      <div style={{ marginTop: 6, fontSize: 13, color: '#5C5043' }}>Sign in to keep your record.</div>
+                      <div style={{ marginTop: 6, fontSize: 13, color: '#5C5043' }}>Log in to keep your record.</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <SSOButton provider="google" onClick={handleGoogleSSO} />
@@ -772,13 +773,13 @@ function PageContent() {
                       Sign up with email
                     </button>
                     <div style={{ textAlign: 'center', fontSize: 13, color: '#5C5043', marginTop: 4 }}>
-                      {"Don't have an account? "}
-                      <button onClick={() => { setAuthView('signup'); setAuthError(''); }} style={{
+                      Already have an account?{' '}
+                      <button onClick={() => { setAuthView('signin'); setAuthError(''); }} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         color: '#2F5D3A', fontWeight: 700, fontSize: 13,
                         fontFamily: "'Instrument Sans', sans-serif", padding: 0,
                         textDecoration: 'underline', textUnderlineOffset: 3,
-                      }}>Sign up</button>
+                      }}>Log in</button>
                     </div>
                   </div>
                 )}
@@ -829,6 +830,20 @@ function PageContent() {
                       boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
                       fontFamily: "'Instrument Sans', sans-serif",
                     }}>{authSubmitting ? 'Logging in...' : 'Log in'}</button>
+                    {resetSent ? (
+                      <div style={{ textAlign: 'center', fontSize: 13, color: '#2F5D3A', fontWeight: 600 }}>Reset link sent — check your email.</div>
+                    ) : (
+                      <button onClick={async () => {
+                        if (!authEmail) { setAuthError('Enter your email first'); return; }
+                        const { error } = await resetPassword(authEmail);
+                        if (error) { setAuthError(error); } else { setResetSent(true); setAuthError(''); }
+                      }} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: '#8A7E6F', fontWeight: 600, fontSize: 13,
+                        fontFamily: "'Instrument Sans', sans-serif", padding: 0,
+                        textAlign: 'center', width: '100%',
+                      }}>Forgot password?</button>
+                    )}
                     <div style={{ textAlign: 'center', fontSize: 13, color: '#5C5043' }}>
                       {"Don't have an account? "}
                       <button onClick={() => { setAuthView('signup'); setAuthError(''); }} style={{
@@ -856,8 +871,13 @@ function PageContent() {
 
                     {signupSuccess ? (
                       <>
-                        <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 14, color: '#2B2118' }}>
-                          We sent a confirmation link to your email. Click it to activate your account, then come back and log in.
+                        <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                            <AuraMark size={28} color="#B06B2C" />
+                          </div>
+                          <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B06B2C', marginBottom: 6 }}>Almost there</div>
+                          <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 28, letterSpacing: '-0.02em', color: '#2B2118', lineHeight: 1.05 }}>Check your email</div>
+                          <div style={{ marginTop: 6, fontSize: 13, color: '#5C5043' }}>We sent a confirmation link. Click it to activate your account, then come back and log in.</div>
                         </div>
                         <button onClick={() => { setAuthView('signin'); setAuthError(''); setSignupSuccess(false); }} style={{
                           background: '#2F5D3A', color: '#F5EFE2',

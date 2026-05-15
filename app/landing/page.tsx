@@ -266,7 +266,7 @@ function SSOView({ setView, onLogin, redirectTo }: { setView: (v: string) => voi
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <SheetMasthead eyebrow="The Threshold" title="Step into the pod" subtitle="Sign in to keep your record." />
+      <SheetMasthead eyebrow="The Threshold" title="Step into the pod" subtitle="Log in to keep your record." />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SSOButton provider="google" onClick={handleGoogleSSO} />
       </div>
@@ -376,11 +376,12 @@ function SignUpView({ setView }: { setView: (v: string) => void }) {
 
 /* ── SignInView ── */
 function SignInView({ setView }: { setView: (v: string) => void }) {
-  const { signIn } = useAuth();
+  const { signIn, resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
 
   const handleSignIn = async () => {
@@ -413,6 +414,20 @@ function SignInView({ setView }: { setView: (v: string) => void }) {
         boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
         fontFamily: "'Instrument Sans', sans-serif",
       }}>{submitting ? 'Logging in...' : 'Log in'}</button>
+      {resetSent ? (
+        <div style={{ textAlign: 'center', fontSize: 13, color: '#2F5D3A', fontWeight: 600 }}>Reset link sent — check your email.</div>
+      ) : (
+        <button onClick={async () => {
+          if (!email) { setError('Enter your email first'); return; }
+          const { error: resetErr } = await resetPassword(email);
+          if (resetErr) { setError(resetErr); } else { setResetSent(true); setError(''); }
+        }} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: '#8A7E6F', fontWeight: 600, fontSize: 13,
+          fontFamily: "'Instrument Sans', sans-serif", padding: 0,
+          textAlign: 'center', width: '100%',
+        }}>Forgot password?</button>
+      )}
       <div style={{ textAlign: 'center', fontSize: 13, color: '#5C5043' }}>
         Don&apos;t have an account?{' '}
         <button onClick={() => setView('signup')} style={{

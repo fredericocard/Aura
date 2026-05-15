@@ -15,6 +15,7 @@ interface AuthState {
   signInAsGuest: () => Promise<{ error: string | null }>;
   promoteGuest: (email: string, password: string, displayName?: string) => Promise<{ error: string | null }>;
   promoteGuestWithGoogle: () => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -102,6 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' ? window.location.origin + '/landing' : undefined,
+    });
+    return { error: error?.message ?? null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -121,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInAsGuest,
       promoteGuest,
       promoteGuestWithGoogle,
+      resetPassword,
       signOut,
     }}>
       {children}
