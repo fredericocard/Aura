@@ -248,7 +248,6 @@ function SSOView({ setView, onLogin, redirectTo }: { setView: (v: string) => voi
       <SheetMasthead eyebrow="The Threshold" title="Step into the pod" subtitle="Sign in to keep your record." />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SSOButton provider="google" onClick={handleGoogleSSO} />
-        <SSOButton provider="apple" onClick={onLogin} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
         <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.14)' }} />
