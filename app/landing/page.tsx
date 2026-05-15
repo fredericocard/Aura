@@ -189,7 +189,7 @@ function SSOButton({ provider, onClick }: { provider: 'google' | 'apple'; onClic
 
 /* ── FieldInput — form fields for sign up / sign in ── */
 function FieldInput({ label, type = 'text', placeholder, value, onChange, autoComplete }: { label: string; type?: string; placeholder?: string; value: string; onChange: (v: string) => void; autoComplete?: string }) {
-  const [showPw, setShowPw] = React.useState(false);
+  const [showPw, setShowPw] = useState(false);
   const isPassword = type === 'password';
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
