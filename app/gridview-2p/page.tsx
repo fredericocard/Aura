@@ -1485,6 +1485,7 @@ function PageContent() {
   const [playerSeatNumbers, setPlayerSeatNumbers] = useState<Record<number, number>>({});
   const [commanderArt, setCommanderArt] = useState<Record<string, string>>({});
   const [showSeatPicker, setShowSeatPicker] = useState(false);
+  const [myDeckArt, setMyDeckArt] = useState<string | undefined>(undefined);
 
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const diceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -1529,6 +1530,26 @@ function PageContent() {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       const myUserId = authUser?.id ?? null;
       const myDisplayName = authUser?.user_metadata?.display_name ?? null;
+
+      // Fetch current user's deck art for seat picker
+      if (myUserId && game.pod_id) {
+        const { data: myMember } = await supabase
+          .from('pod_members')
+          .select('deck_id')
+          .eq('pod_id', game.pod_id)
+          .eq('user_id', myUserId)
+          .maybeSingle() as { data: any };
+        if (myMember?.deck_id) {
+          const { data: myDeck } = await supabase
+            .from('decks')
+            .select('commander_art_url')
+            .eq('id', myMember.deck_id)
+            .maybeSingle() as { data: any };
+          if (myDeck?.commander_art_url) {
+            setMyDeckArt(myDeck.commander_art_url);
+          }
+        }
+      }
 
       const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
       let deckMap = new Map();
@@ -2334,6 +2355,7 @@ function PageContent() {
         }}
         youId={auth?.user?.id}
         youName={auth?.user?.user_metadata?.display_name ?? auth?.user?.email?.split('@')[0]}
+        youArt={myDeckArt}
         dark={DARK !== LIGHT_THEME}
       />
 
