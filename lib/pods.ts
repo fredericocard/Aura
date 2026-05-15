@@ -147,7 +147,15 @@ export async function joinPod(shortCode: string, deckId?: string): Promise<{ dat
 
   if (joinError) {
     if (joinError.message.includes('duplicate') || joinError.message.includes('unique')) {
-      return { data: pod as Pod, error: null }; // already a member
+      // Already a member — update deck_id if a new one was provided
+      if (deckId) {
+        await supabase
+          .from('pod_members')
+          .update({ deck_id: deckId })
+          .eq('pod_id', pod.id)
+          .eq('user_id', user.id);
+      }
+      return { data: pod as Pod, error: null };
     }
     return { data: null, error: joinError.message };
   }
