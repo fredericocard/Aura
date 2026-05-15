@@ -119,25 +119,53 @@ export default function Page() {
       return;
     }
 
-    setCreatedPod({ id: pod.id, short_code: pod.short_code });
-    setShowQr(true);
-    setCreating(false);
-  }
-
-  // Enter pod → create game + navigate to gridview
-  async function handleEnterPod() {
-    if (!createdPod) return;
-    setCreating(true);
-
-    const { data: game, error: gameErr } = await createGame(createdPod.id, selectedPlayers);
+    // 2. Create the game immediately so it exists when others scan the QR code
+    const { data: game, error: gameErr } = await createGame(pod.id, selectedPlayers);
     if (gameErr || !game) {
       setError(gameErr ?? 'Failed to create game');
       setCreating(false);
       return;
     }
 
+    setCreatedPod({ id: pod.id, short_code: pod.short_code });
     setCreatedGameId(game.id);
-    // Navigate to gridview with pod context
+    setShowQr(true);
+    setCreating(false);
+  }
+
+  // Enter pod → find existing game + navigate to gridview
+  async function handleEnterPod() {
+    if (!createdPod) return;
+    setCreating(true);
+
+    // Game was already created in handleCreatePod — use it
+    if (createdGameId) {
+      router.push(`/gridview-${selectedPlayers}p?podId=${createdPod.id}&gameId=${createdGameId}`);
+      return;
+    }
+
+    // Fallback: find existing game (shouldn't normally be needed)
+    const { supabase: sb } = await import('@/lib/supabase');
+    const { data: existingGames } = await sb
+      .from('games').select('id, pod_size').eq('pod_id', createdPod.id)
+      .in('state', ['active', 'in_questionnaire'])
+      .order('created_at', { ascending: false }).limit(1) as { data: any };
+
+    if (existingGames && existingGames.length > 0) {
+      const game = existingGames[0];
+      setCreatedGameId(game.id);
+      router.push(`/gridview-${game.pod_size}p?podId=${createdPod.id}&gameId=${game.id}`);
+      return;
+    }
+
+    // Last resort: create game now
+    const { data: game, error: gameErr } = await createGame(createdPod.id, selectedPlayers);
+    if (gameErr || !game) {
+      setError(gameErr ?? 'Failed to create game');
+      setCreating(false);
+      return;
+    }
+    setCreatedGameId(game.id);
     router.push(`/gridview-${selectedPlayers}p?podId=${createdPod.id}&gameId=${game.id}`);
   }
 

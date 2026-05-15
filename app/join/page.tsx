@@ -3,7 +3,7 @@
 import { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { joinPod, getPodByCode, getPodMemberCount } from '@/lib/pods';
-import { createGame } from '@/lib/games';
+
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { searchCommanders } from '@/lib/scryfall';
@@ -402,16 +402,15 @@ function PageContent() {
       .from('games').select('id, pod_size').eq('pod_id', pod.id)
       .in('state', ['active', 'in_questionnaire'])
       .order('created_at', { ascending: false }).limit(1) as { data: any };
-    let gameId: string; let podSize: number;
     if (existingGames && existingGames.length > 0) {
-      gameId = existingGames[0].id; podSize = existingGames[0].pod_size;
+      const game = existingGames[0];
+      router.push(`/gridview-${game.pod_size}p?podId=${pod.id}&gameId=${game.id}`);
     } else {
-      const seats = pod.max_players ?? 2;
-      const { data: newGame, error: gameErr } = await createGame(pod.id, seats);
-      if (gameErr || !newGame) { setError(gameErr ?? 'Failed to start the game'); setJoining(false); return; }
-      gameId = newGame.id; podSize = seats;
+      // Game hasn't been created yet — host may not have entered the pod.
+      // Show an error so the user knows to wait.
+      setError('The host hasn’t started the game yet. Ask them to enter the pod first.');
+      setJoining(false);
     }
-    router.push(`/gridview-${podSize}p?podId=${pod.id}&gameId=${gameId}`);
   }
 
   // Commander search for guest flow
