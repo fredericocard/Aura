@@ -766,13 +766,13 @@ function PageContent() {
                       Sign up with email
                     </button>
                     <div style={{ textAlign: 'center', fontSize: 13, color: '#5C5043', marginTop: 4 }}>
-                      Already have an account?{' '}
-                      <button onClick={() => { setAuthView('signin'); setAuthError(''); }} style={{
+                      {"Don't have an account? "}
+                      <button onClick={() => { setAuthView('signup'); setAuthError(''); }} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         color: '#2F5D3A', fontWeight: 700, fontSize: 13,
                         fontFamily: "'Instrument Sans', sans-serif", padding: 0,
                         textDecoration: 'underline', textUnderlineOffset: 3,
-                      }}>Log in</button>
+                      }}>Sign up</button>
                     </div>
                   </div>
                 )}
