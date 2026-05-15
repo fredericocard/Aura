@@ -565,6 +565,14 @@ export default function HomePage() {
   useEffect(() => {
     if (!isLoggedIn || loading) return;
 
+    // 0. If user was doing Google SSO from the join page, redirect back there
+    const joinCode = sessionStorage.getItem('joinPodCode');
+    if (joinCode) {
+      sessionStorage.removeItem('joinPodCode');
+      window.location.href = '/join?code=' + joinCode;
+      return;
+    }
+
     // 1. Check sessionStorage (survives OAuth page reload, same-origin same-tab)
     const saved = sessionStorage.getItem('loginRedirect');
     if (saved) {
