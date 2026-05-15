@@ -183,16 +183,26 @@ export function Seat({
       borderRadius: '50%',
       overflow: 'hidden',
       border: `2px solid ${theme.takenRing}`,
-      background: 'var(--parchment-deep)',
+      background: 'rgba(176,107,44,0.10)',
       boxShadow: '0 2px 8px rgba(43,33,24,0.22)',
     }}>
-      <div aria-label={claim?.name} style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: claim?.art ? `url(${claim.art})` : undefined,
-        backgroundColor: claim?.art ? undefined : 'rgba(176,107,44,0.10)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}/>
+      {claim?.art && (
+        <img
+          src={claim.art}
+          alt={claim?.name ?? ''}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
+      )}
     </div>
   );
 
