@@ -1703,6 +1703,15 @@ function PageContent() {
             }
           }
         })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+          if (row.state === 'completed') {
+            router.push('/recent-games?gameFinished=1');
+          } else if (row.state === 'in_questionnaire') {
+            router.push(`/review?podId=${row.pod_id}&gameId=${gameId}`);
+          }
+        })
         .subscribe();
       return () => { supabase.removeChannel(channel); };
     }
