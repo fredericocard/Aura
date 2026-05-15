@@ -165,6 +165,7 @@ function PageContent() {
   const [confirmEmail, setConfirmEmail] = useState('');
   const [authError, setAuthError] = useState('');
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   // Commander search state (for guest join)
@@ -796,9 +797,18 @@ function PageContent() {
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A7E6F' }}>Password</span>
-                        <input type="password" placeholder="--------" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} autoComplete="off"
-                          onKeyDown={(e) => { if (e.key === 'Enter') handleAuthLogin(); }}
-                          style={{ width: '100%', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)', borderRadius: 12, padding: '12px 14px', fontSize: 15, color: '#2B2118', fontFamily: "'Instrument Sans', sans-serif", outline: 'none' }}/>
+                        <div style={{ position: 'relative' }}>
+                          <input type={showPassword ? 'text' : 'password'} placeholder="--------" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} autoComplete="off"
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleAuthLogin(); }}
+                            style={{ width: '100%', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)', borderRadius: 12, padding: '12px 14px', paddingRight: 44, fontSize: 15, color: '#2B2118', fontFamily: "'Instrument Sans', sans-serif", outline: 'none', boxSizing: 'border-box' }}/>
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} style={{
+                            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <LIcon name={showPassword ? 'eye-off' : 'eye'} size={18} width={1.5} stroke="#8A7E6F" />
+                          </button>
+                        </div>
                       </label>
                     </div>
                     <button onClick={handleAuthLogin} disabled={authSubmitting} style={{
@@ -863,9 +873,18 @@ function PageContent() {
                           </label>
                           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A7E6F' }}>Password</span>
-                            <input type="password" placeholder="--------" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} autoComplete="new-password"
-                              onKeyDown={(e) => { if (e.key === 'Enter') handleAuthSignUp(); }}
-                              style={{ width: '100%', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)', borderRadius: 12, padding: '12px 14px', fontSize: 15, color: '#2B2118', fontFamily: "'Instrument Sans', sans-serif", outline: 'none' }}/>
+                            <div style={{ position: 'relative' }}>
+                              <input type={showPassword ? 'text' : 'password'} placeholder="--------" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} autoComplete="new-password"
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleAuthSignUp(); }}
+                                style={{ width: '100%', background: '#F5EFE2', border: '1px solid rgba(43,33,24,0.14)', borderRadius: 12, padding: '12px 14px', paddingRight: 44, fontSize: 15, color: '#2B2118', fontFamily: "'Instrument Sans', sans-serif", outline: 'none', boxSizing: 'border-box' }}/>
+                              <button type="button" onClick={() => setShowPassword(!showPassword)} style={{
+                                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                                background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}>
+                                <LIcon name={showPassword ? 'eye-off' : 'eye'} size={18} width={1.5} stroke="#8A7E6F" />
+                              </button>
+                            </div>
                           </label>
                         </div>
                         <button onClick={handleAuthSignUp} disabled={authSubmitting} style={{

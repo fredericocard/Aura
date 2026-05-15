@@ -189,27 +189,42 @@ function SSOButton({ provider, onClick }: { provider: 'google' | 'apple'; onClic
 
 /* ── FieldInput — form fields for sign up / sign in ── */
 function FieldInput({ label, type = 'text', placeholder, value, onChange, autoComplete }: { label: string; type?: string; placeholder?: string; value: string; onChange: (v: string) => void; autoComplete?: string }) {
+  const [showPw, setShowPw] = React.useState(false);
+  const isPassword = type === 'password';
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span style={{
         fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: '#8A7E6F',
       }}>{label}</span>
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoComplete={autoComplete ?? 'off'}
-        style={{
-          width: '100%',
-          background: '#F5EFE2',
-          border: '1px solid rgba(43,33,24,0.14)',
-          borderRadius: 12, padding: '12px 14px',
-          fontSize: 15, color: '#2B2118',
-          fontFamily: "'Instrument Sans', sans-serif", outline: 'none',
-        }}
-      />
+      <div style={{ position: 'relative' }}>
+        <input
+          type={isPassword && showPw ? 'text' : type}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete={autoComplete ?? 'off'}
+          style={{
+            width: '100%',
+            background: '#F5EFE2',
+            border: '1px solid rgba(43,33,24,0.14)',
+            borderRadius: 12, padding: '12px 14px',
+            paddingRight: isPassword ? 44 : 14,
+            fontSize: 15, color: '#2B2118',
+            fontFamily: "'Instrument Sans', sans-serif", outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+        {isPassword && (
+          <button type="button" onClick={(e) => { e.preventDefault(); setShowPw(!showPw); }} style={{
+            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <LIcon name={showPw ? 'eye-off' : 'eye'} size={18} width={1.5} stroke="#8A7E6F" />
+          </button>
+        )}
+      </div>
     </label>
   );
 }
