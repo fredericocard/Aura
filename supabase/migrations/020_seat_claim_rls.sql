@@ -13,20 +13,13 @@
 --    in the seat picker.
 -- ============================================
 
--- 1. Allow pod members to claim empty seats or take over guest seats
-CREATE POLICY "Pod members can claim empty or guest seats"
+-- 1. Allow pod members to claim empty seats (user_id IS NULL only)
+DROP POLICY IF EXISTS "Pod members can claim empty or guest seats" ON public.game_players;
+
+CREATE POLICY "Pod members can claim empty seats"
   ON public.game_players FOR UPDATE
   USING (
-    -- Seat is either empty or occupied by a guest
-    (
-      user_id IS NULL
-      OR EXISTS (
-        SELECT 1 FROM public.profiles p
-        WHERE p.id = game_players.user_id
-        AND p.account_type = 'guest'
-      )
-    )
-    -- And the caller is a member of the pod this game belongs to
+    user_id IS NULL
     AND EXISTS (
       SELECT 1 FROM public.games g
       JOIN public.pod_members pm ON pm.pod_id = g.pod_id

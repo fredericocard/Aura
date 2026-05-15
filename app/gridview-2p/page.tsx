@@ -1703,6 +1703,11 @@ function PageContent() {
             }
           }
         })
+        .subscribe();
+
+      // Separate channel for game state changes (won't interfere with game_players channel)
+      const gameChannel = supabase
+        .channel(`game-state-${gameId}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload: any) => {
           const row = payload.new;
           if (!row) return;
@@ -1713,7 +1718,8 @@ function PageContent() {
           }
         })
         .subscribe();
-      return () => { supabase.removeChannel(channel); };
+
+      return () => { supabase.removeChannel(channel); supabase.removeChannel(gameChannel); };
     }
     loadGame();
   }, [gameId]);
