@@ -361,10 +361,10 @@ function PageContent() {
   }
 
   /* ── Join flow ─────────────────────────────────────────────────────────── */
-  async function proceedToJoin() {
+  async function proceedToJoin(deckId?: string) {
     const fullCode = codeChars.join('');
     setJoining(true); setError(null);
-    const { data: pod, error: joinErr } = await joinPod(fullCode);
+    const { data: pod, error: joinErr } = await joinPod(fullCode, deckId);
     if (joinErr || !pod) { setError(joinErr ?? 'Failed to join pod'); setJoining(false); return; }
     stopCamera();
     const supabase = createClient();
@@ -397,20 +397,29 @@ function PageContent() {
     }, 300);
   }
 
-  // Guest selects a commander -> sign in anonymously -> join
-  async function handleGuestSelectCommander(_card: any) {
+  // Guest selects a commander -> sign in anonymously -> register deck -> join
+  async function handleGuestSelectCommander(card: any) {
     setAuthSubmitting(true); setAuthError('');
+    // 1. Sign in anonymously
     const { error: guestErr } = await signInAsGuest();
     if (guestErr) { setAuthError(guestErr); setAuthSubmitting(false); return; }
+    // 2. Validate the card
+    const { data: validated, error: valError } = await validateCommander(card.name);
+    if (valError || !validated) { setAuthError(valError || 'Could not validate commander'); setAuthSubmitting(false); return; }
+    if (!validated.isValidCommander) { setAuthError(`${validated.cardName} can't be used as a commander`); setAuthSubmitting(false); return; }
+    // 3. Register the commander (skipBracket) — now we have an anonymous user ID
+    const { data: newDeck, error: regError } = await registerCommander(validated.cardName, 2, true);
+    if (regError || !newDeck) { setAuthError(regError || 'Failed to register commander'); setAuthSubmitting(false); return; }
+    // 4. Join with the deck
     setShowAuthGate(false); setAuthSubmitting(false);
-    await proceedToJoin();
+    await proceedToJoin(newDeck.id);
   }
 
   // Logged-in user selects a commander -> join
-  async function handleSelectMyCommander(_deck: Deck) {
+  async function handleSelectMyCommander(deck: Deck) {
     setAuthSubmitting(true); setAuthError('');
     setShowAuthGate(false); setAuthSubmitting(false);
-    await proceedToJoin();
+    await proceedToJoin(deck.id);
   }
 
   // Logged-in user picks a new commander from Scryfall -> register (skipBracket) -> join
@@ -421,10 +430,10 @@ function PageContent() {
     if (valError || !validated) { setAuthError(valError || 'Could not validate commander'); setAuthSubmitting(false); return; }
     if (!validated.isValidCommander) { setAuthError(`${validated.cardName} can't be used as a commander`); setAuthSubmitting(false); return; }
     // Register with skipBracket — bracket picker shows on profile after the game
-    const { error: regError } = await registerCommander(validated.cardName, 2, true);
-    if (regError) { setAuthError(regError); setAuthSubmitting(false); return; }
+    const { data: newDeck, error: regError } = await registerCommander(validated.cardName, 2, true);
+    if (regError || !newDeck) { setAuthError(regError || 'Failed to register commander'); setAuthSubmitting(false); return; }
     setShowAuthGate(false); setAuthSubmitting(false);
-    await proceedToJoin();
+    await proceedToJoin(newDeck.id);
   }
 
   async function handleJoin(codeOverride?: string) {
