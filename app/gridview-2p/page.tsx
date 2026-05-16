@@ -1636,6 +1636,7 @@ function PageContent() {
           const row = payload.new;
           if (!row) return;
           const num = row.seat_number;
+          console.log(`[REALTIME] event for seat=${num} life=${row.life_total} dirty=${isDirty(`life-${num}`)}`);
           if (num && num <= 2) {
             if (!isDirty(`life-${num}`)) {
               setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
@@ -1935,7 +1936,9 @@ function PageContent() {
       if (gameId) {
         debouncedSync(`life-${playerNum}`, () => {
           const seat = playerSeatNumbers[playerNum];
-          if (seat) updateLifeBySeat(gameId, seat, newLife).catch(() => {});
+          console.log(`[SYNC] handleLifeChange playerNum=${playerNum} seat=${seat} newLife=${newLife}`);
+          if (seat) updateLifeBySeat(gameId, seat, newLife).catch((e) => console.error('[SYNC] updateLifeBySeat threw:', e));
+          else console.warn(`[SYNC] NO SEAT for playerNum=${playerNum}`, playerSeatNumbers);
         });
       }
 

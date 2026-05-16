@@ -108,11 +108,14 @@ export async function updateCommanderDamage(
  * Also handles elimination/revive for logged-in players at that seat.
  */
 export async function updateLifeBySeat(gameId: string, seatNumber: number, newLife: number): Promise<{ error: string | null }> {
-  const { error } = await supabase
+  const { error, data } = await supabase
     .from('game_players')
     .update({ life_total: newLife })
     .eq('game_id', gameId)
-    .eq('seat_number', seatNumber);
+    .eq('seat_number', seatNumber)
+    .select('id');
+
+  console.log(`[SYNC] updateLifeBySeat seat=${seatNumber} life=${newLife} error=${error?.message ?? 'none'} rows=${data?.length ?? 0}`);
 
   if (error) return { error: error.message };
 
