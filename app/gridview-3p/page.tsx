@@ -3019,6 +3019,35 @@ function PageContent() {
         onPick={async (seat) => {
           const { error } = await claimSeat(gameId, seat);
           if (error) throw new Error(error);
+          // Manually refetch game data so the seat transitions to "taken"
+          // even if the Realtime subscription hasn't fully connected yet.
+          const { data: refreshed } = await getGame(gameId);
+          if (refreshed) {
+            const uid = auth?.user?.id;
+            const displayName = auth?.user?.user_metadata?.display_name ?? null;
+            const dIds = refreshed.players.map((p: any) => p.deck_id).filter(Boolean);
+            let dm = new Map();
+            if (dIds.length > 0) {
+              const { data: dks } = await supabase.from('decks').select('id, commander_name, color_identity, commander_art_url').in('id', dIds) as { data: any };
+              dm = new Map((dks ?? []).map((d: any) => [d.id, d]) as any);
+            }
+            const np: Record<number, typeof players[1]> = {};
+            const nu: Record<number, string> = {};
+            refreshed.players.forEach((p: any) => {
+              const dk: any = p.deck_id ? dm.get(p.deck_id) : null;
+              const s = p.seat_number ?? 1;
+              if (s > 3) return;
+              const empty = !p.user_id && !p.deck_id && !p.commander_name;
+              const cn = dk?.commander_name ?? p.commander_name ?? null;
+              const pn = (p.user_id === uid && displayName) ? displayName : null;
+              const dn = pn ?? (cn ? cn.split(',')[0] : `Player ${s}`);
+              np[s] = { life: p.life_total ?? 40, name: dn, commander: cn, claimed: !empty, colors: (dk?.color_identity ?? '').split('').filter((c: string) => 'WUBRG'.includes(c)), assignedColor: null };
+              if (p.user_id) nu[s] = p.user_id;
+              if (dk?.commander_art_url && cn) setCommanderArt(prev => prev[cn] ? prev : { ...prev, [cn]: dk.commander_art_url });
+            });
+            setPlayers(prev => ({ ...prev, ...np }));
+            setPlayerUserIds(prev => ({ ...prev, ...nu }));
+          }
         }}
         youId={auth?.user?.id}
         youName={auth?.user?.user_metadata?.display_name ?? auth?.user?.email?.split('@')[0]}
