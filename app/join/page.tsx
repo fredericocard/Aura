@@ -710,17 +710,41 @@ function PageContent() {
           <div className="or-divider"><div className="or-divider-line" /><span className="or-divider-text">or enter code</span><div className="or-divider-line" /></div>
 
           {error && <div style={{ color: '#B0593E', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>{error}</div>}
-          <div className="code-row" onClick={() => inputRef.current?.focus()}>
+          <div className="code-row" style={{ position: 'relative' }} onClick={() => inputRef.current?.focus()}>
             {displayCode.map((c, i) => c === null
               ? <div key={i} className="code-dash">&mdash;</div>
               : <div key={i} className={`code-char ${c ? 'filled' : ''}`}>{c}</div>
             )}
+            <input
+              ref={inputRef}
+              type="text"
+              value={codeChars.join('')}
+              onChange={(e) => handleCodeInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleJoin(); }}
+              maxLength={6}
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="text"
+              aria-label="Pod code"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: 'transparent',
+                caretColor: 'transparent',
+                fontSize: 16,
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            />
           </div>
-          <input ref={inputRef} type="text" value={codeChars.join('')}
-            onChange={(e) => handleCodeInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleJoin(); }}
-            style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
-            maxLength={6} autoCapitalize="characters" />
         </div>
 
         <div className="cta-wrap">
