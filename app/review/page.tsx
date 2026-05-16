@@ -646,6 +646,26 @@ function PageContent() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       const myUserId = currentUser?.id ?? null;
 
+      // If this player already submitted their review, skip straight to game card
+      if (myUserId && podId) {
+        const { data: myMembership } = await supabase
+          .from('pod_members')
+          .select('review_submitted_at')
+          .eq('pod_id', podId)
+          .eq('user_id', myUserId)
+          .maybeSingle();
+        if (myMembership?.review_submitted_at) {
+          // Already reviewed — show game card directly
+          try {
+            const card = await previewGameCard(gameId);
+            setGameCard(card);
+          } catch { /* card may not exist yet */ }
+          setLoading(false);
+          setShowMemory(true);
+          return;
+        }
+      }
+
       const loaded: PlayerInfo[] = game.players
         .map((gp: any): PlayerInfo => {
           const seat = gp.seat_number ?? 0;
