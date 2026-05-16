@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getGame, claimSeat } from '@/lib/games';
 import { SeatPickerModal, SeatInfo } from '@/app/components/SeatPickerModal';
-import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat } from '@/lib/game-triggers';
+import { concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamageBySeat } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
@@ -2556,10 +2556,8 @@ function PageContent() {
 
       if (gameId) {
         debouncedSync(`life-${playerNum}`, () => {
-          const userId = playerUserIds[playerNum];
           const seat = playerSeatNumbers[playerNum];
-          if (userId) updateLifeTotal(gameId, userId, newLife).catch(() => {});
-          else if (seat) updateLifeBySeat(gameId, seat, newLife).catch(() => {});
+          if (seat) updateLifeBySeat(gameId, seat, newLife).catch(() => {});
         });
       }
 
@@ -2590,11 +2588,9 @@ function PageContent() {
         return { ...prev, [playerNum]: { ...c, life: 1 } };
       });
       if (gameId) {
-        const userId = playerUserIds[playerNum];
         const seat = playerSeatNumbers[playerNum];
         debouncedSync(`life-${playerNum}`, () => {
-          if (userId) updateLifeTotal(gameId, userId, 1).catch(() => {});
-          else if (seat) updateLifeBySeat(gameId, seat, 1).catch(() => {});
+          if (seat) updateLifeBySeat(gameId, seat, 1).catch(() => {});
         });
       }
     }
@@ -2605,11 +2601,9 @@ function PageContent() {
         return { ...prev, [playerNum]: { ...c, poison: 9 } };
       });
       if (gameId) {
-        const userId = playerUserIds[playerNum];
         const seat = playerSeatNumbers[playerNum];
         debouncedSync(`poison-${playerNum}`, () => {
-          if (userId) updatePoisonCounters(gameId, userId, 9).catch(() => {});
-          else if (seat) updatePoisonBySeat(gameId, seat, 9).catch(() => {});
+          if (seat) updatePoisonBySeat(gameId, seat, 9).catch(() => {});
         });
       }
     }
@@ -2650,19 +2644,12 @@ function PageContent() {
       const cap = type === 'poison' ? 10 : 999;
       const newVal = action === 'plus' ? Math.min(cap, prev[playerNum][type] + 1) : Math.max(0, prev[playerNum][type] - 1);
 
-      const userId = playerUserIds[playerNum];
       const seat = playerSeatNumbers[playerNum];
-      if (gameId) {
+      if (gameId && seat) {
         debouncedSync(`${type}-${playerNum}`, () => {
-          if (userId) {
-            if (type === 'poison') updatePoisonCounters(gameId, userId, newVal).catch(() => {});
-            else if (type === 'experience') updateExperienceCounters(gameId, userId, newVal).catch(() => {});
-            else if (type === 'energy') updateEnergyCounters(gameId, userId, newVal).catch(() => {});
-          } else if (seat) {
-            if (type === 'poison') updatePoisonBySeat(gameId, seat, newVal).catch(() => {});
-            else if (type === 'experience') updateExperienceBySeat(gameId, seat, newVal).catch(() => {});
-            else if (type === 'energy') updateEnergyBySeat(gameId, seat, newVal).catch(() => {});
-          }
+          if (type === 'poison') updatePoisonBySeat(gameId, seat, newVal).catch(() => {});
+          else if (type === 'experience') updateExperienceBySeat(gameId, seat, newVal).catch(() => {});
+          else if (type === 'energy') updateEnergyBySeat(gameId, seat, newVal).catch(() => {});
         });
       }
 
@@ -2696,10 +2683,8 @@ function PageContent() {
           if (amount && amount > 0) damageMap[`seat-${from}`] = amount;
         });
         debouncedSync(`cmdr-${cmdrTo}`, () => {
-          const userId = playerUserIds[cmdrTo];
           const seat = playerSeatNumbers[cmdrTo];
-          if (userId) updateCommanderDamage(gameId, userId, damageMap).catch(() => {});
-          else if (seat) updateCommanderDamageBySeat(gameId, seat, damageMap).catch(() => {});
+          if (seat) updateCommanderDamageBySeat(gameId, seat, damageMap).catch(() => {});
         });
       }
 

@@ -105,6 +105,7 @@ export async function updateCommanderDamage(
 
 /**
  * Update life by seat_number. Works for any player type (logged-in, guest, empty).
+ * Also handles elimination/revive for logged-in players at that seat.
  */
 export async function updateLifeBySeat(gameId: string, seatNumber: number, newLife: number): Promise<{ error: string | null }> {
   const { error } = await supabase
@@ -115,9 +116,23 @@ export async function updateLifeBySeat(gameId: string, seatNumber: number, newLi
 
   if (error) return { error: error.message };
 
-  // For seat-based updates we skip elimination/revive logic —
-  // empty seats don't participate in winner detection.
-  // If a logged-in player changes life, the userId-based function handles that.
+  // Look up whether this seat has a logged-in player for elimination logic
+  const { data: row } = await supabase
+    .from('game_players')
+    .select('user_id')
+    .eq('game_id', gameId)
+    .eq('seat_number', seatNumber)
+    .maybeSingle() as { data: any };
+
+  if (row?.user_id) {
+    if (newLife <= 0) {
+      await eliminatePlayer(gameId, row.user_id);
+    } else {
+      await revivePlayer(gameId, row.user_id);
+    }
+    await checkLastStanding(gameId);
+  }
+
   return { error: null };
 }
 

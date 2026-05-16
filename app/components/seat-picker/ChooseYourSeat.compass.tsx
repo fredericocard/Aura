@@ -219,7 +219,16 @@ export function Seat({
           transform: 'translate(-50%, -50%)',
           pointerEvents: 'none',
         }}>
+          {/* Solid filled circle so the chair is hidden while art loads */}
           <div style={{
+            width: 50, height: 50, borderRadius: '50%',
+            background: 'rgba(176,107,44,0.25)',
+            border: '2px solid var(--copper)',
+            boxShadow: '0 0 12px rgba(226,184,88,0.30)',
+          }}/>
+          {/* Expanding ripple rings */}
+          <div style={{
+            position: 'absolute', inset: 0,
             width: 50, height: 50, borderRadius: '50%',
             border: '2px solid var(--copper)',
             animation: 'seatWaxRipple 720ms var(--ease, ease) forwards',
