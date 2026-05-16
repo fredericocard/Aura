@@ -1486,6 +1486,8 @@ function PageContent() {
   const [commanderArt, setCommanderArt] = useState<Record<string, string>>({});
   const [showSeatPicker, setShowSeatPicker] = useState(false);
   const [myDeckArt, setMyDeckArt] = useState<string | undefined>(undefined);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const addDebug = (msg: string) => { console.log(msg); setDebugLog(prev => [...prev.slice(-4), msg]); };
 
   const syncTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const diceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -1636,7 +1638,7 @@ function PageContent() {
           const row = payload.new;
           if (!row) return;
           const num = row.seat_number;
-          console.log(`[REALTIME] event for seat=${num} life=${row.life_total} dirty=${isDirty(`life-${num}`)}`);
+          addDebug(`[RT] seat=${num} life=${row.life_total} dirty=${isDirty(`life-${num}`)}`);
           if (num && num <= 2) {
             if (!isDirty(`life-${num}`)) {
               setPlayers(prev => ({ ...prev, [num]: { ...prev[num], life: row.life_total ?? prev[num].life } }));
@@ -1936,9 +1938,9 @@ function PageContent() {
       if (gameId) {
         debouncedSync(`life-${playerNum}`, () => {
           const seat = playerSeatNumbers[playerNum];
-          console.log(`[SYNC] handleLifeChange playerNum=${playerNum} seat=${seat} newLife=${newLife}`);
-          if (seat) updateLifeBySeat(gameId, seat, newLife).catch((e) => console.error('[SYNC] updateLifeBySeat threw:', e));
-          else console.warn(`[SYNC] NO SEAT for playerNum=${playerNum}`, playerSeatNumbers);
+          addDebug(`[WRITE] seat=${seat} life=${newLife}`);
+          if (seat) updateLifeBySeat(gameId, seat, newLife).then(r => { if (r.error) addDebug(`[ERR] ${r.error}`); }).catch((e) => addDebug(`[ERR] ${e}`));
+          else addDebug(`[WARN] NO SEAT for p${playerNum}`);
         });
       }
 
@@ -2217,6 +2219,12 @@ function PageContent() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
+      {/* DEBUG BANNER — remove after fixing sync */}
+      {debugLog.length > 0 && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', padding: '4px 8px', fontSize: 10, fontFamily: 'monospace', color: '#0f0', pointerEvents: 'none' }}>
+          {debugLog.map((l, i) => <div key={i}>{l}</div>)}
+        </div>
+      )}
       <div className="app">
         <div className="grid-container-2p">
           {/* Top: opponent (slot 2), flipped 180° */}
