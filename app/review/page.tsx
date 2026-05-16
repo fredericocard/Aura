@@ -10,7 +10,7 @@ import { useAuth } from '../../lib/auth-context';
 import { getGame, type GamePlayer } from '@/lib/games';
 import { castVote, castBracketCheck, type QuestionKey } from '@/lib/votes';
 import { submitReview } from '@/lib/pods';
-import { checkPodCompletion } from '@/lib/questionnaire';
+import { checkPodCompletion, isGameCardLocked } from '@/lib/questionnaire';
 import { getGameCard, previewGameCard, type GameCard, type CommanderCardData } from '@/lib/game-card';
 
 interface PlayerInfo {
@@ -537,8 +537,17 @@ function GuestPromotionOverlay({ onComplete, onSkip }: { onComplete: () => void;
   );
 }
 
-function MemoryCardOverlay({ onClose, onViewProfile, card }: { onClose: () => void; onViewProfile: () => void; card: GameCard | null }) {
+function MemoryCardOverlay({ onClose, onViewProfile, card, gameId, onRefreshed }: { onClose: () => void; onViewProfile: () => void; card: GameCard | null; gameId: string; onRefreshed?: (card: GameCard) => void }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [locked, setLocked] = useState(false);
+
+  // Check if the game card is locked (all reviews completed)
+  useEffect(() => {
+    if (!gameId) return;
+    isGameCardLocked(gameId).then(setLocked);
+  }, [gameId, card]);
+
   const handleDownload = async () => {
     if (!cardRef.current) return;
     const { downloadCard } = await import('@/lib/share-card');
@@ -549,6 +558,21 @@ function MemoryCardOverlay({ onClose, onViewProfile, card }: { onClose: () => vo
     const { shareCard } = await import('@/lib/share-card');
     await shareCard(cardRef.current);
   };
+  const handleRefresh = async () => {
+    if (!gameId || refreshing) return;
+    setRefreshing(true);
+    try {
+      const fresh = await previewGameCard(gameId);
+      if (fresh) onRefreshed?.(fresh);
+      // Re-check lock status after refresh
+      const isLocked = await isGameCardLocked(gameId);
+      setLocked(isLocked);
+    } catch { /* ignore */ }
+    setRefreshing(false);
+  };
+
+  const btnStyle: React.CSSProperties = { width: 44, height: 44, borderRadius: 999, border: '1px solid rgba(201,155,47,0.55)', background: 'linear-gradient(180deg, #140C07 0%, #0A0604 100%)', color: '#E2B858', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -4px rgba(10,6,4,0.45)' };
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,6,4,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 20px', fontFamily: "'Instrument Sans', sans-serif" }}>
       <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, width: '100%', maxWidth: 430 }}>
@@ -558,13 +582,21 @@ function MemoryCardOverlay({ onClose, onViewProfile, card }: { onClose: () => vo
           )}
         </div>
         <div style={{ display: 'flex', gap: 14 }}>
-          <button onClick={handleDownload} style={{ width: 44, height: 44, borderRadius: 999, border: '1px solid rgba(201,155,47,0.55)', background: 'linear-gradient(180deg, #140C07 0%, #0A0604 100%)', color: '#E2B858', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -4px rgba(10,6,4,0.45)' }}>
+          <button onClick={handleDownload} style={btnStyle}>
             <Icon name="download" size={16} />
           </button>
-          <button onClick={handleShare} style={{ width: 44, height: 44, borderRadius: 999, border: '1px solid rgba(201,155,47,0.55)', background: 'linear-gradient(180deg, #140C07 0%, #0A0604 100%)', color: '#E2B858', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -4px rgba(10,6,4,0.45)' }}>
+          <button onClick={handleShare} style={btnStyle}>
             <Icon name="share-2" size={16} />
           </button>
+          {!locked && (
+            <button onClick={handleRefresh} disabled={refreshing} style={{ ...btnStyle, opacity: refreshing ? 0.5 : 1, cursor: refreshing ? 'not-allowed' : 'pointer', transition: 'opacity 160ms ease, transform 320ms ease', transform: refreshing ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              <Icon name="refresh-cw" size={16} />
+            </button>
+          )}
         </div>
+        {locked && (
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(226,184,88,0.5)' }}>All reviews in · Card locked</div>
+        )}
         <button onClick={e => { e.stopPropagation(); onClose(); onViewProfile(); }} style={{ width: '100%', border: 'none', background: '#2F5D3A', color: '#F5EFE2', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 16, padding: '16px 20px', borderRadius: 20, boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)', cursor: 'pointer' }}>View Profile</button>
       </div>
     </div>
@@ -636,6 +668,24 @@ function PageContent() {
         .sort((a, b) => a.seat - b.seat);
       setPlayers(loaded);
       setLoading(false);
+
+      // Backfill missing commander art from Scryfall (same source the gridview uses).
+      const missing = loaded.filter(p => !p.art && p.name && !p.isEmptySeat);
+      if (missing.length > 0) {
+        const artUpdates: Record<string, string> = {};
+        for (const p of missing) {
+          try {
+            const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(p.name)}`);
+            if (!res.ok) continue;
+            const card = await res.json();
+            const artUrl = card?.image_uris?.art_crop || card?.card_faces?.[0]?.image_uris?.art_crop;
+            if (artUrl) artUpdates[p.id] = artUrl;
+          } catch { /* skip */ }
+        }
+        if (Object.keys(artUpdates).length > 0) {
+          setPlayers(prev => prev.map(p => artUpdates[p.id] ? { ...p, art: artUpdates[p.id] } : p));
+        }
+      }
     }
     load();
   }, [gameId]);
@@ -852,7 +902,7 @@ function PageContent() {
         />
       )}
 
-      {showMemory && <MemoryCardOverlay card={gameCard} onClose={() => setShowMemory(false)} onViewProfile={() => router.push('/profile')} />}
+      {showMemory && <MemoryCardOverlay card={gameCard} gameId={gameId} onClose={() => setShowMemory(false)} onViewProfile={() => router.push('/profile')} onRefreshed={(c) => setGameCard(c)} />}
     </div>
   );
 }
