@@ -108,7 +108,7 @@ export function ActiveGameGuard() {
         transition: 'transform 300ms cubic-bezier(.22,.61,.36,1)',
       }}>
         {/* Torn paper top edge */}
-        <TornEdgeMini />
+        <TornEdgeMini lightMode={true} />
 
         <div style={{
           position: 'relative',
@@ -193,7 +193,7 @@ export function ActiveGameGuard() {
 }
 
 /** Inline torn-paper edge matching landing page design */
-function TornEdgeMini() {
+function TornEdgeMini({ lightMode = false }: { lightMode?: boolean }) {
   const teeth = 24;
   const w = 430;
   const h = 14;
@@ -208,7 +208,7 @@ function TornEdgeMini() {
   d += `L ${w} ${h} Z`;
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', width: '100%', marginBottom: -1 }} aria-hidden="true">
-      <path d={d} fill="#FAF5EA" />
+      <path d={d} fill={lightMode ? 'var(--parchment-card)' : '#1A1410'} />
     </svg>
   );
 }

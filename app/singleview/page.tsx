@@ -247,150 +247,15 @@ function CommAvatar({ src, size = 36, ring = 'rgba(226,184,88,0.18)', dim = fals
   );
 }
 
-// ─── Digital Mat Mesh ───────────────────────────────────────────────────────
-// Technical grid with thin lines and small + crosses at each intersection.
-// ─── Pattern definitions ────────────────────────────────────────────────────
-const PATTERN_LIST = [
-  { key: 'grid-cross',   label: 'Grid + Cross' },
-  { key: 'chainmail',    label: 'Chainmail' },
-  { key: 'isometric',    label: 'Isometric' },
-  { key: 'dragon-scale', label: 'Dragon Scale' },
-  { key: 'low-poly',     label: 'Low Poly' },
-  { key: 'none',         label: 'No Pattern' },
-] as const;
 
-function DigitalMatMesh({ patternIdx = 0 }: { patternIdx?: number }) {
-  const key = PATTERN_LIST[patternIdx]?.key ?? 'grid-cross';
-  if (key === 'none') return null;
-
-  const svgStyle: React.CSSProperties = {
-    position: 'absolute', inset: 0, width: '100%', height: '100%',
-    pointerEvents: 'none', zIndex: 1, opacity: 0.45,
-  };
-
-  if (key === 'grid-cross') {
-    const gap = 9, half = gap / 2, arm = 1.2;
-    return (
-      <svg style={svgStyle}>
-        <defs>
-          <pattern id="sv-mesh" width={gap} height={gap} patternUnits="userSpaceOnUse">
-            <line x1={half} y1="0" x2={half} y2={gap} stroke="rgba(180,155,100,0.25)" strokeWidth="0.3"/>
-            <line x1="0" y1={half} x2={gap} y2={half} stroke="rgba(180,155,100,0.25)" strokeWidth="0.3"/>
-            <line x1={half - arm} y1={half} x2={half + arm} y2={half} stroke="rgba(180,155,100,0.6)" strokeWidth="0.5"/>
-            <line x1={half} y1={half - arm} x2={half} y2={half + arm} stroke="rgba(180,155,100,0.6)" strokeWidth="0.5"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
-      </svg>
-    );
-  }
-
-  if (key === 'chainmail') {
-    return (
-      <svg style={svgStyle}>
-        <defs>
-          <pattern id="sv-mesh" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M10 0 C10 10, 0 10, 0 20 C0 30, 10 30, 10 40" fill="none" stroke="rgba(180,155,100,0.5)" strokeWidth="1.8" strokeLinecap="round"/>
-            <path d="M30 0 C30 10, 20 10, 20 20 C20 30, 30 30, 30 40" fill="none" stroke="rgba(180,155,100,0.5)" strokeWidth="1.8" strokeLinecap="round"/>
-            <path d="M10 0 C10 10, 20 10, 20 20 C20 30, 10 30, 10 40" fill="none" stroke="rgba(180,155,100,0.5)" strokeWidth="1.8" strokeLinecap="round"/>
-            <path d="M30 0 C30 10, 40 10, 40 20 C40 30, 30 30, 30 40" fill="none" stroke="rgba(180,155,100,0.5)" strokeWidth="1.8" strokeLinecap="round"/>
-            <path d="M0 0 C0 10, 10 10, 10 20" fill="none" stroke="rgba(180,155,100,0.35)" strokeWidth="1.2" strokeLinecap="round"/>
-            <path d="M40 0 C40 10, 30 10, 30 20" fill="none" stroke="rgba(180,155,100,0.35)" strokeWidth="1.2" strokeLinecap="round"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
-      </svg>
-    );
-  }
-
-  if (key === 'isometric') {
-    return (
-      <svg style={svgStyle}>
-        <defs>
-          <pattern id="sv-mesh" width="20" height="34.64" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="34.64" x2="10" y2="0" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
-            <line x1="10" y1="0" x2="20" y2="34.64" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
-            <line x1="0" y1="17.32" x2="20" y2="17.32" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
-            <line x1="20" y1="0" x2="10" y2="17.32" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
-            <line x1="10" y1="17.32" x2="20" y2="34.64" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
-            <line x1="0" y1="0" x2="10" y2="17.32" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
-            <line x1="10" y1="17.32" x2="0" y2="34.64" stroke="rgba(180,155,100,0.7)" strokeWidth="1.2"/>
-            <circle cx="10" cy="0" r="1" fill="rgba(180,155,100,0.9)"/>
-            <circle cx="0" cy="17.32" r="1" fill="rgba(180,155,100,0.9)"/>
-            <circle cx="20" cy="17.32" r="1" fill="rgba(180,155,100,0.9)"/>
-            <circle cx="10" cy="34.64" r="1" fill="rgba(180,155,100,0.9)"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
-      </svg>
-    );
-  }
-
-  if (key === 'dragon-scale') {
-    return (
-      <svg style={svgStyle}>
-        <defs>
-          <pattern id="sv-mesh" width="40" height="20" patternUnits="userSpaceOnUse">
-            <polygon points="20,0 40,10 20,10" fill="rgba(200,165,80,0.22)"/>
-            <polygon points="20,0 0,10 20,10" fill="rgba(200,165,80,0.14)"/>
-            <polygon points="20,20 40,10 20,10" fill="rgba(80,60,30,0.18)"/>
-            <polygon points="20,20 0,10 20,10" fill="rgba(120,95,50,0.16)"/>
-            <line x1="20" y1="0" x2="40" y2="10" stroke="rgba(226,184,88,0.6)" strokeWidth="1.2"/>
-            <line x1="20" y1="0" x2="0" y2="10" stroke="rgba(226,184,88,0.45)" strokeWidth="1.0"/>
-            <line x1="0" y1="10" x2="20" y2="20" stroke="rgba(180,155,100,0.3)" strokeWidth="0.8"/>
-            <line x1="40" y1="10" x2="20" y2="20" stroke="rgba(180,155,100,0.25)" strokeWidth="0.8"/>
-            <line x1="20" y1="0" x2="20" y2="20" stroke="rgba(226,184,88,0.4)" strokeWidth="0.7"/>
-            <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(180,155,100,0.3)" strokeWidth="0.7"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
-      </svg>
-    );
-  }
-
-  if (key === 'low-poly') {
-    return (
-      <svg style={svgStyle}>
-        <defs>
-          <pattern id="sv-mesh" width="80" height="70" patternUnits="userSpaceOnUse">
-            <polygon points="0,0 40,5 25,30" fill="rgba(200,155,60,0.16)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="40,5 80,0 55,25" fill="rgba(180,140,50,0.22)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="0,0 25,30 0,35" fill="rgba(160,125,45,0.12)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="40,5 25,30 55,25" fill="rgba(226,184,88,0.20)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="55,25 80,0 80,35" fill="rgba(170,130,50,0.14)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="25,30 55,25 40,50" fill="rgba(140,110,40,0.10)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="0,35 25,30 15,55" fill="rgba(200,160,65,0.20)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="25,30 40,50 15,55" fill="rgba(180,145,55,0.17)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="55,25 80,35 65,55" fill="rgba(226,184,88,0.24)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="55,25 40,50 65,55" fill="rgba(160,130,50,0.12)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="0,35 15,55 0,70" fill="rgba(190,150,55,0.18)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="15,55 40,50 35,70" fill="rgba(226,184,88,0.15)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="15,55 0,70 35,70" fill="rgba(150,120,45,0.22)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="40,50 65,55 50,70" fill="rgba(200,160,60,0.20)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="40,50 35,70 50,70" fill="rgba(170,135,50,0.14)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="65,55 80,35 80,70" fill="rgba(160,125,45,0.10)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-            <polygon points="65,55 80,70 50,70" fill="rgba(226,184,88,0.17)" stroke="rgba(180,155,100,0.45)" strokeWidth="0.8"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#sv-mesh)"/>
-      </svg>
-    );
-  }
-
-  return null;
-}
-
-// ─── Backdrop — commander art + mesh + veil ────────────────────────────────
-function SVBackdrop({ src, patternIdx = 0, lightMode = false }: { src: string; patternIdx?: number; lightMode?: boolean }) {
+// ─── Backdrop — commander art + veil ─────────────────────────────────────────
+function SVBackdrop({ src, lightMode = false }: { src: string; lightMode?: boolean }) {
   return (
     <>
       {src ? <img src={src} alt="" style={{
         position: 'absolute', inset: 0, width: '100%', height: '100%',
         objectFit: 'cover',
       }}/> : null}
-
-      {/* Digital mat mesh overlay */}
-      {!lightMode && <DigitalMatMesh patternIdx={patternIdx}/>}
 
       {/* Gradient veil */}
       <div style={{
@@ -1576,7 +1441,7 @@ function OpponentOverlay({ p, myLife, cmdrDmgSegments, miniRoster, onClose, onLi
 }
 
 // ─── Settings overlay ──────────────────────────────────────────────────────
-function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange, lightMode, onToggleLight }: any) {
+function SettingsOverlay({ onClose, onAbandon, lightMode, onToggleLight }: any) {
   const [confirmingAbandon, setConfirmingAbandon] = useState(false);
 
   return (
@@ -1612,43 +1477,6 @@ function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange, ligh
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: 'pointer',
           }}>Close</button>
-        </div>
-
-        {/* Pattern selector */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ ...kicker(9), marginBottom: 8 }}>Background Pattern</div>
-          <div style={{ position: 'relative' }}>
-            <select
-              value={patternIdx}
-              onChange={(e) => onPatternChange(Number(e.target.value))}
-              style={{
-                width: '100%',
-                appearance: 'none',
-                WebkitAppearance: 'none',
-                background: 'var(--bg-elevated)',
-                color: 'var(--ink)',
-                border: '1px solid var(--border-accent)',
-                borderRadius: 14,
-                padding: '12px 40px 12px 16px',
-                fontSize: 14, fontWeight: 600,
-                fontFamily: "'Instrument Sans', system-ui, sans-serif",
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              {PATTERN_LIST.map((p, i) => (
-                <option key={p.key} value={i} style={{ background: 'var(--bg-elevated)', color: 'var(--ink)' }}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-            <div style={{
-              position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-              pointerEvents: 'none', color: 'var(--ink-3)',
-            }}>
-              <Icon name="chevron-left" size={14} stroke="var(--ink-3)" width={2}/>
-            </div>
-          </div>
         </div>
 
         {/* Light / Dark mode toggle */}
@@ -1989,7 +1817,6 @@ function PageContent() {
   const [showEliminated, setShowEliminated] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [victoryDismissed, setVictoryDismissed] = useState(false);
-  const [patternIdx, setPatternIdx] = useState(0);
   const [lightMode, setLightMode] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('aura-light-mode') === '1';
     return false;
@@ -2479,7 +2306,7 @@ function PageContent() {
       touchAction: 'none',
       fontFamily: 'var(--font-ui)',
     }}>
-      <SVBackdrop src={myArt} patternIdx={patternIdx} lightMode={lightMode}/>
+      <SVBackdrop src={myArt} lightMode={lightMode}/>
       <SVHeader onSettings={() => setShowSettings(true)}/>
 
       {/* Life dial + buttons */}
@@ -2596,8 +2423,6 @@ function PageContent() {
         <SettingsOverlay
           onClose={() => setShowSettings(false)}
           onAbandon={() => { setShowSettings(false); handleAbandon(); }}
-          patternIdx={patternIdx}
-          onPatternChange={setPatternIdx}
           lightMode={lightMode}
           onToggleLight={() => setLightMode(m => { const next = !m; localStorage.setItem('aura-light-mode', next ? '1' : '0'); return next; })}/>
       )}

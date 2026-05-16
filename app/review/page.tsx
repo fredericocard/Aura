@@ -620,6 +620,7 @@ function PageContent() {
   const [showMemory, setShowMemory] = useState(false);
   const [showPromotion, setShowPromotion] = useState(false);
   const [gameCard, setGameCard] = useState<GameCard | null>(null);
+  const [podSize, setPodSize] = useState<number>(2);
   const activeCardRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const doneCardRef = useRef<HTMLDivElement>(null);
@@ -630,6 +631,7 @@ function PageContent() {
     async function load() {
       const { data: game, error: err } = await getGame(gameId);
       if (err || !game) { setPageError(err ?? 'Game not found'); setLoading(false); return; }
+      setPodSize((game as any).pod_size ?? 2);
       // Build player list from game_players + deck info
       const supabase = (await import('@/lib/supabase')).supabase;
       const deckIds = game.players.map((p: any) => p.deck_id).filter(Boolean);
@@ -831,7 +833,7 @@ function PageContent() {
     <div style={{ width: '100%', maxWidth: 430, height: '100dvh', margin: '0 auto', position: 'relative', display: 'flex', flexDirection: 'column', background: '#F5EFE2', backgroundImage: 'radial-gradient(circle at 20% 10%, rgba(201,155,47,0.04), transparent 40%), radial-gradient(circle at 90% 80%, rgba(47,93,58,0.05), transparent 40%)', fontFamily: "'Instrument Sans', sans-serif", color: '#2B2118', overflow: 'hidden' }}>
 
       <div style={{ flexShrink: 0, zIndex: 10, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#F5EFE2', borderBottom: '1px solid rgba(43,33,24,.08)' }}>
-        <button style={{ width: 40, height: 40, borderRadius: 999, border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2B2118', cursor: 'pointer' }}>
+        <button onClick={() => router.push(`/gridview-${podSize}p?podId=${podId}&gameId=${gameId}`)} style={{ width: 40, height: 40, borderRadius: 999, border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2B2118', cursor: 'pointer' }}>
           <Icon name="chevron-left" size={24} />
         </button>
         <h1 style={{ margin: 0, fontFamily: "'Instrument Sans', sans-serif", fontWeight: 700, fontSize: 20, letterSpacing: '-0.01em', color: '#2B2118', flex: 1 }}>Review Game</h1>

@@ -1254,15 +1254,21 @@ function TornEdgeMiniGV({ lightMode = false }: { lightMode?: boolean }) {
   );
 }
 
-function VictoryPopup({ onContinue, onReview, lightMode = false }: { onContinue: () => void; onReview: () => void; lightMode?: boolean }) {
+function VictoryPopup({ onRevive, onReview, summoning = false, reviewAccepted = false, lightMode = false }: { onRevive: () => void; onReview: () => void; summoning?: boolean; reviewAccepted?: boolean; lightMode?: boolean }) {
   const light = DARK === LIGHT_THEME;
+  const [dots, setDots] = useState('');
+  useEffect(() => {
+    if (!summoning) return;
+    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
+    return () => clearInterval(id);
+  }, [summoning]);
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       display: 'flex', flexDirection: 'column',
       fontFamily: 'var(--font-ui)',
     }}>
-      <div onClick={onContinue} style={{
+      <div style={{
         position: 'absolute', inset: 0,
         background: light ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
         backdropFilter: 'blur(6px)',
@@ -1278,15 +1284,6 @@ function VictoryPopup({ onContinue, onReview, lightMode = false }: { onContinue:
           background: light ? DARK.bgCard : '#1A1410',
           padding: '8px 22px 32px',
         }}>
-          <button onClick={onContinue} aria-label="Close" style={{
-            position: 'absolute', top: 14, right: 16,
-            width: 32, height: 32, borderRadius: 999,
-            border: `1px solid ${DARK.line}`,
-            background: DARK.bgDeep,
-            color: DARK.ink3, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
-          }}>×</button>
           <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <svg width={32} height={32} viewBox="0 0 64 64" aria-hidden="true">
@@ -1332,30 +1329,49 @@ function VictoryPopup({ onContinue, onReview, lightMode = false }: { onContinue:
               </svg>
               Go to Review
             </button>
-            <button onClick={onContinue} style={{
-              width: '100%', cursor: 'pointer',
-              background: DARK.bgDeep, color: DARK.ink2,
-              border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
-              borderRadius: 20,
-              padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>Revive Last Player</button>
+            {!reviewAccepted && (
+              <button onClick={summoning ? undefined : onRevive} style={{
+                width: '100%', cursor: summoning ? 'default' : 'pointer',
+                background: DARK.bgDeep, color: DARK.ink2,
+                border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
+                borderRadius: 20,
+                padding: '14px 18px',
+                fontSize: 15, fontWeight: 600,
+                opacity: summoning ? 0.8 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}>{summoning ? <><span style={{ minWidth: 120, textAlign: 'center' }}>Summoning{dots}</span></> : 'Revive Last Player'}</button>
+            )}
           </div>
-          <div style={{
-            textAlign: 'center', fontSize: 11, color: DARK.ink3,
-            marginTop: 14, lineHeight: 1.4,
-          }}>
-            Revive Last Player brings the most recent defeated opponent back at 1 life.
-          </div>
+          {!reviewAccepted && !summoning && (
+            <div style={{
+              textAlign: 'center', fontSize: 11, color: DARK.ink3,
+              marginTop: 14, lineHeight: 1.4,
+            }}>
+              Revive Last Player brings the most recent defeated opponent back at 1 life.
+            </div>
+          )}
+          {summoning && (
+            <div style={{
+              textAlign: 'center', fontSize: 11, color: DARK.ink3,
+              marginTop: 14, lineHeight: 1.4,
+            }}>
+              Waiting for the other player to return to the game.
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function EliminatedPopupGV({ onDismiss, onContinue, onReview, lightMode = false }: { onDismiss: () => void; onContinue: () => void; onReview: () => void; lightMode?: boolean }) {
+function EliminatedPopupGV({ onDismiss, onRevive, onReview, summoning = false, reviewAccepted = false, lightMode = false }: { onDismiss: () => void; onRevive: () => void; onReview: () => void; summoning?: boolean; reviewAccepted?: boolean; lightMode?: boolean }) {
   const light = DARK === LIGHT_THEME;
+  const [dots, setDots] = useState('');
+  useEffect(() => {
+    if (!summoning) return;
+    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
+    return () => clearInterval(id);
+  }, [summoning]);
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -1426,15 +1442,18 @@ function EliminatedPopupGV({ onDismiss, onContinue, onReview, lightMode = false 
               </svg>
               Go to Review
             </button>
-            <button onClick={onContinue} style={{
-              width: '100%', cursor: 'pointer',
-              background: DARK.bgDeep, color: DARK.ink2,
-              border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
-              borderRadius: 20,
-              padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>Continue Playing</button>
+            {!reviewAccepted && (
+              <button onClick={summoning ? undefined : onRevive} style={{
+                width: '100%', cursor: summoning ? 'default' : 'pointer',
+                background: DARK.bgDeep, color: DARK.ink2,
+                border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
+                borderRadius: 20,
+                padding: '14px 18px',
+                fontSize: 15, fontWeight: 600,
+                opacity: summoning ? 0.8 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}>{summoning ? <span style={{ minWidth: 120, textAlign: 'center' }}>Summoning{dots}</span> : 'Revive'}</button>
+            )}
           </div>
         </div>
       </div>
@@ -1760,6 +1779,8 @@ function PageContent() {
   const auth = useAuth();
   const [showVictory, setShowVictory] = useState(false);
   const [victoryDismissed, setVictoryDismissed] = useState(false);
+  const [summoningRevive, setSummoningRevive] = useState(false);
+  const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
 
   useEffect(() => {
     const uid = auth?.user?.id;
@@ -1790,6 +1811,39 @@ function PageContent() {
       if (showVictory) setShowVictory(false);
     }
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
+
+  // ── Auto-dismiss summoning when opponent is revived and alive ──
+  useEffect(() => {
+    if (!summoningRevive) return;
+    // Check if any opponent is alive again → dismiss victory popup, back to game
+    const uid = auth?.user?.id;
+    const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
+    if (!mySeatEntry) return;
+    const mySeat = Number(mySeatEntry[0]);
+    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat);
+    const anyAlive = otherSeats.some(n => (players[n]?.life ?? 40) > 0);
+    if (anyAlive) {
+      setSummoningRevive(false);
+      setShowVictory(false);
+      setVictoryDismissed(false);
+      setShowEliminatedGV(false);
+      setElimDismissed(false);
+    }
+  }, [players, summoningRevive, playerUserIds, auth?.user?.id]);
+
+  // ── Check if either player accepted review (hides revive button) ──
+  useEffect(() => {
+    if (!podId || !gameId) return;
+    const checkReviewAccepted = async () => {
+      const { data } = await supabase
+        .from('pod_members')
+        .select('review_submitted_at')
+        .eq('pod_id', podId)
+        .not('review_submitted_at', 'is', null);
+      if (data && data.length > 0) setAnyReviewAccepted(true);
+    };
+    checkReviewAccepted();
+  }, [podId, gameId]);
 
   // ── Seat picker: show on first arrival if current user has no seat yet.
   //    Once a seat is claimed, keep the modal open for ~1s so the commander
@@ -2400,17 +2454,18 @@ function PageContent() {
       {showVictory && (
         <VictoryPopup
           lightMode={DARK === LIGHT_THEME}
-          onContinue={() => {
-            // Revive only the LAST player who died (the second-to-last alive opponent)
+          summoning={summoningRevive}
+          reviewAccepted={anyReviewAccepted}
+          onRevive={() => {
+            // Revive only the LAST player who died
             const uid = auth?.user?.id;
             const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
             const mySeat = mySeatEntry ? Number(mySeatEntry[0]) : -1;
-            // Find the most recent dead seat that isn't me
             const deathOrder = deathOrderRef.current;
             const lastDeadOpponent = [...deathOrder].reverse().find(n => n !== mySeat);
             if (lastDeadOpponent != null) handleRevive(lastDeadOpponent);
-            setShowVictory(false);
-            setVictoryDismissed(true);
+            // Don't dismiss — show "Summoning…" until opponent returns
+            setSummoningRevive(true);
           }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
@@ -2419,15 +2474,17 @@ function PageContent() {
       {showEliminatedGV && (
         <EliminatedPopupGV
           lightMode={DARK === LIGHT_THEME}
+          summoning={summoningRevive}
+          reviewAccepted={anyReviewAccepted}
           onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}
-          onContinue={() => {
+          onRevive={() => {
             const uid = auth?.user?.id;
             if (uid) {
               const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
               if (seatEntry) handleRevive(Number(seatEntry[0]));
             }
-            setShowEliminatedGV(false);
-            setElimDismissed(true);
+            // Don't dismiss — show "Summoning…" until game resumes
+            setSummoningRevive(true);
           }}
           onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
