@@ -127,7 +127,7 @@ function CounterChip({ kind, count }: { kind: string; count: number }) {
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       height: 22, padding: '0 9px',
-      background: light ? '#FFFFFF' : `${v.tone}22`,
+      background: light ? '#FFFFFFcc' : `${v.tone}22`,
       color: light ? v.tone : v.soft,
       border: `1px solid ${light ? v.tone + '44' : v.tone + '44'}`,
       borderRadius: 999,
@@ -1235,7 +1235,7 @@ function CmdrDmgModal({ open, onClose, players, fromNum, setFromNum, toNum, setT
   );
 }
 
-function TornEdgeMiniGV() {
+function TornEdgeMiniGV({ lightMode = false }: { lightMode?: boolean }) {
   const teeth = 24, w = 430, h = 14;
   const seg = w / teeth;
   let d = `M 0 ${h} `;
@@ -1249,12 +1249,12 @@ function TornEdgeMiniGV() {
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
       style={{ display: 'block', width: '100%', marginBottom: -1 }} aria-hidden="true">
-      <path d={d} fill={DARK === LIGHT_THEME ? DARK.bgCard : '#1A1410'}/>
+      <path d={d} fill={(DARK === LIGHT_THEME) ? DARK.bgCard : '#1A1410'}/>
     </svg>
   );
 }
 
-function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onReview: () => void }) {
+function VictoryPopup({ onContinue, onReview, lightMode = false }: { onContinue: () => void; onReview: () => void; lightMode?: boolean }) {
   const light = DARK === LIGHT_THEME;
   return (
     <div style={{
@@ -1272,7 +1272,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
         marginTop: 'auto', position: 'relative',
         maxWidth: 430, width: '100%', alignSelf: 'center',
       }}>
-        <TornEdgeMiniGV/>
+        <TornEdgeMiniGV lightMode={lightMode}/>
         <div style={{
           position: 'relative',
           background: light ? DARK.bgCard : '#1A1410',
@@ -1354,7 +1354,7 @@ function VictoryPopup({ onContinue, onReview }: { onContinue: () => void; onRevi
   );
 }
 
-function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () => void; onContinue: () => void; onReview: () => void }) {
+function EliminatedPopupGV({ onDismiss, onContinue, onReview, lightMode = false }: { onDismiss: () => void; onContinue: () => void; onReview: () => void; lightMode?: boolean }) {
   const light = DARK === LIGHT_THEME;
   return (
     <div style={{
@@ -1372,7 +1372,7 @@ function EliminatedPopupGV({ onDismiss, onContinue, onReview }: { onDismiss: () 
         marginTop: 'auto', position: 'relative',
         maxWidth: 430, width: '100%', alignSelf: 'center',
       }}>
-        <TornEdgeMiniGV/>
+        <TornEdgeMiniGV lightMode={lightMode}/>
         <div style={{
           position: 'relative',
           background: light ? DARK.bgCard : '#1A1410',
@@ -1938,8 +1938,7 @@ function PageContent() {
       if (gameId) {
         debouncedSync(`life-${playerNum}`, () => {
           const seat = playerSeatNumbers[playerNum];
-          addDebug(`[WRITE] seat=${seat} life=${newLife}`);
-          if (seat) updateLifeBySeat(gameId, seat, newLife).then(r => { if (r.error) addDebug(`[ERR] ${r.error}`); }).catch((e) => addDebug(`[ERR] ${e}`));
+          if (seat) updateLifeBySeat(gameId, seat, newLife).then(r => { addDebug(`[WRITE] seat=${seat} life=${newLife} ${r.error ? 'ERR:'+r.error : 'rows='+r.rows}`); }).catch((e) => addDebug(`[ERR] ${e}`));
           else addDebug(`[WARN] NO SEAT for p${playerNum}`);
         });
       }
@@ -2400,6 +2399,7 @@ function PageContent() {
 
       {showVictory && (
         <VictoryPopup
+          lightMode={DARK === LIGHT_THEME}
           onContinue={() => {
             // Revive only the LAST player who died (the second-to-last alive opponent)
             const uid = auth?.user?.id;
@@ -2418,6 +2418,7 @@ function PageContent() {
 
       {showEliminatedGV && (
         <EliminatedPopupGV
+          lightMode={DARK === LIGHT_THEME}
           onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}
           onContinue={() => {
             const uid = auth?.user?.id;

@@ -582,7 +582,7 @@ function CounterChip({ kind, value, label, dense = false, lightMode = false }: a
       height: dense ? 22 : 'auto',
       padding: dense ? '0 9px' : '6px 12px',
       borderRadius: 999,
-      background: lightMode ? '#FFFFFF' : `${v.tone}22`,
+      background: lightMode ? '#FFFFFFcc' : `${v.tone}22`,
       border: `1px solid ${lightMode ? v.tone + '44' : v.tone + '44'}`,
       color: chipColor,
       fontSize: dense ? 11 : 12, fontWeight: 700, letterSpacing: '0.02em',
@@ -616,7 +616,7 @@ function CounterOrbit({ items = [], lightMode = false }: any) {
 }
 
 // ─── Opponent row (KeepsakeCard dark) ────────────────────────────────────────
-function OpponentRow({ p, onTap }: any) {
+function OpponentRow({ p, onTap, lightMode = false }: any) {
   return (
     <button onClick={() => onTap(p)} style={{
       width: '100%', padding: '8px 10px',
@@ -647,9 +647,9 @@ function OpponentRow({ p, onTap }: any) {
           return (
             <div key={i} title={v.label || c.kind} style={{
               width: 22, height: 22, borderRadius: 6,
-              background: `${v.tone}22`,
+              background: lightMode ? '#FFFFFFcc' : `${v.tone}22`,
               border: `1px solid ${(v.tone || 'rgba(226,184,88,0.18)')}55`,
-              color: v.soft || 'var(--ink)',
+              color: lightMode ? v.tone : (v.soft || 'var(--ink)'),
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 9, fontWeight: 800, fontFamily: 'var(--font-display)',
             }}>{c.value}</div>
@@ -1723,7 +1723,7 @@ function SettingsOverlay({ onClose, onAbandon, patternIdx, onPatternChange, ligh
 }
 
 // ─── Eliminated popup ─────────────────────────────────────────────────────
-function TornEdgeMini() {
+function TornEdgeMini({ lightMode = false }: { lightMode?: boolean }) {
   const teeth = 24, w = 430, h = 14;
   const seg = w / teeth;
   let d = `M 0 ${h} `;
@@ -1737,12 +1737,12 @@ function TornEdgeMini() {
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
       style={{ display: 'block', width: '100%', marginBottom: -1 }} aria-hidden="true">
-      <path d={d} fill="#1A1410"/>
+      <path d={d} fill={lightMode ? 'var(--parchment-card)' : '#1A1410'}/>
     </svg>
   );
 }
 
-function EliminatedPopup({ onRevive, onReview }: any) {
+function EliminatedPopup({ onRevive, onReview, lightMode = false }: any) {
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 60,
@@ -1760,7 +1760,7 @@ function EliminatedPopup({ onRevive, onReview }: any) {
         marginTop: 'auto', position: 'relative',
         maxWidth: 430, width: '100%', alignSelf: 'center',
       }}>
-        <TornEdgeMini/>
+        <TornEdgeMini lightMode={lightMode}/>
 
         <div style={{
           position: 'relative',
@@ -1806,14 +1806,14 @@ function EliminatedPopup({ onRevive, onReview }: any) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: 'var(--copper)', color: 'var(--ink)',
+              background: 'var(--copper)', color: 'var(--parchment)',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
               boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--parchment)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
@@ -1853,7 +1853,7 @@ function EliminatedPopup({ onRevive, onReview }: any) {
 }
 
 // ─── Victory popup ────────────────────────────────────────────────────────
-function VictoryPopup({ onContinue, onReview }: any) {
+function VictoryPopup({ onContinue, onReview, lightMode = false }: any) {
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 60,
@@ -1871,7 +1871,7 @@ function VictoryPopup({ onContinue, onReview }: any) {
         marginTop: 'auto', position: 'relative',
         maxWidth: 430, width: '100%', alignSelf: 'center',
       }}>
-        <TornEdgeMini/>
+        <TornEdgeMini lightMode={lightMode}/>
 
         <div style={{
           position: 'relative',
@@ -1923,14 +1923,14 @@ function VictoryPopup({ onContinue, onReview }: any) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={onReview} style={{
               width: '100%', cursor: 'pointer',
-              background: 'var(--copper)', color: 'var(--ink)',
+              background: 'var(--copper)', color: 'var(--parchment)',
               border: 'none', borderRadius: 20,
               padding: '14px 18px',
               fontSize: 15, fontWeight: 600,
               boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--parchment)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
               </svg>
               Go to Review
@@ -2525,7 +2525,7 @@ function PageContent() {
           <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>Tap to expand</div>
         </div>
         {mappedOpponents.map(p => (
-          <OpponentRow key={p.id} p={p} onTap={(player: any) => setExpandedOpponent(player.id)}/>
+          <OpponentRow key={p.id} p={p} onTap={(player: any) => setExpandedOpponent(player.id)} lightMode={lightMode}/>
         ))}
       </div>
 
@@ -2605,6 +2605,7 @@ function PageContent() {
       {/* Victory popup */}
       {showVictory && (
         <VictoryPopup
+          lightMode={lightMode}
           onContinue={() => { setShowVictory(false); setVictoryDismissed(true); }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}/>
       )}
@@ -2612,6 +2613,7 @@ function PageContent() {
       {/* Eliminated popup */}
       {showEliminated && (
         <EliminatedPopup
+          lightMode={lightMode}
           onRevive={() => {
             if (eliminationReason === 'cmdr') {
               // Commander damage elimination: keep life, drop the 21+ source to 20
