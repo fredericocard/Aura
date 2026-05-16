@@ -217,40 +217,7 @@ export default function Page() {
       return;
     }
 
-    // If user has no decks, quick-add without bracket picker
-    if (decks.length === 0) {
-      setRegistering(true);
-      setShowNewDeck(false);
-      setSearchQuery('');
-      setSearchResults([]);
-
-      const { data: newDeck, error: regError } = await registerCommander(validated.cardName, 2, true);
-      if (regError || !newDeck) {
-        displayToast(regError || 'Failed to register commander');
-        setRegistering(false);
-        return;
-      }
-
-      // Update art + color identity
-      const { supabase } = await import('@/lib/supabase');
-      await supabase.from('decks').update({
-        commander_art_url: validated.artUrl,
-        color_identity: validated.colorIdentity || null,
-      }).eq('id', newDeck.id);
-
-      const enrichedDeck = {
-        ...newDeck,
-        commander_art_url: validated.artUrl,
-        color_identity: validated.colorIdentity || null,
-      };
-      setDecks([enrichedDeck]);
-      setSelectedDeck(0);
-      setRegistering(false);
-      displayToast(`${validated.cardName} added!`);
-      return;
-    }
-
-    // Show art picker step first (normal flow when user already has decks)
+    // Show art picker step first — always, even for the first deck
     setArtPickerCard(validated);
     setArtPrintings(null);
     setSelectedArtId(null);
@@ -273,7 +240,7 @@ export default function Page() {
     if (!pendingCard) return;
     setRegistering(true);
 
-    const { data: newDeck, error } = await registerCommander(pendingCard.cardName, selectedBracket);
+    const { data: newDeck, error } = await registerCommander(pendingCard.cardName, selectedBracket, false, pendingCard.artUrl);
     if (error) {
       displayToast(`Error: ${error}`);
       setRegistering(false);
@@ -283,7 +250,6 @@ export default function Page() {
     if (newDeck) {
       const { supabase } = await import('@/lib/supabase');
       await supabase.from('decks').update({
-        commander_art_url: pendingCard.artUrl,
         color_identity: pendingCard.colorIdentity || null,
       }).eq('id', newDeck.id);
 
@@ -301,12 +267,34 @@ export default function Page() {
     setRegistering(false);
   };
 
-  const handleArtConfirm = () => {
+  const handleArtConfirm = async () => {
     if (!artPickerCard || !artPrintings) return;
     const chosen = selectedArtId ? artPrintings.find(p => p.id === selectedArtId) : null;
     const chosenUrl = chosen?.art_crop ?? artPickerCard.artUrl;
-    // Update the card data with the chosen art, then move to bracket picker
     const updatedCard: CardData = { ...artPickerCard, artUrl: chosenUrl };
+
+    // If user has no decks yet, skip the bracket picker — register directly
+    if (decks.length === 0) {
+      setShowArtPicker(false);
+      setRegistering(true);
+      const { data: newDeck, error: regError } = await registerCommander(updatedCard.cardName, 2, true, updatedCard.artUrl);
+      if (regError || !newDeck) {
+        displayToast(regError || 'Failed to register commander');
+        setRegistering(false);
+        return;
+      }
+      const { supabase } = await import('@/lib/supabase');
+      await supabase.from('decks').update({
+        color_identity: updatedCard.colorIdentity || null,
+      }).eq('id', newDeck.id);
+      setDecks([{ ...newDeck, commander_art_url: updatedCard.artUrl, color_identity: updatedCard.colorIdentity || null }]);
+      setSelectedDeck(0);
+      setRegistering(false);
+      displayToast(`${updatedCard.cardName} added!`);
+      return;
+    }
+
+    // Normal flow: move to bracket picker
     setShowArtPicker(false);
     setPendingCard(updatedCard);
     setSelectedBracket(2);
@@ -1193,8 +1181,10 @@ export default function Page() {
 
             {/* Grid */}
             <div style={{
-              flex: 1, overflowY: 'auto', padding: '8px 16px 16px',
+              flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+              padding: '8px 16px 16px',
               display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10,
+              alignContent: 'start',
             }}>
               {artPrintings === null && (
                 <div style={{

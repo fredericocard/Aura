@@ -6,9 +6,9 @@ import { joinPod, getPodByCode, getPodMemberCount } from '@/lib/pods';
 
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
-import { searchCommanders } from '@/lib/scryfall';
+import { searchCommanders, getCommanderPrintings, type CommanderPrinting } from '@/lib/scryfall';
 import { getMyCommanders, registerCommander, type Deck } from '@/lib/commanders';
-import { validateCommander } from '@/lib/scryfall';
+import { validateCommander, type CardData } from '@/lib/scryfall';
 
 /* ── BarcodeDetector type shim (native API, not in TS lib) ──────────────── */
 interface DetectedBarcode { rawValue: string; }
@@ -197,6 +197,14 @@ function PageContent() {
 
   // Login sheet animation
   const [loginSlideUp, setLoginSlideUp] = useState(false);
+
+  // Art picker state (shown after commander validation, before registration)
+  const [showArtPicker, setShowArtPicker] = useState(false);
+  const [artPickerCard, setArtPickerCard] = useState<CardData | null>(null);
+  const [artPrintings, setArtPrintings] = useState<CommanderPrinting[] | null>(null);
+  const [selectedArtId, setSelectedArtId] = useState<string | null>(null);
+  /** Whether the art picker was triggered from the guest flow (vs logged-in add-commander). */
+  const [artPickerIsGuest, setArtPickerIsGuest] = useState(false);
 
   // Cancelling the auth gate (Cancel button, backdrop click, swipe-down)
   // returns the user to the empty join screen with the camera scanner live —
@@ -426,7 +434,7 @@ function PageContent() {
     }, 300);
   }
 
-  // Guest selects a commander -> sign in anonymously -> register deck -> join
+  // Guest selects a commander -> sign in anonymously -> validate -> show art picker
   async function handleGuestSelectCommander(card: any) {
     setAuthSubmitting(true); setAuthError('');
     // 1. Sign in anonymously
@@ -436,12 +444,20 @@ function PageContent() {
     const { data: validated, error: valError } = await validateCommander(card.name);
     if (valError || !validated) { setAuthError(valError || 'Could not validate commander'); setAuthSubmitting(false); return; }
     if (!validated.isValidCommander) { setAuthError(`${validated.cardName} can't be used as a commander`); setAuthSubmitting(false); return; }
-    // 3. Register the commander (skipBracket) — now we have an anonymous user ID
-    const { data: newDeck, error: regError } = await registerCommander(validated.cardName, 2, true);
-    if (regError || !newDeck) { setAuthError(regError || 'Failed to register commander'); setAuthSubmitting(false); return; }
-    // 4. Join with the deck
-    setShowAuthGate(false); setAuthSubmitting(false);
-    await proceedToJoin(newDeck.id);
+    // 3. Show art picker
+    setArtPickerCard(validated);
+    setArtPrintings(null);
+    setSelectedArtId(null);
+    setArtPickerIsGuest(true);
+    setShowArtPicker(true);
+    setAuthSubmitting(false);
+    getCommanderPrintings(validated.cardName).then(rows => {
+      setArtPrintings(rows);
+      if (validated.artUrl) {
+        const match = rows.find(p => p.art_crop === validated.artUrl);
+        if (match) setSelectedArtId(match.id);
+      }
+    });
   }
 
   // Logged-in user selects a commander -> join
@@ -451,18 +467,51 @@ function PageContent() {
     await proceedToJoin(deck.id);
   }
 
-  // Logged-in user picks a new commander from Scryfall -> register (skipBracket) -> join
+  // Logged-in user picks a new commander from Scryfall -> validate -> show art picker
   async function handleAddNewCommander(card: any) {
     setAuthSubmitting(true); setAuthError('');
-    // Validate the card
     const { data: validated, error: valError } = await validateCommander(card.name);
     if (valError || !validated) { setAuthError(valError || 'Could not validate commander'); setAuthSubmitting(false); return; }
     if (!validated.isValidCommander) { setAuthError(`${validated.cardName} can't be used as a commander`); setAuthSubmitting(false); return; }
-    // Register with skipBracket — bracket picker shows on profile after the game
-    const { data: newDeck, error: regError } = await registerCommander(validated.cardName, 2, true);
-    if (regError || !newDeck) { setAuthError(regError || 'Failed to register commander'); setAuthSubmitting(false); return; }
+    // Show art picker
+    setArtPickerCard(validated);
+    setArtPrintings(null);
+    setSelectedArtId(null);
+    setArtPickerIsGuest(false);
+    setShowArtPicker(true);
+    setAuthSubmitting(false);
+    getCommanderPrintings(validated.cardName).then(rows => {
+      setArtPrintings(rows);
+      if (validated.artUrl) {
+        const match = rows.find(p => p.art_crop === validated.artUrl);
+        if (match) setSelectedArtId(match.id);
+      }
+    });
+  }
+
+  // Art picker confirm — register with chosen art, then join
+  async function handleArtConfirm() {
+    if (!artPickerCard || !artPrintings) return;
+    const chosen = selectedArtId ? artPrintings.find(p => p.id === selectedArtId) : null;
+    const chosenUrl = chosen?.art_crop ?? artPickerCard.artUrl;
+    setShowArtPicker(false);
+    setAuthSubmitting(true);
+    const { data: newDeck, error: regError } = await registerCommander(artPickerCard.cardName, 2, true, chosenUrl);
+    if (regError || !newDeck) {
+      setAuthError(regError || 'Failed to register commander');
+      setAuthSubmitting(false);
+      return;
+    }
     setShowAuthGate(false); setAuthSubmitting(false);
+    setArtPickerCard(null); setArtPrintings(null); setSelectedArtId(null);
     await proceedToJoin(newDeck.id);
+  }
+
+  function handleArtCancel() {
+    setShowArtPicker(false);
+    setArtPickerCard(null);
+    setArtPrintings(null);
+    setSelectedArtId(null);
   }
 
   async function handleJoin(codeOverride?: string) {
@@ -1229,6 +1278,121 @@ function PageContent() {
               fontFamily: "'Instrument Sans', sans-serif",
               boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
             }}>Scan another pod</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Art Picker modal ─────────────────────────────────────────── */}
+      {showArtPicker && artPickerCard && (
+        <div onClick={handleArtCancel} style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20,
+          fontFamily: "'Instrument Sans', sans-serif",
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 420, maxHeight: '85vh',
+            display: 'flex', flexDirection: 'column',
+            background: '#FAF5EA', color: '#2B2118',
+            borderRadius: 20,
+            border: '1px solid rgba(43,33,24,0.14)',
+            boxShadow: '0 30px 60px -16px rgba(43,33,24,0.45)',
+            overflow: 'hidden',
+            animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
+          }}>
+            {/* Header */}
+            <div style={{ padding: '18px 20px 8px', textAlign: 'center' }}>
+              <div style={{
+                fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
+                fontWeight: 700, color: '#B06B2C', marginBottom: 4,
+              }}>Commander art</div>
+              <div style={{
+                fontFamily: "'Young Serif', serif", fontSize: 22, lineHeight: 1.15, color: '#2B2118',
+              }}>{artPickerCard.cardName}</div>
+              <div style={{
+                fontFamily: "'Instrument Sans', sans-serif", fontSize: 12, color: '#8A7E6F', marginTop: 4,
+              }}>Pick which art to use for this commander.</div>
+            </div>
+
+            {/* Grid */}
+            <div style={{
+              flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+              padding: '8px 16px 16px',
+              display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10,
+              alignContent: 'start',
+            }}>
+              {artPrintings === null && (
+                <div style={{
+                  gridColumn: '1 / -1', textAlign: 'center', color: '#8A7E6F', fontSize: 13, padding: '20px 0',
+                }}>Loading printings…</div>
+              )}
+              {artPrintings && artPrintings.length === 0 && (
+                <div style={{
+                  gridColumn: '1 / -1', textAlign: 'center', color: '#8A7E6F', fontSize: 13, padding: '20px 0',
+                }}>No printings found.</div>
+              )}
+              {artPrintings?.map((p) => {
+                const selected = selectedArtId === p.id;
+                const thumb = p.art_crop ?? p.normal;
+                return (
+                  <button key={p.id} type="button" onClick={() => setSelectedArtId(p.id)} style={{
+                    appearance: 'none',
+                    background: '#F0E8D8',
+                    border: `2px solid ${selected ? '#B06B2C' : 'rgba(43,33,24,0.14)'}`,
+                    borderRadius: 12, padding: 0, cursor: 'pointer', overflow: 'hidden', textAlign: 'left',
+                    boxShadow: selected ? '0 0 0 2px rgba(176,107,44,0.25)' : 'none',
+                    transition: 'border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease',
+                    transform: selected ? 'scale(1.01)' : 'scale(1)',
+                  }}>
+                    <div style={{
+                      width: '100%', aspectRatio: '16 / 11',
+                      background: 'rgba(176,107,44,0.12)', position: 'relative', overflow: 'hidden',
+                    }}>
+                      {thumb && (
+                        <img src={thumb} alt="" referrerPolicy="no-referrer" loading="lazy"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+                      )}
+                    </div>
+                    <div style={{
+                      padding: '6px 8px 8px', fontFamily: "'Instrument Sans', sans-serif", fontSize: 10, color: '#8A7E6F', lineHeight: 1.3,
+                    }}>
+                      <div style={{
+                        fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                        color: '#2B2118', fontSize: 10,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{p.set_name}</div>
+                      <div style={{ marginTop: 2 }}>
+                        #{p.collector_number}
+                        {p.released_at ? ` · ${p.released_at.slice(0, 4)}` : ''}
+                        {p.promo ? ' · promo' : ''}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div style={{ display: 'flex', gap: 10, padding: '12px 16px 16px', borderTop: '1px solid rgba(43,33,24,0.08)' }}>
+              <button onClick={handleArtCancel} style={{
+                flex: 1, padding: '12px 14px', borderRadius: 999,
+                background: 'transparent', color: '#8A7E6F',
+                border: '1px solid rgba(43,33,24,0.14)',
+                fontFamily: "'Instrument Sans', sans-serif", fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.16em', textTransform: 'uppercase', cursor: 'pointer',
+              }}>Cancel</button>
+              <button onClick={handleArtConfirm} disabled={!selectedArtId} style={{
+                flex: 1, padding: '12px 14px', borderRadius: 999,
+                background: !selectedArtId ? 'rgba(176,107,44,0.5)' : '#B06B2C',
+                color: '#F5EFE2', border: 'none',
+                fontFamily: "'Instrument Sans', sans-serif", fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                cursor: !selectedArtId ? 'not-allowed' : 'pointer',
+              }}>Use this art</button>
+            </div>
           </div>
         </div>
       )}

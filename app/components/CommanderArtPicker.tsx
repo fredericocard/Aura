@@ -161,11 +161,14 @@ export function CommanderArtPicker({
         <div
           style={{
             flex: 1,
+            minHeight: 0,
             overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch' as any,
             padding: '8px 16px 16px',
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: 10,
+            alignContent: 'start',
           }}
         >
           {printings === null && (

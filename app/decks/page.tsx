@@ -535,7 +535,7 @@ export default function Page() {
   const handleConfirmRegistration = async () => {
     if (!pendingCard) return;
     setRegistering(true);
-    const { data: newDeck, error } = await registerCommander(pendingCard.cardName, selectedBracket);
+    const { data: newDeck, error } = await registerCommander(pendingCard.cardName, selectedBracket, false, pendingCard.artUrl);
     if (error) {
       displayToast(`Error: ${error}`);
       setRegistering(false);
@@ -544,7 +544,6 @@ export default function Page() {
     if (newDeck) {
       const { supabase } = await import('../../lib/supabase');
       await supabase.from('decks').update({
-        commander_art_url: pendingCard.artUrl,
         color_identity: pendingCard.colorIdentity || null,
       }).eq('id', newDeck.id);
 

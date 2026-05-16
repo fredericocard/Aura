@@ -34,6 +34,7 @@ export async function registerCommander(
   commanderName: string,
   bracket: number = 2,
   skipBracket: boolean = false,
+  artUrl?: string | null,
 ): Promise<{ data: Deck | null; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not signed in' };
@@ -42,13 +43,16 @@ export async function registerCommander(
     return { data: null, error: 'Bracket must be between 1 and 5' };
   }
 
+  const insertRow: Record<string, any> = {
+    user_id: user.id,
+    commander_name: commanderName.trim(),
+    bracket: skipBracket ? null : bracket,
+  };
+  if (artUrl) insertRow.commander_art_url = artUrl;
+
   const { data, error } = await supabase
     .from('decks')
-    .insert({
-      user_id: user.id,
-      commander_name: commanderName.trim(),
-      bracket: skipBracket ? null : bracket,
-    })
+    .insert(insertRow)
     .select()
     .single() as { data: any; error: any };
 
