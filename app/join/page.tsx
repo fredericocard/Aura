@@ -710,11 +710,10 @@ function PageContent() {
           <div className="or-divider"><div className="or-divider-line" /><span className="or-divider-text">or enter code</span><div className="or-divider-line" /></div>
 
           {error && <div style={{ color: '#B0593E', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>{error}</div>}
-          <div className="code-row" style={{ position: 'relative' }} onClick={() => inputRef.current?.focus()}>
-            {displayCode.map((c, i) => c === null
-              ? <div key={i} className="code-dash">&mdash;</div>
-              : <div key={i} className={`code-char ${c ? 'filled' : ''}`}>{c}</div>
-            )}
+          {/* Pod-code input — visible text field, styled to match the box row.
+              We use a single real <input> rather than a hidden one layered
+              behind decorative boxes so mobile keyboards open reliably. */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
             <input
               ref={inputRef}
               type="text"
@@ -727,21 +726,23 @@ function PageContent() {
               autoCorrect="off"
               spellCheck={false}
               inputMode="text"
+              placeholder="——————"
               aria-label="Pod code"
               style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                opacity: 0,
-                background: 'transparent',
-                border: 'none',
+                width: 260,
+                maxWidth: '100%',
+                padding: '12px 14px',
+                background: '#FAF5EA',
+                border: '1px solid rgba(43,33,24,0.18)',
+                borderRadius: 12,
+                fontFamily: "'Young Serif', serif",
+                fontSize: 24,
+                color: '#2B2118',
+                textAlign: 'center',
+                letterSpacing: '0.4em',
+                textTransform: 'uppercase',
                 outline: 'none',
-                color: 'transparent',
-                caretColor: 'transparent',
-                fontSize: 16,
-                cursor: 'pointer',
-                padding: 0,
+                fontVariantNumeric: 'tabular-nums',
               }}
             />
           </div>
