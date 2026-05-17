@@ -329,9 +329,9 @@ function BadgeTile({ catId, count = 0, isActive = false, onTap }: { catId: Categ
   const ring = 56;
 
   return (
-    <div onClick={onTap} style={{
+    <div onClick={earned ? onTap : undefined} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-      flex: 1, minWidth: 0, cursor: 'pointer',
+      flex: 1, minWidth: 0, cursor: earned ? 'pointer' : 'default',
     }}>
       <div style={{
         position: 'relative',
@@ -820,17 +820,19 @@ function PageContent() {
                   />
                 ))}
               </div>
-              {/* Single centered prompt — fades out when any badge is active */}
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0,
-                textAlign: 'center',
-                fontFamily: 'var(--font-ui)',
-                fontSize: 11, fontWeight: 500,
-                color: 'var(--ink-4)',
-                opacity: activeBadge ? 0 : 1,
-                transition: 'opacity 280ms ease',
-                pointerEvents: 'none',
-              }}>Tap the badge</div>
+              {/* Single centered prompt — only shown if any badge is earned */}
+              {totalBadges > 0 && (
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  textAlign: 'center',
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 11, fontWeight: 500,
+                  color: 'var(--ink-4)',
+                  opacity: activeBadge ? 0 : 1,
+                  transition: 'opacity 280ms ease',
+                  pointerEvents: 'none',
+                }}>Tap the badge</div>
+              )}
             </div>
           </div>
 
