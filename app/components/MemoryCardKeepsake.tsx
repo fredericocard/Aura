@@ -193,7 +193,10 @@ export function KeepsakeCard({ card }: { card: GameCard }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0, padding: "8px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 1 }}>
                   <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 500, color: "#F5EFE2", letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.8 }}>{c.display_name ? c.display_name : (c.archetype !== "The Unknown" ? c.archetype : "Player")}</div>
-                  <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: "#F5EFE2", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any }}>{c.commander_name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    {isWinner && <span style={{ flexShrink: 0, color: "#E2B858", lineHeight: 0 }}><CrownIcon size={11} /></span>}
+                    <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: "#F5EFE2", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any }}>{c.commander_name}</div>
+                  </div>
                   {badge && badge !== "none" && (
                     <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 8, fontWeight: 300, color: "rgba(245,239,226,0.55)", marginTop: 2 }}>
                       Brewed for <span style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 10, color: "#F5EFE2", marginLeft: 2 }}>{KEEPSAKE_BADGE_LABELS[badge] ?? badge}</span>
