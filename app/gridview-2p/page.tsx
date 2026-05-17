@@ -1436,7 +1436,7 @@ function PageContent() {
           }
 
       const channel = supabase
-        .channel(`game-${gameId}`)
+        .channel(`game-${gameId}-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, (payload: any) => {
           const row = payload.new;
           if (!row) return;
@@ -1513,7 +1513,7 @@ function PageContent() {
 
       // Separate channel for game state changes (won't interfere with game_players channel)
       const gameChannel = supabase
-        .channel(`game-state-${gameId}`)
+        .channel(`game-state-${gameId}-${Date.now()}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload: any) => {
           const row = payload.new;
           if (!row) return;
@@ -1608,7 +1608,7 @@ function PageContent() {
   useEffect(() => {
     if (!summoningRevive || !gameId) return;
     const channel = supabase
-      .channel(`summoning-watch-${gameId}`)
+      .channel(`summoning-watch-${gameId}-${Date.now()}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },

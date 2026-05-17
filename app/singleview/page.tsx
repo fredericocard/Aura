@@ -1797,8 +1797,9 @@ function PageContent() {
 
     loadGameData();
 
+    const channelId = `game-singleview-${gameId}-${Date.now()}`;
     const channel = supabase
-      .channel(`game-singleview-${gameId}`)
+      .channel(channelId)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
@@ -1883,7 +1884,7 @@ function PageContent() {
       .subscribe();
 
     const gameChannel = supabase
-      .channel(`game-state-${gameId}`)
+      .channel(`game-state-${gameId}-${Date.now()}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload: any) => {
         const row = payload.new;
         if (!row) return;
@@ -2060,7 +2061,7 @@ function PageContent() {
     if (!summoningRevive || !gameId) return;
     // Subscribe to game_players changes to watch for current_page updates
     const channel = supabase
-      .channel(`summoning-watch-${gameId}`)
+      .channel(`summoning-watch-${gameId}-${Date.now()}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
@@ -2333,12 +2334,43 @@ function PageContent() {
           reviewAccepted={anyReviewAccepted}
           onRevive={async () => {
             const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
-            const lastDead = [...realOpponents].reverse().find((o: any) => (o.life ?? 40) <= 0);
+            // Find last dead opponent — check ALL elimination types
+            const lastDead = [...realOpponents].reverse().find((o: any) =>
+              (o.life ?? 40) <= 0 || (o.poisonCounters ?? 0) >= 10 || o.cmdrLethal === true
+            );
             if (!lastDead?.userId || !gameId) return;
             // Lock summoning FIRST so victory detection effect won't dismiss the popup
             setSummoningRevive(true);
-            // Revive in DB
-            updateLifeTotal(gameId, lastDead.userId, 1).catch(() => {});
+            // Revive in DB — reset ALL lethal conditions
+            if ((lastDead.life ?? 40) <= 0) {
+              updateLifeTotal(gameId, lastDead.userId, 1).catch(() => {});
+            }
+            if ((lastDead.poisonCounters ?? 0) >= 10) {
+              updatePoisonCounters(gameId, lastDead.userId, 9).catch(() => {});
+            }
+            if (lastDead.cmdrLethal) {
+              // Reset cmdr damage — need to read current and cap at 20
+              const { supabase } = await import('@/lib/supabase');
+              const { data: row } = await supabase.from('game_players')
+                .select('commander_damage_received')
+                .eq('game_id', gameId).eq('user_id', lastDead.userId).single();
+              if (row?.commander_damage_received && typeof row.commander_damage_received === 'object') {
+                const fixed: Record<string, number> = {};
+                for (const [k, v] of Object.entries(row.commander_damage_received as Record<string, number>)) {
+                  fixed[k] = v >= 21 ? 20 : v;
+                }
+                updateCommanderDamage(gameId, lastDead.userId, fixed).catch(() => {});
+              }
+            }
+            // Update local opponent state so victory detection clears
+            setOpponents(prev => prev.map(o =>
+              o.userId === lastDead.userId ? {
+                ...o,
+                life: (o.life ?? 40) <= 0 ? 1 : o.life,
+                poisonCounters: (o.poisonCounters ?? 0) >= 10 ? 9 : o.poisonCounters,
+                cmdrLethal: false,
+              } : o
+            ));
             // Check if the dead player is on the game page or review
             const oppPage = await getOpponentCurrentPage(gameId, lastDead.userId);
             if (oppPage && oppPage !== 'review') {
