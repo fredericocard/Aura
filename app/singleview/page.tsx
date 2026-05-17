@@ -1832,8 +1832,9 @@ function PageContent() {
                 }
                 return true;
               });
-            } else if (newLife > 0 && newPoison < 10 && !cmdrLethal) {
+            } else if (newLife > 0 && newPoison < 10 && !cmdrLethal && !summoningRevive) {
               // Revived by another player — clear dead state
+              // Skip if summoning is active (self-revive in progress)
               setDead(false);
               setShowEliminated(false);
               setEliminationReason(null);
@@ -2027,12 +2028,13 @@ function PageContent() {
     const allDead = realOpponents.every((o: any) => (o.life ?? 40) <= 0);
     if (allDead && life > 0) {
       setShowVictory(true);
-    } else if (!allDead) {
+    } else if (!allDead && !summoningRevive) {
       // At least one opponent alive — clear dismiss flag so popup re-fires next time
+      // Skip if summoning is active (revive in progress, waiting for opponent to return)
       if (victoryDismissed) setVictoryDismissed(false);
       if (showVictory) setShowVictory(false);
     }
-  }, [opponents, life, dead, victoryDismissed, showVictory]);
+  }, [opponents, life, dead, victoryDismissed, showVictory, summoningRevive]);
 
   // ── Auto-dismiss summoning when opponent returns from review to a game page ──
   useEffect(() => {

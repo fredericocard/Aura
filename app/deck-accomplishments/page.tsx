@@ -2,7 +2,8 @@
 
 import React, { Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { deleteCommander, BRACKETS } from '@/lib/commanders';
+import { deleteCommander, confirmBracketAndApplyScoring, BRACKETS } from '@/lib/commanders';
+import { manualBracketChange } from '@/lib/bracket-change';
 import { CommanderArtPicker } from '@/app/components/CommanderArtPicker';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -15,6 +16,9 @@ interface CommanderProfile {
   commanderArtUrl: string | null;
   colorIdentity: string | null;
   currentBracket: number;
+  /** True if the deck has never had a bracket assigned. Drives the
+   *  "first-time bracket pick → retroactive scoring" branch. */
+  bracketIsUnset: boolean;
   auraScore: number;
   badges: { badge: string; earnedCount: number }[];
   totalBadgesEarned: number;
@@ -50,6 +54,7 @@ async function loadProfile(deckId: string): Promise<CommanderProfile> {
     commanderArtUrl: deck.commander_art_url,
     colorIdentity: deck.color_identity,
     currentBracket: Number(deck.bracket ?? 2),
+    bracketIsUnset: deck.bracket === null || deck.bracket === undefined,
     auraScore: Number(deck.aura_score ?? 50),
     badges,
     totalBadgesEarned: badges.reduce((s, b) => s + b.earnedCount, 0),
@@ -531,17 +536,32 @@ function PageContent() {
   const handleBracketConfirm = async () => {
     if (!profile) return;
     setSavingBracket(true);
-    const { supabase } = await import('@/lib/supabase');
-    const { error: e } = await supabase
-      .from('decks')
-      .update({ bracket: selectedBracket, aura_score: 50 })
-      .eq('id', profile.deckId);
-    if (!e) {
-      setProfile({ ...profile, currentBracket: selectedBracket, auraScore: 50 });
+    try {
+      if (profile.bracketIsUnset) {
+        // First-time bracket pick — run the proper scoring back-fill so any
+        // games this deck has already played count retroactively. AURA is
+        // NOT reset; it's computed from the now-eligible game history.
+        const { error } = await confirmBracketAndApplyScoring(profile.deckId, selectedBracket);
+        if (error) throw new Error(error);
+      } else {
+        // Changing between brackets — proper manual bracket change:
+        // resets AURA to 50, clears chronic-archenemy, stamps bracket_set_at,
+        // writes a row to bracket_change_log for audit. All badge counts
+        // are preserved.
+        await manualBracketChange(profile.deckId, selectedBracket);
+      }
+      // Re-fetch from DB so the UI reflects the new state (aura_score may
+      // have been recomputed by the back-fill or reset to 50).
+      const refreshed = await loadProfile(profile.deckId);
+      setProfile(refreshed);
       setShowBracketConfirm(false);
       setShowBracket(false);
+      displayToast('Bracket updated.');
+    } catch (err: any) {
+      displayToast(err?.message ?? 'Could not change bracket.');
+    } finally {
+      setSavingBracket(false);
     }
-    setSavingBracket(false);
   };
 
   const handleDelete = async () => {

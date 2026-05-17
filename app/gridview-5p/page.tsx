@@ -2228,11 +2228,12 @@ function PageContent() {
     });
     if (allDead) {
       if (!victoryDismissed) setShowVictory(true);
-    } else {
+    } else if (!summoningRevive) {
+      // Skip if summoning is active (revive in progress, waiting for opponent to return)
       if (victoryDismissed) setVictoryDismissed(false);
       if (showVictory) setShowVictory(false);
     }
-  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
+  }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory, summoningRevive]);
 
   // ── Auto-dismiss summoning when opponent returns from review to a game page ──
   useEffect(() => {
@@ -2334,12 +2335,14 @@ function PageContent() {
     const myPoison = counters[mySeat]?.poison ?? 0;
     const myCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[mySeat] ?? 0) >= 21);
     const iAmDead = (me.life ?? 40) <= 0 || myPoison >= 10 || myCmdrLethal;
-    if (!iAmDead) {
+    if (!iAmDead && !summoningRevive) {
       // I'm alive — reset the dismiss flag so future deaths can re-pop the popup
+      // Skip if summoning is active (self-revive in progress)
       if (elimDismissed) setElimDismissed(false);
       if (showEliminatedGV) setShowEliminatedGV(false);
       return;
     }
+    if (!iAmDead) return; // summoning active, don't reset but also don't re-trigger
     if (elimDismissed) return;
     // Count alive opponents (any seat besides mine)
     const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat);
