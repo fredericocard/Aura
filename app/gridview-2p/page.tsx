@@ -2072,12 +2072,6 @@ function PageContent() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-      {/* DEBUG BANNER — remove after fixing sync */}
-      {debugLog.length > 0 && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', padding: '4px 8px', fontSize: 10, fontFamily: 'monospace', color: '#0f0', pointerEvents: 'none' }}>
-          {debugLog.map((l, i) => <div key={i}>{l}</div>)}
-        </div>
-      )}
       <div className="app">
         <div className="grid-container-2p">
           {/* Top: opponent (slot 2), flipped 180° */}
