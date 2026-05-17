@@ -323,27 +323,19 @@ function LockedBadge({ size = 56 }: { size?: number }) {
   );
 }
 
-function BadgeTile({ catId, count = 0 }: { catId: CategoryId; count?: number }) {
+function BadgeTile({ catId, count = 0, isActive = false, onTap }: { catId: CategoryId; count?: number; isActive?: boolean; onTap?: () => void }) {
   const cat = CATEGORIES.find(c => c.id === catId)!;
   const earned = count > 0;
   const ring = 56;
-  const [tapped, setTapped] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleTap = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setTapped(true);
-    timerRef.current = setTimeout(() => setTapped(false), 2000);
-  };
 
   return (
-    <div onClick={handleTap} style={{
+    <div onClick={onTap} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
       flex: 1, minWidth: 0, cursor: 'pointer',
     }}>
       <div style={{
         position: 'relative',
-        transform: tapped ? 'scale(0.91)' : 'scale(1)',
+        transform: isActive ? 'scale(0.91)' : 'scale(1)',
         transition: 'transform 120ms var(--ease)',
       }}>
         <div style={{
@@ -377,30 +369,16 @@ function BadgeTile({ catId, count = 0 }: { catId: CategoryId; count?: number }) 
           }}>×{count}</div>
         )}
       </div>
-
-      {/* Text area — cross-fades between prompt and label */}
-      <div style={{ position: 'relative', width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{
-          position: 'absolute',
-          fontFamily: 'var(--font-ui)',
-          fontSize: 9, fontWeight: 500,
-          color: 'var(--ink-4)',
-          textAlign: 'center', lineHeight: 1.3,
-          opacity: tapped ? 0 : 1,
-          transition: 'opacity 280ms ease',
-        }}>Tap the{'\n'}badge</span>
-        <span style={{
-          position: 'absolute',
-          fontFamily: 'var(--font-ui)',
-          fontSize: 9, fontWeight: 700,
-          letterSpacing: '0.1em', textTransform: 'uppercase',
-          color: earned ? cat.color : 'var(--ink-3)',
-          textAlign: 'center', lineHeight: 1.2,
-          opacity: tapped ? 1 : 0,
-          transition: 'opacity 280ms ease',
-          whiteSpace: 'nowrap',
-        }}>{cat.label}</span>
-      </div>
+      {/* Label — always takes space, fades in when active */}
+      <div style={{
+        fontFamily: 'var(--font-ui)',
+        fontSize: 11, fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        color: earned ? cat.color : 'var(--ink-3)',
+        textAlign: 'center', lineHeight: 1.1,
+        opacity: isActive ? 1 : 0,
+        transition: 'opacity 280ms ease',
+      }}>{cat.label}</div>
     </div>
   );
 }
@@ -507,6 +485,14 @@ function PageContent() {
   const [profile, setProfile] = useState<CommanderProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeBadge, setActiveBadge] = useState<CategoryId | null>(null);
+  const activeBadgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleBadgeTap = (id: CategoryId) => {
+    if (activeBadgeTimerRef.current) clearTimeout(activeBadgeTimerRef.current);
+    setActiveBadge(id);
+    activeBadgeTimerRef.current = setTimeout(() => setActiveBadge(null), 2000);
+  };
+
   const [showBracket, setShowBracket] = useState(false);
   const [selectedBracket, setSelectedBracket] = useState(2);
   const [showBracketConfirm, setShowBracketConfirm] = useState(false);
@@ -822,10 +808,29 @@ function PageContent() {
                 fontVariantNumeric: 'tabular-nums', fontWeight: 600,
               }}>{totalBadges} badge{totalBadges === 1 ? '' : 's'} · {c.gamesPlayed} game{c.gamesPlayed === 1 ? '' : 's'}</span>
             </div>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {CATEGORIES.map(cat => (
-                <BadgeTile key={cat.id} catId={cat.id} count={c.counts[cat.id] || 0}/>
-              ))}
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {CATEGORIES.map(cat => (
+                  <BadgeTile
+                    key={cat.id}
+                    catId={cat.id}
+                    count={c.counts[cat.id] || 0}
+                    isActive={activeBadge === cat.id}
+                    onTap={() => handleBadgeTap(cat.id)}
+                  />
+                ))}
+              </div>
+              {/* Single centered prompt — fades out when any badge is active */}
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                textAlign: 'center',
+                fontFamily: 'var(--font-ui)',
+                fontSize: 11, fontWeight: 500,
+                color: 'var(--ink-4)',
+                opacity: activeBadge ? 0 : 1,
+                transition: 'opacity 280ms ease',
+                pointerEvents: 'none',
+              }}>Tap the badge</div>
             </div>
           </div>
 
