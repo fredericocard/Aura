@@ -3046,7 +3046,10 @@ function PageContent() {
             }
             const aliveOpponentEntry = Object.entries(players).find(([k, p]) => {
               const n = Number(k);
-              return n !== mySeat && (p?.life ?? 40) > 0;
+              if (n === mySeat) return false;
+              const oppPoison = counters[n]?.poison ?? 0;
+              const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+              return (p?.life ?? 40) > 0 && oppPoison < 10 && !oppCmdrLethal;
             });
             const oppUid = aliveOpponentEntry ? playerUserIds[Number(aliveOpponentEntry[0])] : undefined;
             if (gameId && oppUid) {

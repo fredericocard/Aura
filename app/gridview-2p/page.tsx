@@ -2302,7 +2302,12 @@ function PageContent() {
             // Check if the last alive opponent is on a game page or review
             const mySeat = seatEntry ? Number(seatEntry[0]) : -1;
             const otherSeats = Object.keys(playerUserIds).map(Number).filter(n => n !== mySeat);
-            const aliveOppSeat = otherSeats.find(n => (players[n]?.life ?? 40) > 0);
+            const aliveOppSeat = otherSeats.find(n => {
+              const opp = players[n];
+              const oppPoison = counters[n]?.poison ?? 0;
+              const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+              return (opp?.life ?? 40) > 0 && oppPoison < 10 && !oppCmdrLethal;
+            });
             const aliveOppUid = aliveOppSeat != null ? playerUserIds[aliveOppSeat] : null;
             if (aliveOppUid && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, aliveOppUid);

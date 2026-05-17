@@ -2394,8 +2394,21 @@ function PageContent() {
           onRevive={async () => {
             // Lock summoning FIRST so effects won't dismiss the popup
             setSummoningRevive(true);
-            // Revive self based on elimination type
-            if (eliminationReason === 'cmdr') {
+            // Revive self — reset ALL lethal conditions (not just the trigger reason)
+            if (life <= 0) {
+              setLife(1);
+              if (gameId && user?.id) {
+                updateLifeTotal(gameId, user.id, 1).catch(() => {});
+              }
+            }
+            if (poison >= 10) {
+              setPoison(9);
+              if (gameId && user?.id) {
+                updatePoisonCounters(gameId, user.id, 9).catch(() => {});
+              }
+            }
+            const anyCmdrLethal = Object.values(cmdrDmg).some((v: any) => v >= 21);
+            if (anyCmdrLethal) {
               setCmdrDmg(prev => {
                 const fixed: Record<string, number> = {};
                 for (const [k, v] of Object.entries(prev)) {
@@ -2406,29 +2419,14 @@ function PageContent() {
                 }
                 return fixed;
               });
-              setDead(false);
-              setEliminationReason(null);
-              if (gameId && user?.id) {
-                updateLifeTotal(gameId, user.id, life).catch(() => {});
-              }
-            } else if (eliminationReason === 'poison') {
-              setPoison(9);
-              setDead(false);
-              setEliminationReason(null);
-              if (gameId && user?.id) {
-                updatePoisonCounters(gameId, user.id, 9).catch(() => {});
-              }
-            } else {
-              setLife(1);
-              setDead(false);
-              setEliminationReason(null);
-              if (gameId && user?.id) {
-                updateLifeTotal(gameId, user.id, 1).catch(() => {});
-              }
             }
+            setDead(false);
+            setEliminationReason(null);
             // Check if the last alive opponent is on a game page or review
             const realOpponents = opponents.filter((o: any) => !o.isEmptySeat && o.userId);
-            const aliveOpp = realOpponents.find((o: any) => (o.life ?? 40) > 0);
+            const aliveOpp = realOpponents.find((o: any) =>
+              (o.life ?? 40) > 0 && (o.poisonCounters ?? 0) < 10 && o.cmdrLethal !== true
+            );
             if (aliveOpp && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, aliveOpp.userId);
               if (oppPage && oppPage !== 'review') {

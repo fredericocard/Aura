@@ -2806,7 +2806,14 @@ function PageContent() {
                 handleRevive(mySeat);
               }
             }
-            const aliveOppEntry = Object.entries(playerUserIds).find(([k, v]) => Number(k) !== mySeat && v && (players[Number(k)]?.life ?? 0) > 0);
+            const aliveOppEntry = Object.entries(playerUserIds).find(([k, v]) => {
+              const n = Number(k);
+              if (n === mySeat || !v) return false;
+              const opp = players[n];
+              const oppPoison = counters[n]?.poison ?? 0;
+              const oppCmdrLethal = Object.values(cmdrDamage).some((m: any) => (m?.[n] ?? 0) >= 21);
+              return (opp?.life ?? 40) > 0 && oppPoison < 10 && !oppCmdrLethal;
+            });
             const oppUid = aliveOppEntry ? aliveOppEntry[1] : undefined;
             if (oppUid && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, oppUid);
