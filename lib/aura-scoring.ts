@@ -11,7 +11,7 @@
 //   new_score = clamp(old_score + final_delta, aura_min, aura_max)
 // ============================================
 
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 import {
   getScoringWeights,
   getWeightForBadge,
@@ -74,7 +74,6 @@ export interface AuraHistoryEntry {
 export async function computeGameAura(
   gameId: string
 ): Promise<GameAuraResult> {
-  const supabase = createClient();
 
   // 1. Load game info
   const { data: game, error: gameErr } = await supabase
@@ -209,7 +208,6 @@ export async function computeGameAura(
  * One game produces exactly one update per commander.
  */
 export async function applyGameAura(gameId: string): Promise<GameAuraResult> {
-  const supabase = createClient();
 
   // Check if already processed (idempotent)
   const { data: existing } = await supabase
@@ -277,7 +275,6 @@ export async function getAuraHistory(
   deckId: string,
   limit = 50
 ): Promise<AuraHistoryEntry[]> {
-  const supabase = createClient();
   const { data, error } = await supabase
     .from("aura_history")
     .select("*")
@@ -296,7 +293,6 @@ export async function getAuraHistory(
 export async function getGameAuraHistory(
   gameId: string
 ): Promise<AuraHistoryEntry[]> {
-  const supabase = createClient();
   const { data, error } = await supabase
     .from("aura_history")
     .select("*")
@@ -337,7 +333,6 @@ async function getGameAuraResult(gameId: string): Promise<GameAuraResult> {
 
 /** Get current AURA score for a deck */
 export async function getAuraScore(deckId: string): Promise<number> {
-  const supabase = createClient();
   const { data, error } = await supabase
     .from("decks")
     .select("aura_score")

@@ -6,7 +6,7 @@
 // The flag is internal — never shown to the user.
 // ============================================
 
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { getConfigValues } from "@/lib/scoring-config";
 
 // ── Types ──────────────────────────────────────────────
@@ -53,7 +53,6 @@ export async function evaluateChronicStatus(
   deckId: string,
   config?: ChronicConfig
 ): Promise<ChronicStatus> {
-  const supabase = createClient();
   const cfg = config ?? (await getChronicConfig());
 
   // Get the most recent brewed badges for this deck, newest first
@@ -103,7 +102,6 @@ export async function updateChronicStatus(
   config?: ChronicConfig
 ): Promise<ChronicStatus> {
   const status = await evaluateChronicStatus(deckId, config);
-  const supabase = createClient();
 
   const { error } = await supabase
     .from("decks")
@@ -127,7 +125,6 @@ export async function updateChronicStatus(
  * Reads the persisted flag (no recomputation).
  */
 export async function isChronicArchenemy(deckId: string): Promise<boolean> {
-  const supabase = createClient();
   const { data, error } = await supabase
     .from("decks")
     .select("is_chronic_archenemy")
@@ -145,7 +142,6 @@ export async function isChronicArchenemy(deckId: string): Promise<boolean> {
 export async function updateChronicStatusForGame(
   gameId: string
 ): Promise<ChronicStatus[]> {
-  const supabase = createClient();
   const config = await getChronicConfig();
 
   const { data: players, error } = await supabase
