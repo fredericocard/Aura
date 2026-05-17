@@ -424,14 +424,14 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
 
   return (
     <div style={{
+      position: 'relative',
       background: '#0A0604',
-      border: '1px solid var(--line)',
-      borderLeft: `4px solid ${cat ? cat.color : 'var(--line-strong)'}`,
       borderRadius: 'var(--r-card)',
       boxShadow: expanded ? 'var(--shadow-active)' : 'var(--shadow-rest)',
       overflow: 'hidden',
       transition: 'box-shadow 200ms var(--ease)',
     }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 5, background: cat ? cat.color : 'var(--line-strong)', zIndex: 2 }} />
       <button onClick={onToggle} style={{
         width: '100%', padding: 0,
         display: 'block', position: 'relative',
@@ -543,7 +543,7 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
       </button>
 
       {expanded && (
-        <div style={{ padding: '0 14px 16px', borderTop: '1px solid var(--line)' }}>
+        <div style={{ padding: '0 14px 16px', borderTop: '1px solid var(--line)', background: 'var(--parchment-card)' }}>
           {/* Meta strip */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '12px 0 14px', fontSize: 11, fontWeight: 600,
