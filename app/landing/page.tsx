@@ -3,7 +3,7 @@
 // Route: / (root)
 // ============================================
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/auth-context';
 
@@ -93,27 +93,14 @@ const ROLLER_BADGES = [
 ];
 type RollerPhase = 'idle' | 'exit' | 'enter';
 
-function BadgeRoller({ fontSize = 28 }: { fontSize?: number }) {
-  const [idx, setIdx] = useState(0);
-  const [rPhase, setRPhase] = useState<RollerPhase>('idle');
-
-  useEffect(() => {
-    const SWING = 260; // ms per swing direction
-    const REST  = 2800; // ms badge rests before next turn
-    const id = setInterval(() => {
-      setRPhase('exit');
-      setTimeout(() => {
-        setIdx(i => (i + 1) % ROLLER_BADGES.length);
-        setRPhase('enter');
-        setTimeout(() => setRPhase('idle'), SWING);
-      }, SWING);
-    }, REST + SWING);
-    return () => clearInterval(id);
-  }, []);
-
-  const badge    = ROLLER_BADGES[idx];
+function BadgeRoller({ badgeIdx, badgeAnim, fontSize = 28 }: {
+  badgeIdx: number;
+  badgeAnim: RollerPhase;
+  fontSize?: number;
+}) {
+  const badge    = ROLLER_BADGES[badgeIdx];
   const glyphPx  = Math.round(fontSize * 0.75);
-  const animName = rPhase === 'exit' ? 'badge-exit' : rPhase === 'enter' ? 'badge-enter' : undefined;
+  const animName = badgeAnim === 'exit' ? 'badge-exit' : badgeAnim === 'enter' ? 'badge-enter' : undefined;
 
   return (
     /* Outer: stable-width slot — prevents surrounding lines from shifting */
@@ -596,6 +583,13 @@ export default function HomePage() {
   const [phase, setPhase] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
   const [loginRedirect, setLoginRedirect] = useState('/create');
+
+  /* Hero badge-cycle / tagline sequence */
+  const [heroBadgeIdx, setHeroBadgeIdx]           = useState(0);
+  const [heroBadgeAnim, setHeroBadgeAnim]         = useState<RollerPhase>('idle');
+  const [heroContentVisible, setHeroContentVisible] = useState(true);
+  const [heroMode, setHeroMode]                   = useState<'badge' | 'tagline'>('badge');
+  const heroSeqStarted                            = useRef(false);
   const router = useRouter();
   const { isLoggedIn, isGuest, user, signOut, loading } = useAuth();
 
@@ -660,6 +654,51 @@ export default function HomePage() {
       router.push(loginRedirect);
     }
   }, [isLoggedIn, loading, showLogin, loginRedirect, router]);
+
+  // Start badge → tagline cycle once the hero is visible (phase 4)
+  useEffect(() => {
+    if (phase < 4 || heroSeqStarted.current) return;
+    heroSeqStarted.current = true;
+
+    let cancelled = false;
+    const SWING = 260, REST = 2800, CROSS = 380, TAGLINE_MS = 10000;
+    const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+    const go = async () => {
+      while (!cancelled) {
+        // ── Cycle through all 5 badges ──
+        for (let i = 0; i < 5 && !cancelled; i++) {
+          if (i > 0) {
+            setHeroBadgeIdx(i);
+            setHeroBadgeAnim('enter');
+            await wait(SWING); if (cancelled) return;
+            setHeroBadgeAnim('idle');
+          }
+          await wait(REST); if (cancelled) return;
+          setHeroBadgeAnim('exit');
+          await wait(SWING); if (cancelled) return;
+        }
+        // ── Cross-fade to tagline ──
+        setHeroContentVisible(false);
+        await wait(CROSS); if (cancelled) return;
+        setHeroMode('tagline');
+        setHeroContentVisible(true);
+        await wait(TAGLINE_MS); if (cancelled) return;
+        // ── Cross-fade back to badge cycling ──
+        setHeroContentVisible(false);
+        await wait(CROSS); if (cancelled) return;
+        setHeroMode('badge');
+        setHeroBadgeIdx(0);
+        setHeroBadgeAnim('idle');
+        setHeroContentVisible(true);
+        await wait(CROSS); if (cancelled) return;
+      }
+    };
+
+    // Fun is already visible — wait one REST before the first swing
+    const startId = setTimeout(go, REST);
+    return () => { cancelled = true; clearTimeout(startId); };
+  }, [phase]);
 
   const ease = 'cubic-bezier(.22,.61,.36,1)';
   const morph = phase >= 3;
@@ -781,8 +820,41 @@ export default function HomePage() {
         transition: `opacity ${morph ? '500ms' : '600ms'} ${ease}, transform 600ms ${ease}`,
       }}>Every game has a story</div>
 
-      {/* ── UPPER BAND — spacer so the morphed splash mark has room ── */}
-      <div style={{ height: 56, position: 'relative', zIndex: 2 }} />
+      {/* ── UPPER BAND ── */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 14, position: 'relative', zIndex: 2,
+      }}>
+        <div style={{ height: 40 }} />
+        <div style={{
+          fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400,
+          fontSize: 54, letterSpacing: '-0.02em',
+          lineHeight: 1, color: '#B06B2C',
+          opacity: phase >= 4 ? 1 : 0,
+          transition: `opacity 600ms ${ease} 80ms`,
+        }}>Aura</div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, width: 200, marginTop: -2,
+          opacity: phase >= 4 ? 1 : 0,
+          transition: `opacity 600ms ${ease}`,
+        }}>
+          <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.18)' }} />
+          <div style={{ width: 6, height: 6, transform: 'rotate(45deg)', background: '#2F5D3A' }} />
+          <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.18)' }} />
+        </div>
+        <div style={{
+          fontFamily: "'Young Serif', Georgia, serif",
+          fontStyle: 'italic', fontWeight: 400,
+          fontSize: 15, color: '#5C5043',
+          textAlign: 'center', lineHeight: 1.4,
+          maxWidth: 280, marginTop: 4,
+          opacity: phase >= 4 ? 1 : 0,
+          transform: phase >= 4 ? 'translateY(0)' : 'translateY(6px)',
+          transition: `opacity 600ms ${ease} 150ms, transform 600ms ${ease} 150ms`,
+        }}>
+          Your Commander Journey Remembered
+        </div>
+      </div>
 
       {/* ── MIDDLE BAND — hero ── */}
       <div style={{
@@ -807,35 +879,28 @@ export default function HomePage() {
           transform: phase >= 4 ? 'translateY(0)' : 'translateY(8px)',
           transition: `opacity 600ms ${ease} 200ms, transform 600ms ${ease} 200ms`,
         }}>
-          {/* Accessible static version for screen readers */}
+          {/* Screen reader: one stable sentence, never interrupted */}
           <p style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', margin: 0 }}>
-            With Aura. You play for Fun, Flavour, Brilliance, Allegiance, or Rivalry. Collect badges, build a character, and tell the story that invites you back.
+            You play for Fun, Flavour, Brilliance, Allegiance, or Rivalry. Collect badges, build a character. Every game tells a story.
           </p>
 
-          {/* Visual hero — aria-hidden so screen readers use the static version above */}
+          {/* Visual hero — cross-fades between badge cycle and tagline */}
           <div aria-hidden="true" style={{
             fontFamily: "'Young Serif', Georgia, serif",
             fontWeight: 400, letterSpacing: '-0.02em',
-            fontSize: 28, lineHeight: 1.25,
-            color: '#2B2118',
+            fontSize: 28, lineHeight: 1.25, color: '#2B2118',
+            opacity: heroContentVisible ? 1 : 0,
+            transition: 'opacity 380ms ease',
           }}>
-            {/* Line 1 */}
-            <div>
-              With <span style={{ color: '#B06B2C' }}>Aura</span>.
-            </div>
-            {/* Line 2 — cycling badge word */}
-            <div style={{ marginTop: 2 }}>
-              You play for <BadgeRoller fontSize={28} />
-            </div>
-            {/* Line 3 */}
-            <div style={{ marginTop: 2 }}>
-              Collect badges, build a character,
-            </div>
-            {/* Line 4 — "invites you back" accented */}
-            <div style={{ marginTop: 2 }}>
-              and tell the story that{' '}
-              <span style={{ color: '#B06B2C' }}>invites you back</span>.
-            </div>
+            {heroMode === 'badge' && (
+              <>
+                <div>You play for{' '}<BadgeRoller badgeIdx={heroBadgeIdx} badgeAnim={heroBadgeAnim} fontSize={28} /></div>
+                <div style={{ marginTop: 2 }}>Collect badges, build a character,</div>
+              </>
+            )}
+            {heroMode === 'tagline' && (
+              <div>Every game tells a story</div>
+            )}
           </div>
         </div>
       </div>
