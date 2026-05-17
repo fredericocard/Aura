@@ -552,11 +552,11 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
 
       {expanded && (
         <div style={{ padding: '0 14px 16px', borderTop: '1px solid var(--line)' }}>
-          {/* Meta strip */}
+          {/* Meta strip — At the table label left, AURA delta right */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 0 14px', fontSize: 11, fontWeight: 600,
+            padding: '12px 0 10px', fontSize: 11, fontWeight: 600,
             letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--fg-subtle)' }}>
-            <span>{game.time} · {game.duration}</span>
+            <span>At the table</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <AuraMark size={11} color={game.auraDelta >= 0 ? 'var(--forest)' : 'var(--cat-rivalry)'}/>
               <span style={{
@@ -571,37 +571,12 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
                 fontSize: 10, letterSpacing: '0.14em' }}>AURA</span>
             </span>
           </div>
-
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-            textTransform: 'uppercase', color: 'var(--fg-subtle)', marginBottom: 10 }}>
-            At the table
-          </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 18, paddingTop: 8 }}>
             {game.players.map((pid: any) => (
               <TableSeat key={pid} playerId={pid} isYou={pid === youId}
                 isWinner={pid === game.winnerId} players={players}/>
             ))}
           </div>
-
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-            textTransform: 'uppercase', color: 'var(--fg-subtle)', marginBottom: 10 }}>
-            Badges you earned
-          </div>
-          {game.myBadges.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {game.myBadges.map((b: any, i: any) => (
-                <EarnedRow key={i} badge={b} players={players} glyphBase={glyphBase}/>
-              ))}
-            </div>
-          ) : (
-            <div style={{
-              padding: '14px 12px',
-              border: '1px dashed var(--line-strong)',
-              borderRadius: 14, fontSize: 13, color: 'var(--fg-subtle)',
-              fontFamily: 'var(--font-display)', fontStyle: 'italic',
-              textAlign: 'center',
-            }}>The pod left this one unsigned.</div>
-          )}
 
           <button
             onClick={(e) => { e.stopPropagation(); onOpenMemoryCard?.(game); }}
