@@ -297,8 +297,17 @@ export async function checkPodCompletion(podId: string, gameId: string): Promise
   // All steps are idempotent — safe to retry on failure.
   // Fire-and-forget: don't block the completion response.
   // Errors are captured in the OrchestrationResult (logged, not thrown).
-  onGameCompleted(gameId).catch((err) => {
-    console.error(`[orchestration] Pipeline failed for game ${gameId}:`, err);
+  onGameCompleted(gameId).then((result) => {
+    console.log(`[orchestration] Pipeline result for game ${gameId}:`, JSON.stringify(result, null, 2));
+    if (!result.success) {
+      console.error(`[orchestration] Pipeline FAILED for game ${gameId}. Error: ${result.error}`);
+      result.steps.forEach(s => {
+        if (!s.success) console.error(`  ✗ ${s.step}: ${s.detail}`);
+        else console.log(`  ✓ ${s.step}: ${s.detail}`);
+      });
+    }
+  }).catch((err) => {
+    console.error(`[orchestration] Pipeline threw for game ${gameId}:`, err);
   });
 
   return { completed: true, error: null };
