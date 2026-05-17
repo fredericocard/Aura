@@ -1570,16 +1570,22 @@ function TornEdgeMini({ lightMode = false }: { lightMode?: boolean }) {
   );
 }
 
-function EliminatedPopup({ onRevive, onReview, lightMode = false }: any) {
+function EliminatedPopup({ onDismiss, onRevive, onReview, summoning = false, reviewAccepted = false, lightMode = false }: { onDismiss: () => void; onRevive: () => void; onReview: () => void; summoning?: boolean; reviewAccepted?: boolean; lightMode?: boolean }) {
+  const [dots, setDots] = useState('');
+  useEffect(() => {
+    if (!summoning) return;
+    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
+    return () => clearInterval(id);
+  }, [summoning]);
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 60,
       display: 'flex', flexDirection: 'column',
       fontFamily: 'var(--font-ui)',
     }}>
-      <div onClick={onRevive} style={{
+      <div onClick={onDismiss} style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.60)',
+        background: lightMode ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
       }}/>
@@ -1595,10 +1601,10 @@ function EliminatedPopup({ onRevive, onReview, lightMode = false }: any) {
           background: 'var(--parchment-card)',
           padding: '8px 22px 32px',
         }}>
-          <button onClick={onRevive} aria-label="Close" style={{
+          <button onClick={onDismiss} aria-label="Close" style={{
             position: 'absolute', top: 14, right: 16,
             width: 32, height: 32, borderRadius: 999,
-            border: '1px solid rgba(240,232,216,0.08)',
+            border: '1px solid var(--border-accent)',
             background: 'var(--parchment-deep)',
             color: 'var(--ink-4)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1608,26 +1614,25 @@ function EliminatedPopup({ onRevive, onReview, lightMode = false }: any) {
           <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <svg width={28} height={28} viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="36" r="2.4" fill="var(--gold)"/>
+                <circle cx="32" cy="36" r="2.4" fill="var(--copper)"/>
                 <defs><clipPath id="elim-clip"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
                 <g clipPath="url(#elim-clip)">
-                  <polygon points="8,60 30,4 31,4 24,60" fill="var(--gold)"/>
-                  <polygon points="40,60 33,4 34,4 56,60" fill="var(--gold)"/>
+                  <polygon points="8,60 30,4 31,4 24,60" fill="var(--copper)"/>
+                  <polygon points="40,60 33,4 34,4 56,60" fill="var(--copper)"/>
                 </g>
               </svg>
             </div>
             <div style={{
               fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
               textTransform: 'uppercase', color: 'var(--copper)', marginBottom: 6,
-            }}>Life Reached Zero</div>
+            }}>Out of the Game</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: 26, letterSpacing: '-0.02em',
               color: 'var(--ink)', lineHeight: 1.1,
             }}>You have been eliminated</div>
             <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.4 }}>
-              If the game is over, head to review to rate your experience.
-              If this was a mistake, revive to continue playing.
+              Head to review to rate the game, or close this to keep watching.
             </div>
           </div>
 
@@ -1647,32 +1652,18 @@ function EliminatedPopup({ onRevive, onReview, lightMode = false }: any) {
               Go to Review
             </button>
 
-            <button onClick={onRevive} style={{
-              width: '100%', cursor: 'pointer',
-              background: 'var(--parchment-card)', color: 'var(--ink-2)',
-              border: '1px solid var(--line-strong)',
-              borderRadius: 20,
-              padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>Revive</button>
-          </div>
-
-          <div style={{
-            textAlign: 'center', fontSize: 11, color: 'var(--ink-3)',
-            marginTop: 14, lineHeight: 1.4,
-          }}>
-            Closing this popup will revive you at 1 life.
-          </div>
-          <div style={{
-            textAlign: 'center', fontSize: 12, color: 'var(--ink-3)',
-            marginTop: 12,
-          }}>
-            Or <button onClick={onRevive} style={{
-              background: 'none', border: 'none', padding: 0,
-              fontSize: 12, color: 'var(--ink-3)', textDecoration: 'underline',
-              cursor: 'pointer',
-            }}>skip review</button> to exit the game.
+            {!reviewAccepted && (
+              <button onClick={summoning ? undefined : onRevive} style={{
+                width: '100%', cursor: summoning ? 'default' : 'pointer',
+                background: 'var(--parchment-card)', color: 'var(--ink-2)',
+                border: '1px solid var(--line-strong)',
+                borderRadius: 20,
+                padding: '14px 18px',
+                fontSize: 15, fontWeight: 600,
+                opacity: summoning ? 0.8 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}>{summoning ? <span style={{ minWidth: 120, textAlign: 'center' }}>Summoning{dots}</span> : 'Revive'}</button>
+            )}
           </div>
         </div>
       </div>
@@ -1681,16 +1672,22 @@ function EliminatedPopup({ onRevive, onReview, lightMode = false }: any) {
 }
 
 // ─── Victory popup ────────────────────────────────────────────────────────
-function VictoryPopup({ onContinue, onReview, lightMode = false }: any) {
+function VictoryPopup({ onRevive, onReview, summoning = false, reviewAccepted = false, lightMode = false }: { onRevive: () => void; onReview: () => void; summoning?: boolean; reviewAccepted?: boolean; lightMode?: boolean }) {
+  const [dots, setDots] = useState('');
+  useEffect(() => {
+    if (!summoning) return;
+    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
+    return () => clearInterval(id);
+  }, [summoning]);
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 60,
       display: 'flex', flexDirection: 'column',
       fontFamily: 'var(--font-ui)',
     }}>
-      <div onClick={onContinue} style={{
+      <div style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.60)',
+        background: lightMode ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
       }}/>
@@ -1706,19 +1703,8 @@ function VictoryPopup({ onContinue, onReview, lightMode = false }: any) {
           background: 'var(--parchment-card)',
           padding: '8px 22px 32px',
         }}>
-          <button onClick={onContinue} aria-label="Close" style={{
-            position: 'absolute', top: 14, right: 16,
-            width: 32, height: 32, borderRadius: 999,
-            border: '1px solid rgba(240,232,216,0.08)',
-            background: 'var(--parchment-deep)',
-            color: 'var(--ink-4)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
-          }}>×</button>
-
           <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              {/* Crown icon — 5-point gold crown */}
               <svg width={32} height={32} viewBox="0 0 64 64" aria-hidden="true">
                 <defs>
                   <linearGradient id="vict-crown-grad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -1764,23 +1750,35 @@ function VictoryPopup({ onContinue, onReview, lightMode = false }: any) {
               Go to Review
             </button>
 
-            <button onClick={onContinue} style={{
-              width: '100%', cursor: 'pointer',
-              background: 'var(--parchment-card)', color: 'var(--ink-2)',
-              border: '1px solid var(--line-strong)',
-              borderRadius: 20,
-              padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>Continue Playing</button>
+            {!reviewAccepted && (
+              <button onClick={summoning ? undefined : onRevive} style={{
+                width: '100%', cursor: summoning ? 'default' : 'pointer',
+                background: 'var(--parchment-card)', color: 'var(--ink-2)',
+                border: '1px solid var(--line-strong)',
+                borderRadius: 20,
+                padding: '14px 18px',
+                fontSize: 15, fontWeight: 600,
+                opacity: summoning ? 0.8 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}>{summoning ? <><span style={{ minWidth: 120, textAlign: 'center' }}>Summoning{dots}</span></> : 'Revive Last Player'}</button>
+            )}
           </div>
-
-          <div style={{
-            textAlign: 'center', fontSize: 11, color: 'var(--ink-3)',
-            marginTop: 14, lineHeight: 1.4,
-          }}>
-            Closing this popup keeps you in the game.
-          </div>
+          {!reviewAccepted && !summoning && (
+            <div style={{
+              textAlign: 'center', fontSize: 11, color: 'var(--ink-3)',
+              marginTop: 14, lineHeight: 1.4,
+            }}>
+              Revive Last Player brings the most recent defeated opponent back at 1 life.
+            </div>
+          )}
+          {summoning && (
+            <div style={{
+              textAlign: 'center', fontSize: 11, color: 'var(--ink-3)',
+              marginTop: 14, lineHeight: 1.4,
+            }}>
+              Waiting for the other player to return to the game.
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1815,8 +1813,13 @@ function PageContent() {
   const [showCmdrDmg, setShowCmdrDmg] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showEliminated, setShowEliminated] = useState(false);
+  const [elimDismissed, setElimDismissed] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [victoryDismissed, setVictoryDismissed] = useState(false);
+  const [summoningRevive, setSummoningRevive] = useState(false);
+  const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
+  const summoningStartRef = useRef<number>(0);
+  const reviveLifeSnapshotRef = useRef<Record<string, number>>({});
   const [lightMode, setLightMode] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('aura-light-mode') === '1';
     return false;
@@ -2195,8 +2198,45 @@ function PageContent() {
     const allDead = realOpponents.every((o: any) => (o.life ?? 40) <= 0);
     if (allDead && life > 0) {
       setShowVictory(true);
+    } else if (!allDead) {
+      // At least one opponent alive — clear dismiss flag so popup re-fires next time
+      if (victoryDismissed) setVictoryDismissed(false);
+      if (showVictory) setShowVictory(false);
     }
-  }, [opponents, life, dead, victoryDismissed]);
+  }, [opponents, life, dead, victoryDismissed, showVictory]);
+
+  // ── Auto-dismiss summoning when opponent actually interacts (life changes) ──
+  useEffect(() => {
+    if (!summoningRevive) return;
+    if (Date.now() - summoningStartRef.current < 5000) return;
+    const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
+    const opponentInteracted = realOpponents.some((o: any) => {
+      const current = o.life ?? 0;
+      const snapshot = reviveLifeSnapshotRef.current[o.userId ?? o.id] ?? 0;
+      return current > 0 && current !== snapshot;
+    });
+    if (opponentInteracted) {
+      setSummoningRevive(false);
+      setShowVictory(false);
+      setVictoryDismissed(false);
+      setShowEliminated(false);
+      setElimDismissed(false);
+    }
+  }, [opponents, summoningRevive]);
+
+  // ── Check if any player accepted review (hides revive button) ──
+  useEffect(() => {
+    if (!podId || !gameId) return;
+    const checkReviewAccepted = async () => {
+      const { data } = await supabase
+        .from('pod_members')
+        .select('review_submitted_at')
+        .eq('pod_id', podId)
+        .not('review_submitted_at', 'is', null);
+      if (data && data.length > 0) setAnyReviewAccepted(true);
+    };
+    checkReviewAccepted();
+  }, [podId, gameId]);
 
   // Loading screen
   if (!gameLoaded) {
@@ -2427,21 +2467,38 @@ function PageContent() {
           onToggleLight={() => setLightMode(m => { const next = !m; localStorage.setItem('aura-light-mode', next ? '1' : '0'); return next; })}/>
       )}
 
-      {/* Victory popup */}
+      {/* Victory popup — winner revives last dead opponent */}
       {showVictory && (
         <VictoryPopup
           lightMode={lightMode}
-          onContinue={() => { setShowVictory(false); setVictoryDismissed(true); }}
+          summoning={summoningRevive}
+          reviewAccepted={anyReviewAccepted}
+          onRevive={() => {
+            // Find the last dead opponent and revive them at 1 life
+            const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
+            const lastDead = [...realOpponents].reverse().find((o: any) => (o.life ?? 40) <= 0);
+            if (lastDead && lastDead.userId && gameId) {
+              updateLifeTotal(gameId, lastDead.userId, 1).catch(() => {});
+            }
+            // Snapshot for auto-dismiss
+            const snapshot: Record<string, number> = {};
+            realOpponents.forEach((o: any) => { snapshot[o.userId ?? o.id] = (o.life ?? 40) <= 0 ? 1 : (o.life ?? 40); });
+            reviveLifeSnapshotRef.current = snapshot;
+            summoningStartRef.current = Date.now();
+            setSummoningRevive(true);
+          }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}/>
       )}
 
-      {/* Eliminated popup */}
+      {/* Eliminated popup — player revives self */}
       {showEliminated && (
         <EliminatedPopup
           lightMode={lightMode}
+          summoning={summoningRevive}
+          reviewAccepted={anyReviewAccepted}
+          onDismiss={() => { setShowEliminated(false); setElimDismissed(true); }}
           onRevive={() => {
             if (eliminationReason === 'cmdr') {
-              // Commander damage elimination: keep life, drop the 21+ source to 20
               setCmdrDmg(prev => {
                 const fixed: Record<string, number> = {};
                 for (const [k, v] of Object.entries(prev)) {
@@ -2453,31 +2510,31 @@ function PageContent() {
                 return fixed;
               });
               setDead(false);
-              setShowEliminated(false);
               setEliminationReason(null);
-              // Life stays the same — just un-eliminate on backend
               if (gameId && user?.id) {
                 updateLifeTotal(gameId, user.id, life).catch(() => {});
               }
             } else if (eliminationReason === 'poison') {
-              // Poison elimination: revive at 9 poison
               setPoison(9);
               setDead(false);
-              setShowEliminated(false);
               setEliminationReason(null);
               if (gameId && user?.id) {
                 updatePoisonCounters(gameId, user.id, 9).catch(() => {});
               }
             } else {
-              // Life-based elimination: revive at 1 life
               setLife(1);
               setDead(false);
-              setShowEliminated(false);
               setEliminationReason(null);
               if (gameId && user?.id) {
                 updateLifeTotal(gameId, user.id, 1).catch(() => {});
               }
             }
+            // Don't dismiss — show "Summoning…" until game resumes
+            const snapshot: Record<string, number> = {};
+            opponents.forEach((o: any) => { snapshot[o.userId ?? o.id] = o.life ?? 0; });
+            reviveLifeSnapshotRef.current = snapshot;
+            summoningStartRef.current = Date.now();
+            setSummoningRevive(true);
           }}
           onReview={() => { setShowEliminated(false); setEliminationReason(null); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}/>
       )}
