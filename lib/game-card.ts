@@ -17,6 +17,7 @@ export interface CommanderCardData {
   user_id: string | null;
   seat_number?: number;
   commander_name: string;
+  display_name: string | null;
   art_url: string | null;
   archetype: string;
   brewed_badge: string;
@@ -194,6 +195,19 @@ export async function composeGameCard(
     throw new Error(`Failed to load players: ${playersErr?.message}`);
   }
 
+  // 1b. Fetch player display names from profiles
+  const userIds = players.map((p: any) => p.user_id).filter(Boolean);
+  let displayNameMap = new Map<string, string>();
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', userIds) as { data: any };
+    for (const pr of (profiles ?? [])) {
+      if (pr.display_name) displayNameMap.set(pr.id, pr.display_name);
+    }
+  }
+
   // 2. Get badge attributions (archetypes + brewed badges)
   const { data: attributions } = await getGameBadgeAttributions(gameId);
   const attrMap = new Map(attributions.map((a) => [a.deck_id, a]));
@@ -250,6 +264,7 @@ export async function composeGameCard(
         user_id: p.user_id ?? null,
         seat_number: p.seat_number ?? undefined,
         commander_name: `P${p.seat_number ?? "?"}`,
+        display_name: p.user_id ? (displayNameMap.get(p.user_id) ?? null) : null,
         art_url: null,
         archetype: "Empty seat",
         brewed_badge: "none",
@@ -266,6 +281,7 @@ export async function composeGameCard(
       user_id: p.user_id ?? null,
       seat_number: p.seat_number ?? undefined,
       commander_name: deck.commander_name,
+      display_name: p.user_id ? (displayNameMap.get(p.user_id) ?? null) : null,
       art_url: artUrl,
       archetype: attr?.archetype_name ?? "The Unknown",
       brewed_badge: attr?.brewed_badge ?? "none",
@@ -417,6 +433,27 @@ export async function getGameCard(gameId: string): Promise<GameCard | null> {
         art_url: artMap.has(c?.deck_id) ? (artMap.get(c.deck_id) ?? c.art_url ?? null) : c.art_url,
       }));
     }
+  }
+
+  // Scryfall fallback for commanders still missing art after deck refresh
+  if (Array.isArray(data.commanders)) {
+    const needsArt = data.commanders.filter((c: any) => !c.art_url && c.commander_name && c.deck_id);
+    if (needsArt.length > 0) {
+      await Promise.all(needsArt.map(async (c: any) => {
+        const art = await fetchScryfallArt(c.commander_name);
+        if (art) c.art_url = art;
+      }));
+    }
+  }
+
+  // Derive game_time from created_at if not already set
+  if (!data.game_time && data.created_at) {
+    try {
+      const d = new Date(data.created_at);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      data.game_time = `${hh}:${mm}`;
+    } catch { /* leave empty */ }
   }
 
   return data as GameCard;

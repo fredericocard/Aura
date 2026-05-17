@@ -67,6 +67,7 @@ function Icon({ name, size = 20, stroke = 'currentColor', width = 1.75 }: { name
     crown: <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>,
     'thumbs-up': <path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H7V10l4-8a2 2 0 0 1 2 2v1.88z"/>,
     'book-open': <><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></>,
+    'refresh-cw': <><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -240,7 +241,14 @@ function BracketActiveCard({ selectedIds, onToggle, onSelectOnBracket, players }
 
 function KeepsakeCard({ card }: { card: GameCard }) {
   const commanders = (card.commanders ?? []) as CommanderCardData[];
-  const dateStr = card.game_date ?? '';
+  const rawDate = card.game_date ?? '';
+  const dateStr = (() => {
+    try {
+      const [y, m, d] = rawDate.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return rawDate; }
+  })();
 
   return (
     <div style={{ padding: 4, background: 'linear-gradient(135deg, #E2B858 0%, #C99B2F 22%, #8C5A28 50%, #C99B2F 78%, #E2B858 100%)', borderRadius: 24, boxShadow: '0 30px 60px -20px rgba(10,6,4,0.55), 0 12px 24px -8px rgba(43,33,24,0.35), 0 1px 0 rgba(255,255,255,0.35) inset' }}>
@@ -310,8 +318,8 @@ function KeepsakeCard({ card }: { card: GameCard }) {
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0, padding: '8px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
-                  <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 500, color: '#F5EFE2', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.8 }}>{c.archetype}</div>
-                  <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: '#F5EFE2' }}>{c.commander_name}</div>
+                  <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 500, color: '#F5EFE2', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.8 }}>{c.archetype === 'The Unknown' && c.display_name ? c.display_name : c.archetype}</div>
+                  <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: '#F5EFE2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.commander_name}</div>
                   {badge && badge !== 'none' && (
                     <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 8, fontWeight: 300, color: 'rgba(245,239,226,0.55)', marginTop: 2 }}>
                       Brewed for <span style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 10, color: '#F5EFE2', marginLeft: 2 }}>{BADGE_LABELS[badge] ?? badge}</span>
