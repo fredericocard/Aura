@@ -331,18 +331,4 @@ export async function isGameCardLocked(gameId: string): Promise<boolean> {
  * Get time remaining on the 30-min review timer.
  * Returns null if no winner yet, 0 if expired.
  */
-export async function getReviewTimeRemaining(gameId: string): Promise<number | null> {
-  const { data: game } = await supabase
-    .from('games')
-    .select('ended_at, winner_player_id')
-    .eq('id', gameId)
-    .single() as { data: any };
-
-  if (!game?.ended_at || !game.winner_player_id) return null;
-
-  const endedAt = new Date(game.ended_at).getTime();
-  const deadline = endedAt + REVIEW_TIMEOUT_MS;
-  const remaining = Math.max(0, deadline - Date.now());
-
-  return Math.ceil(remaining / 60000); // minutes
-}
+export async function getReviewTimeRemaining(gameId: string): Promise<number | null

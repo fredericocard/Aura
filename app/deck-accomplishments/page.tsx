@@ -1275,37 +1275,4 @@ function ActionsSheet({ commander, onClose, onChangeBracket, onChangeArt, onRece
                 <Icon name="scroll" size={20} stroke="currentColor" width={1.6}/>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>Recent games</div>
-                <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>View match history</div>
-              </div>
-            </button>
-          </div>
-
-          <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)' }}>
-            <button onClick={onDelete} style={{
-              width: '100%', padding: '14px 14px',
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              borderRadius: 12, textAlign: 'center',
-              fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600,
-              color: 'var(--cat-rivalry)',
-            }}>Delete deck</button>
-          </div>
-        </div>
-      </div>
-
-      <style>{`@keyframes popIn { from { transform: translateY(20px); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }`}</style>
-    </div>
-  );
-}
-
-export default function Page() {
-  return (
-    <Suspense fallback={
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E6F', fontSize: 14 }}>
-        Loading…
-      </div>
-    }>
-       <PageContent />
-    </Suspense>
-  );
-}
+                <div style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>Recent gam
