@@ -339,19 +339,27 @@ function BadgeTile({ catId, count = 0 }: { catId: CategoryId; count?: number }) 
       flex: 1, minWidth: 0,
     }}>
       <div style={{ position: 'relative' }}>
-        {earned ? (
-          <div style={{
-            width: ring, height: ring, borderRadius: 999,
-            background: cat.soft, color: cat.color,
-            border: `1.5px solid ${cat.color}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: 'var(--shadow-rest)',
-          }}>
-            <BadgeGlyph name={cat.glyph} size={30} color={cat.color}/>
-          </div>
-        ) : (
-          <LockedBadge size={ring}/>
-        )}
+        {/* Always show the category glyph so the user sees which trait
+            each slot represents. Earned state uses the trait's full
+            colour; unearned is muted with a dashed parchment ring. */}
+        <div style={{
+          width: ring, height: ring, borderRadius: 999,
+          background: earned ? cat.soft : 'var(--parchment-deep)',
+          color: earned ? cat.color : 'var(--ink-4)',
+          border: earned
+            ? `1.5px solid ${cat.color}`
+            : '1.5px dashed var(--line-strong)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: earned ? 'var(--shadow-rest)' : 'none',
+          opacity: earned ? 1 : 0.55,
+          transition: 'opacity 200ms ease',
+        }}>
+          <BadgeGlyph
+            name={cat.glyph}
+            size={30}
+            color={earned ? cat.color : 'var(--ink-4)'}
+          />
+        </div>
         {earned && (
           <div style={{
             position: 'absolute', right: -4, bottom: -4,
@@ -371,7 +379,7 @@ function BadgeTile({ catId, count = 0 }: { catId: CategoryId; count?: number }) 
         letterSpacing: '0.08em', textTransform: 'uppercase',
         color: earned ? 'var(--ink)' : 'var(--ink-4)',
         textAlign: 'center', lineHeight: 1.1,
-      }}>{earned ? cat.label : '—'}</div>
+      }}>{cat.label}</div>
     </div>
   );
 }
