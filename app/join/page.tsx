@@ -591,7 +591,7 @@ function PageContent() {
     if (code && typeof window !== 'undefined') {
       sessionStorage.setItem('joinPodCode', code);
     }
-    const { supabase } = await import('../../lib/supabase');
+    const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
