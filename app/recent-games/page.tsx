@@ -421,6 +421,7 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
   const primary = game.myBadges[0];
   const cat = primary ? categoryById(primary.id) : null;
   const extra = Math.max(0, game.myBadges.length - 1);
+  const isWinner = game.winnerId === youId;
 
   return (
     <div style={{
@@ -476,12 +477,19 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
                 <span style={{ fontWeight: 600 }}>{game.time}</span>
               </>)}
             </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 18, lineHeight: 1.15, color: '#F0E8D8',
-              letterSpacing: '-0.01em', marginTop: 4,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
-              {cmd ? cmd.short : game.myCommanderId}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+              {isWinner && (
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="#E2B858" stroke="#E2B858" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}>
+                  <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+                </svg>
+              )}
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400,
+                fontSize: 18, lineHeight: 1.15, color: '#F0E8D8',
+                letterSpacing: '-0.01em',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+                {cmd ? cmd.short : game.myCommanderId}
+              </div>
             </div>
             {primary && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6,
