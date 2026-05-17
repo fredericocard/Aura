@@ -172,7 +172,7 @@ export function KeepsakeCard({ card }: { card: GameCard }) {
             const isWinner = c.is_winner;
             return (
               <div key={c.deck_id ?? `seat-${c.seat_number ?? i}`} style={{ position: "relative", display: "flex", alignItems: "stretch", minHeight: 72, background: "#0A0604", overflow: "hidden", borderBottom: i < commanders.length - 1 ? "1px solid rgba(201,155,47,0.22)" : "none" }}>
-                <div style={{ position: "relative", width: "65%", flexShrink: 0, overflow: "hidden" }}>
+                <div style={{ position: "relative", width: "55%", flexShrink: 0, overflow: "hidden" }}>
                   {/* Initial-letter fallback always rendered underneath; image overlays on top when it loads. */}
                   <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#1a140e", color: "#E2B858", fontSize: 28, fontFamily: "'Young Serif', Georgia, serif" }}>{(c.commander_name ?? "?").charAt(0)}</div>
                   {c.art_url && (
@@ -185,18 +185,22 @@ export function KeepsakeCard({ card }: { card: GameCard }) {
                     />
                   )}
                   <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: 80, background: "linear-gradient(90deg, transparent 0%, rgba(10,6,4,0.55) 55%, #0A0604 100%)", pointerEvents: "none" }} />
-                  {isWinner && (
-                    <div style={{ position: "absolute", top: 8, left: 8, width: 22, height: 22, borderRadius: 999, background: "rgba(10,6,4,0.72)", border: "1px solid rgba(226,184,88,0.55)", display: "flex", alignItems: "center", justifyContent: "center", color: "#E2B858" }}>
-                      <CrownIcon size={12} />
+                  {/* Top-left circle: brewed badge glyph */}
+                  {badge && badge !== "none" && (
+                    <div style={{ position: "absolute", top: 8, left: 8, width: 22, height: 22, borderRadius: 999, background: "rgba(10,6,4,0.72)", border: "1px solid rgba(226,184,88,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ display: "inline-block", width: 13, height: 13, backgroundColor: "#E2B858", WebkitMaskImage: `url("/assets/glyphs/${badge}.png")`, maskImage: `url("/assets/glyphs/${badge}.png")`, WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "center", maskPosition: "center", WebkitMaskSize: "contain", maskSize: "contain" }} />
                     </div>
                   )}
                 </div>
+                {/* Crown on the divider line between image and text */}
+                {isWinner && (
+                  <div style={{ position: "absolute", top: "50%", left: "55%", transform: "translate(-50%, -50%)", zIndex: 2, width: 22, height: 22, borderRadius: 999, background: "rgba(10,6,4,0.85)", border: "1.5px solid rgba(226,184,88,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width={12} height={12} viewBox="0 0 24 24" fill="#E2B858" stroke="#E2B858" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 0, padding: "8px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 1 }}>
                   <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 500, color: "#F5EFE2", letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.8 }}>{c.display_name ? c.display_name : (c.archetype !== "The Unknown" ? c.archetype : "Player")}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    {isWinner && <span style={{ flexShrink: 0, color: "#E2B858", lineHeight: 0 }}><svg width={12} height={12} viewBox="0 0 24 24" fill="#E2B858" stroke="none" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" fill="#E2B858" stroke="#E2B858" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>}
-                    <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: "#F5EFE2", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any }}>{c.commander_name}</div>
-                  </div>
+                  <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: "#F5EFE2", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any }}>{c.commander_name}</div>
                   {badge && badge !== "none" && (
                     <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 8, fontWeight: 300, color: "rgba(245,239,226,0.55)", marginTop: 2 }}>
                       Brewed for <span style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 10, color: "#F5EFE2", marginLeft: 2 }}>{KEEPSAKE_BADGE_LABELS[badge] ?? badge}</span>
