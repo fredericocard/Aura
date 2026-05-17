@@ -20,11 +20,11 @@ type CategoryId = 'brilliance' | 'flavor' | 'rivalry' | 'allegiance' | 'fun';
 
 // ── Aura tier helpers ───────────────────────────────────────────────────────
 const AURA_TIERS = [
-  { min: 80, max: 100, label: 'Mythic',    tagline: 'Legendary status' },
-  { min: 60, max: 79,  label: 'Beloved',   tagline: 'Regular at the table' },
-  { min: 40, max: 59,  label: 'Brewed',    tagline: 'Part of the rotation' },
-  { min: 20, max: 39,  label: 'Sideboard', tagline: 'Occasionally called in' },
-  { min: 0,  max: 19,  label: 'Exiled',    tagline: 'Unwelcome at tables' },
+  { min: 81, max: 100, label: 'Legendary', tagline: 'The gold standard of fun' },
+  { min: 61, max: 80,  label: 'Beloved',   tagline: 'A welcome sight at the table' },
+  { min: 41, max: 60,  label: 'Brewed',    tagline: 'Built and ready to rise' },
+  { min: 21, max: 40,  label: 'Rough',     tagline: 'Read the pod, earn the climb' },
+  { min: 1,  max: 20,  label: 'Cursed',    tagline: 'Raise the bracket to reset' },
 ];
 function tierFor(score: number) {
   return AURA_TIERS.find(t => score >= t.min && score <= t.max) || AURA_TIERS[AURA_TIERS.length - 1];

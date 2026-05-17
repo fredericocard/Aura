@@ -328,10 +328,10 @@ const HOWTO_HTML = `<section class="cover cover-dark">
     <div class="aura-card-meta">
       <div class="aura-tier-stamp">Beloved</div>
       <div class="aura-cmd-name">Omnath, Locus of Creation</div>
-      <div class="aura-tier-note">A regular favorite at this table.</div>
+      <div class="aura-tier-note">A welcome sight at the table.</div>
     </div>
   </div>
-  <div class="tier-ladder"><div class="tier-row tier-row-first"><div class="tier-range">80 — 100</div><div class="tier-info"><div class="tier-label">Mythic</div><div class="tier-note">Legendary at the table</div></div></div><div class="tier-row"><div class="tier-range">60 — 79</div><div class="tier-info"><div class="tier-label">Beloved</div><div class="tier-note">A regular favorite</div></div></div><div class="tier-row"><div class="tier-range">40 — 59</div><div class="tier-info"><div class="tier-label">Brewed</div><div class="tier-note">Part of the rotation</div></div></div><div class="tier-row"><div class="tier-range">20 — 39</div><div class="tier-info"><div class="tier-label">Sideboard</div><div class="tier-note">Occasionally called in</div></div></div><div class="tier-row"><div class="tier-range">0 — 19</div><div class="tier-info"><div class="tier-label">Exiled</div><div class="tier-note">Unwelcome at tables</div></div></div></div>
+  <div class="tier-ladder"><div class="tier-row tier-row-first"><div class="tier-range">81 — 100</div><div class="tier-info"><div class="tier-label">Legendary</div><div class="tier-note">The gold standard of fun</div></div></div><div class="tier-row"><div class="tier-range">61 — 80</div><div class="tier-info"><div class="tier-label">Beloved</div><div class="tier-note">A welcome sight at the table</div></div></div><div class="tier-row"><div class="tier-range">41 — 60</div><div class="tier-info"><div class="tier-label">Brewed</div><div class="tier-note">Built and ready to rise</div></div></div><div class="tier-row"><div class="tier-range">21 — 40</div><div class="tier-info"><div class="tier-label">Rough</div><div class="tier-note">Read the pod, earn the climb</div></div></div><div class="tier-row"><div class="tier-range">1 — 20</div><div class="tier-info"><div class="tier-label">Cursed</div><div class="tier-note">Raise the bracket to reset</div></div></div></div>
   <div class="chap-italic-foot">Reputation is given, not earned alone.</div>
 </section>
 

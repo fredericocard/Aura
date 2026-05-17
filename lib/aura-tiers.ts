@@ -16,11 +16,11 @@ import {
 // ── Types ──────────────────────────────────────────────
 
 export type TierName =
-  | "Exiled"
-  | "Sideboard"
+  | "Cursed"
+  | "Rough"
   | "Brewed"
   | "Beloved"
-  | "Mythic";
+  | "Legendary";
 
 export interface AuraTier {
   tier: TierName | "Developing";
@@ -36,25 +36,25 @@ export const TIER_INFO: Record<
   TierName,
   { label: string; description: string }
 > = {
-  Exiled: {
-    label: "Exiled",
-    description: "This commander is seen as disruptive or unwelcome at the table.",
+  Cursed: {
+    label: "Cursed",
+    description: "Raise the bracket to reset.",
   },
-  Sideboard: {
-    label: "Sideboard",
-    description: "This commander has a mixed reputation — some rough edges.",
+  Rough: {
+    label: "Rough",
+    description: "Read the pod, earn the climb.",
   },
   Brewed: {
     label: "Brewed",
-    description: "A solid commander with a neutral reputation. The starting point.",
+    description: "Built and ready to rise.",
   },
   Beloved: {
     label: "Beloved",
-    description: "This commander is well-regarded — fun to play with and against.",
+    description: "A welcome sight at the table.",
   },
-  Mythic: {
-    label: "Mythic",
-    description: "A legendary reputation. This commander makes every game better.",
+  Legendary: {
+    label: "Legendary",
+    description: "The gold standard of fun.",
   },
 };
 
@@ -69,11 +69,11 @@ export function computeTier(
   score: number,
   boundaries: TierBoundaries
 ): TierName {
-  if (score <= boundaries.exiled) return "Exiled";
-  if (score <= boundaries.sideboard) return "Sideboard";
+  if (score <= boundaries.exiled) return "Cursed";
+  if (score <= boundaries.sideboard) return "Rough";
   if (score <= boundaries.brewed) return "Brewed";
   if (score <= boundaries.beloved) return "Beloved";
-  return "Mythic";
+  return "Legendary";
 }
 
 /**
@@ -84,15 +84,15 @@ export function getTierRange(
   boundaries: TierBoundaries
 ): { min: number; max: number } {
   switch (tier) {
-    case "Exiled":
+    case "Cursed":
       return { min: 1, max: boundaries.exiled };
-    case "Sideboard":
+    case "Rough":
       return { min: boundaries.exiled + 1, max: boundaries.sideboard };
     case "Brewed":
       return { min: boundaries.sideboard + 1, max: boundaries.brewed };
     case "Beloved":
       return { min: boundaries.brewed + 1, max: boundaries.beloved };
-    case "Mythic":
+    case "Legendary":
       return { min: boundaries.beloved + 1, max: boundaries.mythic };
   }
 }
