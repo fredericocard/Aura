@@ -3004,6 +3004,7 @@ function PageContent() {
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onRevive={async () => {
+            setSummoningRevive(true);
             const uid = auth?.user?.id;
             const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
             const mySeat = mySeatEntry ? Number(mySeatEntry[0]) : -1;
@@ -3014,13 +3015,12 @@ function PageContent() {
             if (gameId && oppUid) {
               const oppPage = await getOpponentCurrentPage(gameId, oppUid);
               if (oppPage && oppPage !== 'review') {
+                setSummoningRevive(false);
                 setShowVictory(false);
                 setVictoryDismissed(false);
-              } else {
-                setSummoningRevive(true);
               }
             } else {
-              setSummoningRevive(true);
+              setSummoningRevive(false);
             }
           }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
@@ -3034,6 +3034,7 @@ function PageContent() {
           reviewAccepted={anyReviewAccepted}
           onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}
           onRevive={async () => {
+            setSummoningRevive(true);
             const uid = auth?.user?.id;
             let mySeat = -1;
             if (uid) {
@@ -3051,13 +3052,12 @@ function PageContent() {
             if (gameId && oppUid) {
               const oppPage = await getOpponentCurrentPage(gameId, oppUid);
               if (oppPage && oppPage !== 'review') {
+                setSummoningRevive(false);
                 setShowEliminatedGV(false);
                 setElimDismissed(false);
-              } else {
-                setSummoningRevive(true);
               }
             } else {
-              setSummoningRevive(true);
+              setSummoningRevive(false);
             }
           }}
           onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}

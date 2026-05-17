@@ -2313,22 +2313,22 @@ function PageContent() {
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onRevive={async () => {
-            // Find the last dead opponent and revive them at 1 life
             const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
             const lastDead = [...realOpponents].reverse().find((o: any) => (o.life ?? 40) <= 0);
             if (!lastDead?.userId || !gameId) return;
+            // Lock summoning FIRST so victory detection effect won't dismiss the popup
+            setSummoningRevive(true);
             // Revive in DB
             updateLifeTotal(gameId, lastDead.userId, 1).catch(() => {});
             // Check if the dead player is on the game page or review
             const oppPage = await getOpponentCurrentPage(gameId, lastDead.userId);
             if (oppPage && oppPage !== 'review') {
               // Opponent is on game page — instant revive, dismiss popup
+              setSummoningRevive(false);
               setShowVictory(false);
               setVictoryDismissed(false);
-            } else {
-              // Opponent is on review or offline — show Summoning until they return
-              setSummoningRevive(true);
             }
+            // else: opponent on review — summoning stays active until they return
           }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}/>
       )}
@@ -2341,6 +2341,8 @@ function PageContent() {
           reviewAccepted={anyReviewAccepted}
           onDismiss={() => { setShowEliminated(false); setElimDismissed(true); }}
           onRevive={async () => {
+            // Lock summoning FIRST so effects won't dismiss the popup
+            setSummoningRevive(true);
             // Revive self based on elimination type
             if (eliminationReason === 'cmdr') {
               setCmdrDmg(prev => {
@@ -2380,14 +2382,14 @@ function PageContent() {
               const oppPage = await getOpponentCurrentPage(gameId, aliveOpp.userId);
               if (oppPage && oppPage !== 'review') {
                 // Opponent on game page — instant dismiss
+                setSummoningRevive(false);
                 setShowEliminated(false);
                 setElimDismissed(false);
-              } else {
-                // Opponent on review — show Summoning until they return
-                setSummoningRevive(true);
               }
+              // else: opponent on review — summoning stays active
             } else {
               // No alive opponent found — just dismiss
+              setSummoningRevive(false);
               setShowEliminated(false);
               setElimDismissed(false);
             }

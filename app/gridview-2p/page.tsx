@@ -2263,18 +2263,21 @@ function PageContent() {
             const deathOrder = deathOrderRef.current;
             const lastDeadOpponent = [...deathOrder].reverse().find(n => n !== mySeat);
             if (lastDeadOpponent == null) return;
+            // Lock summoning FIRST so victory detection won't dismiss the popup
+            setSummoningRevive(true);
             handleRevive(lastDeadOpponent);
             // Check if the dead player is on a game page or review
             const oppUid = playerUserIds[lastDeadOpponent];
             if (oppUid && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, oppUid);
               if (oppPage && oppPage !== 'review') {
+                setSummoningRevive(false);
                 setShowVictory(false);
                 setVictoryDismissed(false);
-              } else {
-                setSummoningRevive(true);
               }
+              // else: opponent on review — summoning stays active
             } else {
+              setSummoningRevive(false);
               setShowVictory(false);
               setVictoryDismissed(false);
             }
@@ -2292,6 +2295,8 @@ function PageContent() {
           onRevive={async () => {
             const uid = auth?.user?.id;
             if (!uid) return;
+            // Lock summoning FIRST so eliminated detection won't dismiss the popup
+            setSummoningRevive(true);
             const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
             if (seatEntry) handleRevive(Number(seatEntry[0]));
             // Check if the last alive opponent is on a game page or review
@@ -2302,12 +2307,13 @@ function PageContent() {
             if (aliveOppUid && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, aliveOppUid);
               if (oppPage && oppPage !== 'review') {
+                setSummoningRevive(false);
                 setShowEliminatedGV(false);
                 setElimDismissed(false);
-              } else {
-                setSummoningRevive(true);
               }
+              // else: opponent on review — summoning stays active
             } else {
+              setSummoningRevive(false);
               setShowEliminatedGV(false);
               setElimDismissed(false);
             }
