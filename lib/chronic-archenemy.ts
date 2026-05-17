@@ -59,9 +59,9 @@ export async function evaluateChronicStatus(
   // Get the most recent brewed badges for this deck, newest first
   const { data: badges, error } = await supabase
     .from("badge_history")
-    .select("brewed_badge, created_at")
+    .select("badge, earned_at")
     .eq("deck_id", deckId)
-    .order("created_at", { ascending: false })
+    .order("earned_at", { ascending: false })
     .limit(cfg.consecutive) as { data: any; error: any };
 
   if (error) {
@@ -72,8 +72,8 @@ export async function evaluateChronicStatus(
 
   // Count consecutive rivalry badges from the most recent game backwards
   let currentStreak = 0;
-  for (const badge of badges ?? []) {
-    if (badge.brewed_badge === "rivalry") {
+  for (const entry of badges ?? []) {
+    if (entry.badge === "rivalry") {
       currentStreak++;
     } else {
       break; // streak broken
