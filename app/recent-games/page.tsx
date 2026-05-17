@@ -1255,6 +1255,23 @@ function RecentGamesPageInner() {
         }
       }
 
+      // Fetch real AURA deltas from aura_history for all games at once.
+      // RLS already restricts rows to the current user's own decks.
+      let auraRows: any[] = [];
+      if (gameIds.length > 0) {
+        const { data } = await supabase
+          .from('aura_history')
+          .select('game_id, deck_id, delta')
+          .in('game_id', gameIds) as any;
+        auraRows = data ?? [];
+      }
+
+      // Map: "gameId:deckId" → actual delta
+      const auraDeltaByGame = new Map<string, number>();
+      for (const row of auraRows) {
+        auraDeltaByGame.set(`${row.game_id}:${row.deck_id}`, Number(row.delta));
+      }
+
       // Map game entries to the Game shape RecentGamesScreen expects
       const mapped: Game[] = log.entries.map((e: any) => {
         const myBadgeIds = myBadgesByGame.get(e.gameId) ?? [];
@@ -1269,7 +1286,7 @@ function RecentGamesPageInner() {
           myCommanderId: e.deckId,
           players: e.podCommanders.map((p: any) => p.userId),
           winnerId: winner?.userId ?? null,
-          auraDelta: e.isWinner ? 8 : (myBadgeIds.length > 0 ? 4 : 0),
+          auraDelta: auraDeltaByGame.get(`${e.gameId}:${e.deckId}`) ?? 0,
           myBadges,
           shareCode: e.shareCode,
         };
