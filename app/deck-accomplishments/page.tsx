@@ -327,15 +327,25 @@ function BadgeTile({ catId, count = 0 }: { catId: CategoryId; count?: number }) 
   const cat = CATEGORIES.find(c => c.id === catId)!;
   const earned = count > 0;
   const ring = 56;
+  const [tapped, setTapped] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTap = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setTapped(true);
+    timerRef.current = setTimeout(() => setTapped(false), 2000);
+  };
+
   return (
-    <div style={{
+    <div onClick={handleTap} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-      flex: 1, minWidth: 0,
+      flex: 1, minWidth: 0, cursor: 'pointer',
     }}>
-      <div style={{ position: 'relative' }}>
-        {/* Always show the category glyph so the user sees which trait
-            each slot represents. Earned state uses the trait's full
-            colour; unearned is muted with a dashed parchment ring. */}
+      <div style={{
+        position: 'relative',
+        transform: tapped ? 'scale(0.91)' : 'scale(1)',
+        transition: 'transform 120ms var(--ease)',
+      }}>
         <div style={{
           width: ring, height: ring, borderRadius: 999,
           background: earned ? cat.soft : 'var(--parchment-deep)',
@@ -367,13 +377,30 @@ function BadgeTile({ catId, count = 0 }: { catId: CategoryId; count?: number }) 
           }}>×{count}</div>
         )}
       </div>
-      <div style={{
-        fontFamily: 'var(--font-ui)',
-        fontSize: 11, fontWeight: 700,
-        letterSpacing: '0.08em', textTransform: 'uppercase',
-        color: earned ? 'var(--ink)' : 'var(--ink-4)',
-        textAlign: 'center', lineHeight: 1.1,
-      }}>{cat.label}</div>
+
+      {/* Text area — cross-fades between prompt and label */}
+      <div style={{ position: 'relative', width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{
+          position: 'absolute',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 9, fontWeight: 500,
+          color: 'var(--ink-4)',
+          textAlign: 'center', lineHeight: 1.3,
+          opacity: tapped ? 0 : 1,
+          transition: 'opacity 280ms ease',
+        }}>Tap the{'\n'}badge</span>
+        <span style={{
+          position: 'absolute',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 9, fontWeight: 700,
+          letterSpacing: '0.1em', textTransform: 'uppercase',
+          color: earned ? cat.color : 'var(--ink-3)',
+          textAlign: 'center', lineHeight: 1.2,
+          opacity: tapped ? 1 : 0,
+          transition: 'opacity 280ms ease',
+          whiteSpace: 'nowrap',
+        }}>{cat.label}</span>
+      </div>
     </div>
   );
 }
