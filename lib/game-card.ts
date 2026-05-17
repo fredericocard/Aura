@@ -87,8 +87,10 @@ function composeNarrative(data: {
   flavourName: string | null;
   funName: string | null;
   podSize: number;
+  allCommanderNames?: string[];
 }): string {
   const parts: string[] = [];
+  const mentioned = new Set<string>();
 
   // Winner part
   if (data.winnerName) {
@@ -98,6 +100,7 @@ function composeNarrative(data: {
       `${data.winnerName} emerged triumphant`,
     ];
     parts.push(pickRandom(winnerIntros, data.winnerName));
+    mentioned.add(data.winnerName);
   }
 
   // Archenemy part
@@ -108,6 +111,7 @@ function composeNarrative(data: {
       `as ${data.archenemyName} commanded fear across the table`,
     ];
     parts.push(archenemyParts[hashPick(data.archenemyName, archenemyParts.length)]);
+    mentioned.add(data.archenemyName);
   } else if (data.archenemyName && data.archenemyName === data.winnerName) {
     parts[0] = `${data.winnerName} won with a target on their back`;
   }
@@ -119,11 +123,29 @@ function composeNarrative(data: {
       `${data.flavourName} brought the flavour`,
     ];
     parts.push(flavourParts[hashPick(data.flavourName, flavourParts.length)]);
+    mentioned.add(data.flavourName);
   }
 
   // Fun part as closer
   if (data.funName && !parts.some((p) => p.includes(data.funName!))) {
     parts.push(`and everyone agreed ${data.funName} should be invited back first`);
+    mentioned.add(data.funName);
+  }
+
+  // Ensure unmentioned commanders get a nod — especially important for 2-player games
+  // where all vote winners might be the same person as the game winner.
+  if (data.allCommanderNames) {
+    const unmentioned = data.allCommanderNames.filter(
+      (n) => n && !n.startsWith("P") && !mentioned.has(n)
+    );
+    for (const name of unmentioned) {
+      const closers = [
+        `${name} put up a fight but fell short`,
+        `${name} battled hard at the table`,
+        `${name} made their presence felt`,
+      ];
+      parts.push(closers[hashPick(name, closers.length)]);
+    }
   }
 
   if (parts.length === 0) {
@@ -290,12 +312,16 @@ export async function composeGameCard(
   }));
 
   // 9. Compose narrative
+  const allCommanderNames = commanders
+    .map((c) => c.commander_name)
+    .filter((n) => n && !n.startsWith("P"));
   const narrative = composeNarrative({
     winnerName: winnerCommander,
     archenemyName: archenemyCommander,
     flavourName: flavourWinnerCommander,
     funName: funWinnerCommander,
     podSize: game.pod_size,
+    allCommanderNames,
   });
 
   return {
