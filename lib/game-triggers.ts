@@ -284,9 +284,16 @@ async function checkLastStanding(gameId: string): Promise<void> {
     // Update winner's row — use seat_number since user_id could be null for guests
     await supabase
       .from('game_players')
-      .update({ can_review: true })
+      .update({ can_review: true, is_winner: true })
       .eq('game_id', gameId)
       .eq('seat_number', winner.seat_number);
+
+    // Clear is_winner on all other players (handles revive edge-cases)
+    await supabase
+      .from('game_players')
+      .update({ is_winner: false })
+      .eq('game_id', gameId)
+      .neq('seat_number', winner.seat_number);
 
     // Mark winner on game record
     await supabase
@@ -309,11 +316,11 @@ async function checkLastStanding(gameId: string): Promise<void> {
       .eq('id', gameId);
   } else if (alive.length >= 2) {
     // Multiple players alive — game is still active
-    // Remove review access from any alive player who had it (revive scenario)
+    // Remove review access and clear winner flag from any alive player (revive scenario)
     for (const p of alive) {
       await supabase
         .from('game_players')
-        .update({ can_review: false })
+        .update({ can_review: false, is_winner: false })
         .eq('game_id', gameId)
         .eq('seat_number', p.seat_number)
         .eq('is_eliminated', false);
