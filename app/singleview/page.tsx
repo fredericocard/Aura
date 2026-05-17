@@ -1701,6 +1701,11 @@ function PageContent() {
           const colorId = deck?.color_identity ?? '';
           const colorIdentityArray = colorId.split('').filter((c: string) => 'WUBRG'.includes(c));
 
+          // Check if this player has lethal commander damage from any source
+          const oppCmdrReceived = (p.commander_damage_received && typeof p.commander_damage_received === 'object')
+            ? p.commander_damage_received as Record<string, number> : {};
+          const oppCmdrLethal = Object.values(oppCmdrReceived).some((v: any) => v >= 21);
+
           const playerData = {
             key: `seat-${seatNum}`,
             id: `seat-${seatNum}`,
@@ -1716,6 +1721,7 @@ function PageContent() {
             poisonCounters: p.poison_counters ?? 0,
             experienceCounters: p.experience_counters ?? 0,
             energyCounters: p.energy_counters ?? 0,
+            cmdrLethal: oppCmdrLethal,
             isEmptySeat,
             isGuest,
             badges: {
@@ -1840,6 +1846,13 @@ function PageContent() {
               setEliminationReason(null);
             }
           } else {
+            // Compute opponent cmdrLethal from their commander_damage_received
+            const oppCmdrReceived = (row.commander_damage_received && typeof row.commander_damage_received === 'object')
+              ? row.commander_damage_received as Record<string, number> : null;
+            const oppCmdrLethal = oppCmdrReceived
+              ? Object.values(oppCmdrReceived).some(v => v >= 21)
+              : undefined; // undefined = no change (field not in payload)
+
             setOpponents(prev => prev.map(opp => {
               if (opp.seatNumber === row.seat_number) {
                 return {
@@ -1848,6 +1861,7 @@ function PageContent() {
                   poisonCounters: row.poison_counters ?? opp.poisonCounters,
                   experienceCounters: row.experience_counters ?? opp.experienceCounters,
                   energyCounters: row.energy_counters ?? opp.energyCounters,
+                  cmdrLethal: oppCmdrLethal !== undefined ? oppCmdrLethal : opp.cmdrLethal,
                   name: row.commander_name ?? opp.name,
                   player: row.commander_name ? row.commander_name.split(',')[0] : opp.player,
                   isEmptySeat: !row.user_id && !row.deck_id && !row.commander_name,
@@ -1961,7 +1975,7 @@ function PageContent() {
   const adjustLife = useCallback((delta: number) => {
     setLife(prev => {
       const newLife = Math.max(0, prev + delta);
-      if (newLife === 0) {
+      if (newLife <= 0) {
         stopLongPress();
         setEliminationReason('life');
         setShowEliminated(true);
@@ -2018,15 +2032,20 @@ function PageContent() {
     }
   }, [gameId, user?.id]);
 
-  // Victory detection — fires when all real opponents are dead and user is alive
+  // Victory detection — fires when all real opponents are dead (any cause) and user is alive
   useEffect(() => {
     if (dead) return;                 // user is dead — no victory
     if (victoryDismissed) return;     // user dismissed it; don't re-show
     if (opponents.length === 0) return;
     const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
     if (realOpponents.length === 0) return; // solo / placeholder game
-    const allDead = realOpponents.every((o: any) => (o.life ?? 40) <= 0);
-    if (allDead && life > 0) {
+    // Check ALL elimination types: life ≤ 0, poison ≥ 10, or cmdr damage ≥ 21
+    const allDead = realOpponents.every((o: any) =>
+      (o.life ?? 40) <= 0 || (o.poisonCounters ?? 0) >= 10 || o.cmdrLethal === true
+    );
+    const myCmdrLethal = Object.values(cmdrDmg).some((v: any) => v >= 21);
+    const iAmAlive = life > 0 && poison < 10 && !myCmdrLethal;
+    if (allDead && iAmAlive) {
       setShowVictory(true);
     } else if (!allDead && !summoningRevive) {
       // At least one opponent alive — clear dismiss flag so popup re-fires next time
@@ -2034,7 +2053,7 @@ function PageContent() {
       if (victoryDismissed) setVictoryDismissed(false);
       if (showVictory) setShowVictory(false);
     }
-  }, [opponents, life, dead, victoryDismissed, showVictory, summoningRevive]);
+  }, [opponents, life, poison, cmdrDmg, dead, victoryDismissed, showVictory, summoningRevive]);
 
   // ── Auto-dismiss summoning when opponent returns from review to a game page ──
   useEffect(() => {
@@ -2115,7 +2134,7 @@ function PageContent() {
       keywords: isEmptySeat ? null : (detail.keywords || null),
       rulesText: isEmptySeat ? null : (detail.oracleText || null),
       pt: isEmptySeat ? null : (detail.power && detail.toughness ? `${detail.power}/${detail.toughness}` : null),
-      dead: opp.life <= 0,
+      dead: opp.life <= 0 || (opp.poisonCounters ?? 0) >= 10 || opp.cmdrLethal === true,
       isEmptySeat: isEmptySeat,
       isGuest: opp.isGuest === true,
     };
