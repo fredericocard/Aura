@@ -12,6 +12,7 @@ import { getQrCodeUrl } from '@/lib/pods';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
 import AuraLoaderF from '@/app/components/AuraLoaderF';
 import { DefeatedOverlay, DefeatedButtonsLayer, useDefeatAnimation } from '@/app/components/DefeatedOverlay';
+import { VictoryPopup, EliminatedPopup, PopupTheme } from '@/lib/game-popups';
 
 const DARK_THEME = {
   bg:        '#0A0604',
@@ -1862,212 +1863,6 @@ function TornEdgeMiniGV({ lightMode = false }: { lightMode?: boolean }) {
   );
 }
 
-function VictoryPopup({ onRevive, onReview, summoning = false, reviewAccepted = false, lightMode = false }: { onRevive: () => void; onReview: () => void; summoning?: boolean; reviewAccepted?: boolean; lightMode?: boolean }) {
-  const light = DARK === LIGHT_THEME;
-  const [dots, setDots] = useState('');
-  useEffect(() => {
-    if (!summoning) return;
-    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
-    return () => clearInterval(id);
-  }, [summoning]);
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 2000,
-      display: 'flex', flexDirection: 'column',
-      fontFamily: 'var(--font-ui)',
-    }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: light ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-      }}/>
-      <div style={{
-        marginTop: 'auto', position: 'relative',
-        maxWidth: 430, width: '100%', alignSelf: 'center',
-      }}>
-        <TornEdgeMiniGV lightMode={lightMode}/>
-        <div style={{
-          position: 'relative',
-          background: light ? DARK.bgCard : '#1A1410',
-          padding: '8px 22px 32px',
-        }}>
-          <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <svg width={32} height={32} viewBox="0 0 64 64" aria-hidden="true">
-                <defs>
-                  <linearGradient id="vict-crown-grad-gv" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#E2B858"/>
-                    <stop offset="100%" stopColor="#C99B2F"/>
-                  </linearGradient>
-                </defs>
-                <path d="M10 48 L16 22 L24 36 L32 16 L40 36 L48 22 L54 48 Z"
-                  fill="url(#vict-crown-grad-gv)" stroke="#8C5A28" strokeWidth="1.5" strokeLinejoin="round"/>
-                <rect x="10" y="48" width="44" height="6" rx="1" fill="#C99B2F" stroke="#8C5A28" strokeWidth="1.5"/>
-                <circle cx="16" cy="22" r="2.5" fill="#F0E8D8"/>
-                <circle cx="32" cy="16" r="2.8" fill="#F0E8D8"/>
-                <circle cx="48" cy="22" r="2.5" fill="#F0E8D8"/>
-              </svg>
-            </div>
-            <div style={{
-              fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: DARK.copper, marginBottom: 6,
-            }}>Last One Standing</div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 26, letterSpacing: '-0.02em',
-              color: DARK.ink, lineHeight: 1.1,
-            }}>Victory is yours</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: DARK.ink3, lineHeight: 1.4 }}>
-              All opponents have been defeated. Head to review to celebrate the win and rate the game.
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button onClick={onReview} style={{
-              width: '100%', cursor: 'pointer',
-              background: DARK.forest, color: light ? '#FAF5EA' : '#F0E8D8',
-              border: 'none', borderRadius: 20,
-              padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              boxShadow: light ? '0 2px 0 rgba(0,0,0,.10), 0 18px 36px -12px rgba(0,0,0,.15)' : '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={light ? '#FAF5EA' : '#F0E8D8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
-              </svg>
-              Go to Review
-            </button>
-            {!reviewAccepted && (
-              <button onClick={summoning ? undefined : onRevive} style={{
-                width: '100%', cursor: summoning ? 'default' : 'pointer',
-                background: DARK.bgDeep, color: DARK.ink2,
-                border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
-                borderRadius: 20,
-                padding: '14px 18px',
-                fontSize: 15, fontWeight: 600,
-                opacity: summoning ? 0.8 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}>{summoning ? <><span style={{ minWidth: 120, textAlign: 'center' }}>Summoning{dots}</span></> : 'Revive Last Player'}</button>
-            )}
-          </div>
-          {!reviewAccepted && !summoning && (
-            <div style={{
-              textAlign: 'center', fontSize: 11, color: DARK.ink3,
-              marginTop: 14, lineHeight: 1.4,
-            }}>
-              Revive Last Player brings the most recent defeated opponent back at 1 life.
-            </div>
-          )}
-          {summoning && (
-            <div style={{
-              textAlign: 'center', fontSize: 11, color: DARK.ink3,
-              marginTop: 14, lineHeight: 1.4,
-            }}>
-              Waiting for the other player to return to the game.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EliminatedPopupGV({ onDismiss, onRevive, onReview, summoning = false, reviewAccepted = false, lightMode = false }: { onDismiss: () => void; onRevive: () => void; onReview: () => void; summoning?: boolean; reviewAccepted?: boolean; lightMode?: boolean }) {
-  const light = DARK === LIGHT_THEME;
-  const [dots, setDots] = useState('');
-  useEffect(() => {
-    if (!summoning) return;
-    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
-    return () => clearInterval(id);
-  }, [summoning]);
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 2000,
-      display: 'flex', flexDirection: 'column',
-      fontFamily: 'var(--font-ui)',
-    }}>
-      <div onClick={onDismiss} style={{
-        position: 'absolute', inset: 0,
-        background: light ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-      }}/>
-      <div style={{
-        marginTop: 'auto', position: 'relative',
-        maxWidth: 430, width: '100%', alignSelf: 'center',
-      }}>
-        <TornEdgeMiniGV lightMode={lightMode}/>
-        <div style={{
-          position: 'relative',
-          background: light ? DARK.bgCard : '#1A1410',
-          padding: '8px 22px 32px',
-        }}>
-          <button onClick={onDismiss} aria-label="Close" style={{
-            position: 'absolute', top: 14, right: 16,
-            width: 32, height: 32, borderRadius: 999,
-            border: `1px solid ${DARK.line}`,
-            background: DARK.bgDeep,
-            color: DARK.ink3, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
-          }}>×</button>
-          <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <svg width={28} height={28} viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="36" r="2.4" fill={DARK.copper}/>
-                <defs><clipPath id="elim-clip-gv"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
-                <g clipPath="url(#elim-clip-gv)">
-                  <polygon points="8,60 30,4 31,4 24,60" fill={DARK.copper}/>
-                  <polygon points="40,60 33,4 34,4 56,60" fill={DARK.copper}/>
-                </g>
-              </svg>
-            </div>
-            <div style={{
-              fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: DARK.copper, marginBottom: 6,
-            }}>Out of the Game</div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 26, letterSpacing: '-0.02em',
-              color: DARK.ink, lineHeight: 1.1,
-            }}>You have been eliminated</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: DARK.ink3, lineHeight: 1.4 }}>
-              Head to review to rate the game, or close this to keep watching.
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button onClick={onReview} style={{
-              width: '100%', cursor: 'pointer',
-              background: DARK.forest, color: light ? '#FAF5EA' : '#F0E8D8',
-              border: 'none', borderRadius: 20,
-              padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              boxShadow: light ? '0 2px 0 rgba(0,0,0,.10), 0 18px 36px -12px rgba(0,0,0,.15)' : '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={light ? '#FAF5EA' : '#F0E8D8'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
-              </svg>
-              Go to Review
-            </button>
-            {!reviewAccepted && (
-              <button onClick={summoning ? undefined : onRevive} style={{
-                width: '100%', cursor: summoning ? 'default' : 'pointer',
-                background: DARK.bgDeep, color: DARK.ink2,
-                border: `1px solid ${light ? DARK.lineStrong : 'rgba(226,184,88,0.25)'}`,
-                borderRadius: 20,
-                padding: '14px 18px',
-                fontSize: 15, fontWeight: 600,
-                opacity: summoning ? 0.8 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}>{summoning ? <span style={{ minWidth: 120, textAlign: 'center' }}>Summoning{dots}</span> : 'Revive'}</button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function PageContent() {
   // Theme swap: read light mode preference from localStorage
@@ -2076,6 +1871,14 @@ function PageContent() {
     return false;
   });
   DARK = lightMode ? LIGHT_THEME : DARK_THEME;
+  const popupTheme: PopupTheme = {
+    copper: DARK.copper, gold: DARK.gold, ink: DARK.ink, ink2: DARK.ink2, ink3: DARK.ink3,
+    forest: DARK.forest, bgCard: lightMode ? DARK.bgCard : '#1A1410', bgDeep: DARK.bgDeep,
+    line: DARK.line, lineStrong: DARK.lineStrong,
+    parchment: lightMode ? '#FAF5EA' : '#F0E8D8',
+    backdropBg: lightMode ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
+    borderAccent: DARK.line,
+  };
 
   useWakeLock();
   const router = useRouter();
@@ -3102,7 +2905,7 @@ function PageContent() {
 
       {showVictory && (
         <VictoryPopup
-          lightMode={DARK === LIGHT_THEME}
+          theme={popupTheme}
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onRevive={() => {
@@ -3123,8 +2926,8 @@ function PageContent() {
       )}
 
       {showEliminatedGV && (
-        <EliminatedPopupGV
-          lightMode={DARK === LIGHT_THEME}
+        <EliminatedPopup
+          theme={popupTheme}
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}

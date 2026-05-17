@@ -12,6 +12,7 @@ import { searchCommanders } from '@/lib/scryfall';
 import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, updateCommanderDamage, abandonGame } from '@/lib/game-triggers';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
 import AuraLoaderF from '@/app/components/AuraLoaderF';
+import { VictoryPopup, EliminatedPopup, PopupTheme } from '@/lib/game-popups';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design tokens (injected once into <head>)
@@ -1570,220 +1571,6 @@ function TornEdgeMini({ lightMode = false }: { lightMode?: boolean }) {
   );
 }
 
-function EliminatedPopup({ onDismiss, onRevive, onReview, summoning = false, reviewAccepted = false, lightMode = false }: { onDismiss: () => void; onRevive: () => void; onReview: () => void; summoning?: boolean; reviewAccepted?: boolean; lightMode?: boolean }) {
-  const [dots, setDots] = useState('');
-  useEffect(() => {
-    if (!summoning) return;
-    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
-    return () => clearInterval(id);
-  }, [summoning]);
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 60,
-      display: 'flex', flexDirection: 'column',
-      fontFamily: 'var(--font-ui)',
-    }}>
-      <div onClick={onDismiss} style={{
-        position: 'absolute', inset: 0,
-        background: lightMode ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-      }}/>
-
-      <div style={{
-        marginTop: 'auto', position: 'relative',
-        maxWidth: 430, width: '100%', alignSelf: 'center',
-      }}>
-        <TornEdgeMini lightMode={lightMode}/>
-
-        <div style={{
-          position: 'relative',
-          background: 'var(--parchment-card)',
-          padding: '8px 22px 32px',
-        }}>
-          <button onClick={onDismiss} aria-label="Close" style={{
-            position: 'absolute', top: 14, right: 16,
-            width: 32, height: 32, borderRadius: 999,
-            border: '1px solid var(--border-accent)',
-            background: 'var(--parchment-deep)',
-            color: 'var(--ink-4)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
-          }}>×</button>
-
-          <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <svg width={28} height={28} viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="36" r="2.4" fill="var(--copper)"/>
-                <defs><clipPath id="elim-clip"><ellipse cx="32" cy="32" rx="22" ry="26"/></clipPath></defs>
-                <g clipPath="url(#elim-clip)">
-                  <polygon points="8,60 30,4 31,4 24,60" fill="var(--copper)"/>
-                  <polygon points="40,60 33,4 34,4 56,60" fill="var(--copper)"/>
-                </g>
-              </svg>
-            </div>
-            <div style={{
-              fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: 'var(--copper)', marginBottom: 6,
-            }}>Out of the Game</div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 26, letterSpacing: '-0.02em',
-              color: 'var(--ink)', lineHeight: 1.1,
-            }}>You have been eliminated</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.4 }}>
-              Head to review to rate the game, or close this to keep watching.
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button onClick={onReview} style={{
-              width: '100%', cursor: 'pointer',
-              background: 'var(--copper)', color: 'var(--parchment)',
-              border: 'none', borderRadius: 20,
-              padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--parchment)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
-              </svg>
-              Go to Review
-            </button>
-
-            {!reviewAccepted && (
-              <button onClick={summoning ? undefined : onRevive} style={{
-                width: '100%', cursor: summoning ? 'default' : 'pointer',
-                background: 'var(--parchment-card)', color: 'var(--ink-2)',
-                border: '1px solid var(--line-strong)',
-                borderRadius: 20,
-                padding: '14px 18px',
-                fontSize: 15, fontWeight: 600,
-                opacity: summoning ? 0.8 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}>{summoning ? <span style={{ minWidth: 120, textAlign: 'center' }}>Summoning{dots}</span> : 'Revive'}</button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Victory popup ────────────────────────────────────────────────────────
-function VictoryPopup({ onRevive, onReview, summoning = false, reviewAccepted = false, lightMode = false }: { onRevive: () => void; onReview: () => void; summoning?: boolean; reviewAccepted?: boolean; lightMode?: boolean }) {
-  const [dots, setDots] = useState('');
-  useEffect(() => {
-    if (!summoning) return;
-    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
-    return () => clearInterval(id);
-  }, [summoning]);
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 60,
-      display: 'flex', flexDirection: 'column',
-      fontFamily: 'var(--font-ui)',
-    }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: lightMode ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-      }}/>
-
-      <div style={{
-        marginTop: 'auto', position: 'relative',
-        maxWidth: 430, width: '100%', alignSelf: 'center',
-      }}>
-        <TornEdgeMini lightMode={lightMode}/>
-
-        <div style={{
-          position: 'relative',
-          background: 'var(--parchment-card)',
-          padding: '8px 22px 32px',
-        }}>
-          <div style={{ textAlign: 'center', marginTop: 6, marginBottom: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <svg width={32} height={32} viewBox="0 0 64 64" aria-hidden="true">
-                <defs>
-                  <linearGradient id="vict-crown-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#E2B858"/>
-                    <stop offset="100%" stopColor="#C99B2F"/>
-                  </linearGradient>
-                </defs>
-                <path d="M10 48 L16 22 L24 36 L32 16 L40 36 L48 22 L54 48 Z"
-                  fill="url(#vict-crown-grad)" stroke="#8C5A28" strokeWidth="1.5" strokeLinejoin="round"/>
-                <rect x="10" y="48" width="44" height="6" rx="1" fill="#C99B2F" stroke="#8C5A28" strokeWidth="1.5"/>
-                <circle cx="16" cy="22" r="2.5" fill="#F0E8D8"/>
-                <circle cx="32" cy="16" r="2.8" fill="#F0E8D8"/>
-                <circle cx="48" cy="22" r="2.5" fill="#F0E8D8"/>
-              </svg>
-            </div>
-            <div style={{
-              fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 6,
-            }}>Last One Standing</div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize: 26, letterSpacing: '-0.02em',
-              color: 'var(--ink)', lineHeight: 1.1,
-            }}>Victory is yours</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.4 }}>
-              All opponents have been defeated. Head to review to celebrate the win and rate the game.
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button onClick={onReview} style={{
-              width: '100%', cursor: 'pointer',
-              background: 'var(--copper)', color: 'var(--parchment)',
-              border: 'none', borderRadius: 20,
-              padding: '14px 18px',
-              fontSize: 15, fontWeight: 600,
-              boxShadow: '0 2px 0 rgba(0,0,0,.30), 0 18px 36px -12px rgba(0,0,0,.50)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--parchment)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
-              </svg>
-              Go to Review
-            </button>
-
-            {!reviewAccepted && (
-              <button onClick={summoning ? undefined : onRevive} style={{
-                width: '100%', cursor: summoning ? 'default' : 'pointer',
-                background: 'var(--parchment-card)', color: 'var(--ink-2)',
-                border: '1px solid var(--line-strong)',
-                borderRadius: 20,
-                padding: '14px 18px',
-                fontSize: 15, fontWeight: 600,
-                opacity: summoning ? 0.8 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}>{summoning ? <><span style={{ minWidth: 120, textAlign: 'center' }}>Summoning{dots}</span></> : 'Revive Last Player'}</button>
-            )}
-          </div>
-          {!reviewAccepted && !summoning && (
-            <div style={{
-              textAlign: 'center', fontSize: 11, color: 'var(--ink-3)',
-              marginTop: 14, lineHeight: 1.4,
-            }}>
-              Revive Last Player brings the most recent defeated opponent back at 1 life.
-            </div>
-          )}
-          {summoning && (
-            <div style={{
-              textAlign: 'center', fontSize: 11, color: 'var(--ink-3)',
-              marginTop: 14, lineHeight: 1.4,
-            }}>
-              Waiting for the other player to return to the game.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
@@ -1824,6 +1611,14 @@ function PageContent() {
     if (typeof window !== 'undefined') return localStorage.getItem('aura-light-mode') === '1';
     return false;
   });
+  const popupTheme: PopupTheme = {
+    copper: 'var(--copper)', gold: 'var(--gold)', ink: 'var(--ink)', ink2: 'var(--ink-2)', ink3: 'var(--ink-3)',
+    forest: 'var(--copper)', bgCard: 'var(--parchment-card)', bgDeep: 'var(--parchment-deep)',
+    line: 'var(--border-accent)', lineStrong: 'var(--line-strong)',
+    parchment: 'var(--parchment)',
+    backdropBg: lightMode ? 'rgba(43,33,24,0.40)' : 'rgba(0,0,0,0.60)',
+    borderAccent: 'var(--border-accent)',
+  };
   const [expandedOpponent, setExpandedOpponent] = useState<string | null>(null);
   const [cmdrDmg, setCmdrDmg] = useState<Record<string, number>>({});
   const [cmdrDmgFromYou, setCmdrDmgFromYou] = useState<Record<string, number>>({});
@@ -2009,12 +1804,41 @@ function PageContent() {
 
           if (row.user_id && row.user_id === user?.id) {
             // Only apply realtime values for fields without pending local changes
-            if (!isDirty('life')) setLife(row.life_total ?? 40);
-            if (!isDirty('poison')) setPoison(row.poison_counters ?? 0);
+            const newLife = row.life_total ?? 40;
+            const newPoison = row.poison_counters ?? 0;
+            const newCmdrDmg = (row.commander_damage_received && typeof row.commander_damage_received === 'object')
+              ? row.commander_damage_received as Record<string, number> : null;
+
+            if (!isDirty('life')) setLife(newLife);
+            if (!isDirty('poison')) setPoison(newPoison);
             if (!isDirty('experience')) setExperience(row.experience_counters ?? 0);
             if (!isDirty('energy')) setEnergy(row.energy_counters ?? 0);
-            if (!isDirty('cmdrDmg') && row.commander_damage_received && typeof row.commander_damage_received === 'object') {
-              setCmdrDmg(row.commander_damage_received);
+            if (!isDirty('cmdrDmg') && newCmdrDmg) {
+              setCmdrDmg(newCmdrDmg);
+            }
+
+            // ── Elimination detection from remote changes ──
+            // If another player changed our life/poison/cmdr damage via their device,
+            // we need to trigger the eliminated popup locally.
+            const cmdrLethal = newCmdrDmg
+              ? Object.values(newCmdrDmg).some(v => v >= 21)
+              : false;
+            if (newLife <= 0 || newPoison >= 10 || cmdrLethal) {
+              setDead(prev => {
+                if (!prev) {
+                  // First time dying — show popup
+                  if (newLife <= 0) setEliminationReason('life');
+                  else if (newPoison >= 10) setEliminationReason('poison');
+                  else setEliminationReason('cmdr');
+                  setShowEliminated(true);
+                }
+                return true;
+              });
+            } else if (newLife > 0 && newPoison < 10 && !cmdrLethal) {
+              // Revived by another player — clear dead state
+              setDead(false);
+              setShowEliminated(false);
+              setEliminationReason(null);
             }
           } else {
             setOpponents(prev => prev.map(opp => {
@@ -2470,7 +2294,7 @@ function PageContent() {
       {/* Victory popup — winner revives last dead opponent */}
       {showVictory && (
         <VictoryPopup
-          lightMode={lightMode}
+          theme={popupTheme}
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onRevive={() => {
@@ -2493,7 +2317,7 @@ function PageContent() {
       {/* Eliminated popup — player revives self */}
       {showEliminated && (
         <EliminatedPopup
-          lightMode={lightMode}
+          theme={popupTheme}
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onDismiss={() => { setShowEliminated(false); setElimDismissed(true); }}
