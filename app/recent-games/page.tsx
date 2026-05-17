@@ -432,8 +432,8 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
       overflow: 'hidden',
       transition: 'box-shadow 200ms var(--ease)',
     }}>
-      {/* Badge-color accent stripe — overlay so it follows the card's border radius */}
-      <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 4, background: cat ? cat.color : 'var(--line-strong)', borderRadius: 'var(--r-card) 0 0 var(--r-card)', zIndex: 2 }} />
+      {/* Badge-color accent stripe — positioned inside overflow:hidden so the card's border-radius clips the corners naturally */}
+      <div style={{ position: 'absolute', top: -1, left: -1, bottom: -1, width: 6, background: cat ? cat.color : 'var(--line-strong)', zIndex: 2 }} />
       <button onClick={onToggle} style={{
         width: '100%', padding: 0,
         display: 'block', position: 'relative',
