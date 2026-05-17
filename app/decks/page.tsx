@@ -443,6 +443,7 @@ export default function Page() {
   const [sortBy, setSortBy] = useState<'aura' | 'badges' | 'recent'>('aura');
   const [totalGames, setTotalGames] = useState(0);
   const [deckGameCounts, setDeckGameCounts] = useState<Record<string, number>>({});
+  const [deckLastPlayed, setDeckLastPlayed] = useState<Record<string, string>>({});
   const addSheetDrag = useSheetDrag(() => setShowAdd(false));
   const bracketSheetDrag = useSheetDrag(() => setPendingCard(null));
 
@@ -458,14 +459,20 @@ export default function Page() {
         const deckIds = data.map(d => d.id);
         const { data: rows } = await sb
           .from('game_players')
-          .select('deck_id, games!inner(state)')
+          .select('deck_id, games!inner(state, created_at)')
           .in('deck_id', deckIds)
           .eq('games.state', 'completed') as { data: any[]; error: any };
         const counts: Record<string, number> = {};
+        const lastPlayed: Record<string, string> = {};
         for (const row of (rows ?? [])) {
           counts[row.deck_id] = (counts[row.deck_id] || 0) + 1;
+          const gameDate = row.games?.created_at ?? '';
+          if (!lastPlayed[row.deck_id] || gameDate > lastPlayed[row.deck_id]) {
+            lastPlayed[row.deck_id] = gameDate;
+          }
         }
         setDeckGameCounts(counts);
+        setDeckLastPlayed(lastPlayed);
       }
     });
   }, [isLoggedIn]);
@@ -558,8 +565,25 @@ export default function Page() {
     setRegistering(false);
   };
 
-  // Map a Deck to the row's expected shape. Fields the Deck doesn't carry
-  // (gamesPlayed, topBadge) default to safe values; the row hides what's missing.
+  // Compute the top badge category for a deck (highest count wins; ties go to
+  // whichever category appears first in the canonical order).
+  const BADGE_ORDER: CategoryId[] = ['brilliance', 'flavor', 'rivalry', 'allegiance', 'fun'];
+  const getTopBadge = (d: Deck): { id: CategoryId; count: number } | undefined => {
+    const counts: Record<CategoryId, number> = {
+      brilliance: d.badge_brilliance ?? 0,
+      flavor: d.badge_flavor ?? 0,
+      rivalry: d.badge_rivalry ?? 0,
+      allegiance: d.badge_allegiance ?? 0,
+      fun: d.badge_fun ?? 0,
+    };
+    let bestId: CategoryId = 'brilliance';
+    let bestCount = 0;
+    for (const id of BADGE_ORDER) {
+      if (counts[id] > bestCount) { bestId = id; bestCount = counts[id]; }
+    }
+    return bestCount > 0 ? { id: bestId, count: bestCount } : undefined;
+  };
+
   const mapDeck = (d: Deck): CommanderRowData => ({
     id: d.id,
     name: d.commander_name,
@@ -568,15 +592,35 @@ export default function Page() {
     bracket: d.bracket,
     aura: Math.round(d.aura_score || 50),
     gamesPlayed: deckGameCounts[d.id] || 0,
-    topBadge: undefined,
+    topBadge: getTopBadge(d),
   });
 
   const sorted = useMemo(() => {
     const list = [...decks];
     if (sortBy === 'aura') return list.sort((a, b) => (b.aura_score || 0) - (a.aura_score || 0));
-    if (sortBy === 'recent') return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    return list; // 'badges' — falls through to insertion order until badge counts are wired up
-  }, [decks, sortBy]);
+    if (sortBy === 'recent') {
+      return list.sort((a, b) => {
+        const aDate = deckLastPlayed[a.id] || '';
+        const bDate = deckLastPlayed[b.id] || '';
+        if (bDate !== aDate) return bDate > aDate ? 1 : -1;
+        return 0;
+      });
+    }
+    if (sortBy === 'badges') {
+      return list.sort((a, b) => {
+        const aTop = getTopBadge(a);
+        const bTop = getTopBadge(b);
+        if (!aTop && !bTop) return 0;
+        if (!aTop) return 1;
+        if (!bTop) return -1;
+        const aIdx = BADGE_ORDER.indexOf(aTop.id);
+        const bIdx = BADGE_ORDER.indexOf(bTop.id);
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        return bTop.count - aTop.count;
+      });
+    }
+    return list;
+  }, [decks, sortBy, deckLastPlayed]);
 
   // (totalAura was previously displayed; replaced with totalGames per profile)
 
