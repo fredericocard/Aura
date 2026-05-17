@@ -40,6 +40,17 @@ export function TornEdge({ bgCard }: { bgCard: string }) {
   );
 }
 
+// ─── Delayed entrance hook ──────────────────────────────────────────────────
+// Returns false initially, then true after `ms` so the popup can slide in.
+function useDelayedEntrance(ms = 1000) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(true), ms);
+    return () => clearTimeout(id);
+  }, [ms]);
+  return visible;
+}
+
 // ─── Animated dots hook ─────────────────────────────────────────────────────
 function useSummoningDots(active: boolean) {
   const [dots, setDots] = useState("");
@@ -63,14 +74,21 @@ export function VictoryPopup({
   theme: PopupTheme;
 }) {
   const dots = useSummoningDots(summoning);
+  const visible = useDelayedEntrance(1000);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", fontFamily: "var(--font-ui)" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", fontFamily: "var(--font-ui)", pointerEvents: visible ? "auto" : "none" }}>
       <div style={{
         position: "absolute", inset: 0,
         background: theme.backdropBg,
         backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 500ms ease",
       }} />
-      <div style={{ marginTop: "auto", position: "relative", maxWidth: 430, width: "100%", alignSelf: "center" }}>
+      <div style={{
+        marginTop: "auto", position: "relative", maxWidth: 430, width: "100%", alignSelf: "center",
+        transform: visible ? "translateY(0)" : "translateY(100%)",
+        transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+      }}>
         <TornEdge bgCard={theme.bgCard} />
         <div style={{ position: "relative", background: theme.bgCard, padding: "8px 22px 32px" }}>
           {/* Crown + heading */}
@@ -151,7 +169,7 @@ export function VictoryPopup({
 }
 
 // ─── Eliminated Popup (you died) ────────────────────────────────────────────
-// Has X button + backdrop dismiss (so eliminated player can keep watching).
+// No dismiss — player must choose Review or Revive.
 export function EliminatedPopup({
   onDismiss, onRevive, onReview, summoning = false, reviewAccepted = false, theme,
 }: {
@@ -163,27 +181,23 @@ export function EliminatedPopup({
   theme: PopupTheme;
 }) {
   const dots = useSummoningDots(summoning);
+  const visible = useDelayedEntrance(1000);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", fontFamily: "var(--font-ui)" }}>
-      <div onClick={onDismiss} style={{
+    <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", fontFamily: "var(--font-ui)", pointerEvents: visible ? "auto" : "none" }}>
+      <div style={{
         position: "absolute", inset: 0,
         background: theme.backdropBg,
         backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 500ms ease",
       }} />
-      <div style={{ marginTop: "auto", position: "relative", maxWidth: 430, width: "100%", alignSelf: "center" }}>
+      <div style={{
+        marginTop: "auto", position: "relative", maxWidth: 430, width: "100%", alignSelf: "center",
+        transform: visible ? "translateY(0)" : "translateY(100%)",
+        transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+      }}>
         <TornEdge bgCard={theme.bgCard} />
         <div style={{ position: "relative", background: theme.bgCard, padding: "8px 22px 32px" }}>
-          {/* Close button */}
-          <button onClick={onDismiss} aria-label="Close" style={{
-            position: "absolute", top: 14, right: 16,
-            width: 32, height: 32, borderRadius: 999,
-            border: `1px solid ${theme.borderAccent}`,
-            background: theme.bgDeep,
-            color: theme.ink3, cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 2, fontSize: 15, fontWeight: 700, lineHeight: 1,
-          }}>×</button>
-
           {/* Hourglass + heading */}
           <div style={{ textAlign: "center", marginTop: 6, marginBottom: 18 }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
@@ -203,7 +217,7 @@ export function EliminatedPopup({
               You have been eliminated
             </div>
             <div style={{ marginTop: 8, fontSize: 13, color: theme.ink3, lineHeight: 1.4 }}>
-              Head to review to rate the game, or close this to keep watching.
+              Head to review to rate the game.
             </div>
           </div>
 
