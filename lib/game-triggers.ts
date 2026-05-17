@@ -469,9 +469,42 @@ export async function getGamePlayerStates(gameId: string): Promise<{
 }> {
   const { data, error } = await supabase
     .from('game_players')
-    .select('user_id, deck_id, commander_name, seat_number, life_total, poison_counters, experience_counters, energy_counters, commander_damage_received, is_eliminated, can_review')
+    .select('user_id, deck_id, commander_name, seat_number, life_total, poison_counters, experience_counters, energy_counters, commander_damage_received, is_eliminated, can_review, current_page')
     .eq('game_id', gameId)
     .order('seat_number', { ascending: true });
 
   return { data: data ?? [], error: error?.message ?? null };
+}
+
+/**
+ * Update the page a player is currently viewing.
+ * Used so the revive flow knows whether the opponent is on the game page or review page.
+ */
+export async function updateCurrentPage(
+  gameId: string,
+  userId: string,
+  page: string | null,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('game_players')
+    .update({ current_page: page })
+    .eq('game_id', gameId)
+    .eq('user_id', userId);
+  return { error: error?.message ?? null };
+}
+
+/**
+ * Read a specific opponent's current_page value.
+ */
+export async function getOpponentCurrentPage(
+  gameId: string,
+  opponentUserId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('game_players')
+    .select('current_page')
+    .eq('game_id', gameId)
+    .eq('user_id', opponentUserId)
+    .single();
+  return (data as any)?.current_page ?? null;
 }

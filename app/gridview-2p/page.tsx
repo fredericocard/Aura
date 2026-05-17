@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getGame, claimSeat } from '@/lib/games';
 import { SeatPickerModal, SeatInfo } from '@/app/components/SeatPickerModal';
-import { concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamageBySeat } from '@/lib/game-triggers';
+import { concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamageBySeat, updateCurrentPage, getOpponentCurrentPage } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
@@ -1565,8 +1565,14 @@ function PageContent() {
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   const [summoningRevive, setSummoningRevive] = useState(false);
   const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
-  const summoningStartRef = useRef<number>(0);
-  const reviveLifeSnapshotRef = useRef<Record<number, number>>({});
+
+  // ── Track current_page in DB so revive flow knows where each player is ──
+  useEffect(() => {
+    const uid = auth?.user?.id;
+    if (!gameId || !uid) return;
+    updateCurrentPage(gameId, uid, 'gridview-2p');
+    return () => { updateCurrentPage(gameId, uid, null); };
+  }, [gameId, auth?.user?.id]);
 
   useEffect(() => {
     const uid = auth?.user?.id;
@@ -1598,32 +1604,30 @@ function PageContent() {
     }
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
 
-  // ── Auto-dismiss summoning when opponent actually interacts (life changes) ──
-  // We ignore the initial revive update (our own action sets life to 1).
-  // Only dismiss when opponent's life differs from the snapshot we took at revive time,
-  // AND at least 5s have passed (to skip our own realtime echo).
+  // ── Auto-dismiss summoning when opponent returns from review to a game page ──
   useEffect(() => {
-    if (!summoningRevive) return;
-    if (Date.now() - summoningStartRef.current < 5000) return; // skip our own revive echo
-    const uid = auth?.user?.id;
-    const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
-    if (!mySeatEntry) return;
-    const mySeat = Number(mySeatEntry[0]);
-    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat);
-    // Dismiss if any opponent's life changed from the snapshot (they're interacting)
-    const opponentInteracted = otherSeats.some(n => {
-      const current = players[n]?.life ?? 0;
-      const snapshot = reviveLifeSnapshotRef.current[n] ?? 0;
-      return current > 0 && current !== snapshot;
-    });
-    if (opponentInteracted) {
-      setSummoningRevive(false);
-      setShowVictory(false);
-      setVictoryDismissed(false);
-      setShowEliminatedGV(false);
-      setElimDismissed(false);
-    }
-  }, [players, summoningRevive, playerUserIds, auth?.user?.id]);
+    if (!summoningRevive || !gameId) return;
+    const channel = supabase
+      .channel(`summoning-watch-${gameId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
+        (payload: any) => {
+          const row = payload.new;
+          if (!row || row.user_id === auth?.user?.id) return;
+          const page = row.current_page;
+          if (page && page !== 'review') {
+            setSummoningRevive(false);
+            setShowVictory(false);
+            setVictoryDismissed(false);
+            setShowEliminatedGV(false);
+            setElimDismissed(false);
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [summoningRevive, gameId, auth?.user?.id]);
 
   // ── Check if either player accepted review (hides revive button) ──
   useEffect(() => {
@@ -2250,20 +2254,28 @@ function PageContent() {
           theme={popupTheme}
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
-          onRevive={() => {
-            // Revive only the LAST player who died
+          onRevive={async () => {
             const uid = auth?.user?.id;
             const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
             const mySeat = mySeatEntry ? Number(mySeatEntry[0]) : -1;
             const deathOrder = deathOrderRef.current;
             const lastDeadOpponent = [...deathOrder].reverse().find(n => n !== mySeat);
-            if (lastDeadOpponent != null) handleRevive(lastDeadOpponent);
-            // Snapshot current life state so auto-dismiss knows what "unchanged" means
-            const snapshot: Record<number, number> = {};
-            Object.keys(players).forEach(k => { const n = Number(k); if (n !== mySeat) snapshot[n] = 1; }); // revive sets to 1
-            reviveLifeSnapshotRef.current = snapshot;
-            summoningStartRef.current = Date.now();
-            setSummoningRevive(true);
+            if (lastDeadOpponent == null) return;
+            handleRevive(lastDeadOpponent);
+            // Check if the dead player is on a game page or review
+            const oppUid = playerUserIds[lastDeadOpponent];
+            if (oppUid && gameId) {
+              const oppPage = await getOpponentCurrentPage(gameId, oppUid);
+              if (oppPage && oppPage !== 'review') {
+                setShowVictory(false);
+                setVictoryDismissed(false);
+              } else {
+                setSummoningRevive(true);
+              }
+            } else {
+              setShowVictory(false);
+              setVictoryDismissed(false);
+            }
           }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
@@ -2275,22 +2287,28 @@ function PageContent() {
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}
-          onRevive={() => {
+          onRevive={async () => {
             const uid = auth?.user?.id;
-            if (uid) {
-              const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
-              if (seatEntry) handleRevive(Number(seatEntry[0]));
+            if (!uid) return;
+            const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
+            if (seatEntry) handleRevive(Number(seatEntry[0]));
+            // Check if the last alive opponent is on a game page or review
+            const mySeat = seatEntry ? Number(seatEntry[0]) : -1;
+            const otherSeats = Object.keys(playerUserIds).map(Number).filter(n => n !== mySeat);
+            const aliveOppSeat = otherSeats.find(n => (players[n]?.life ?? 40) > 0);
+            const aliveOppUid = aliveOppSeat != null ? playerUserIds[aliveOppSeat] : null;
+            if (aliveOppUid && gameId) {
+              const oppPage = await getOpponentCurrentPage(gameId, aliveOppUid);
+              if (oppPage && oppPage !== 'review') {
+                setShowEliminatedGV(false);
+                setElimDismissed(false);
+              } else {
+                setSummoningRevive(true);
+              }
+            } else {
+              setShowEliminatedGV(false);
+              setElimDismissed(false);
             }
-            // Snapshot: self goes to 1, opponents unchanged
-            const snapshot: Record<number, number> = {};
-            Object.keys(players).forEach(k => { const n = Number(k); snapshot[n] = players[n]?.life ?? 0; });
-            if (uid) {
-              const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
-              if (seatEntry) snapshot[Number(seatEntry[0])] = 1;
-            }
-            reviveLifeSnapshotRef.current = snapshot;
-            summoningStartRef.current = Date.now();
-            setSummoningRevive(true);
           }}
           onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />

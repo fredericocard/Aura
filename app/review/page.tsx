@@ -11,6 +11,7 @@ import { getGame, type GamePlayer } from '@/lib/games';
 import { castVote, castBracketCheck, type QuestionKey } from '@/lib/votes';
 import { submitReview } from '@/lib/pods';
 import { checkPodCompletion, isGameCardLocked } from '@/lib/questionnaire';
+import { updateCurrentPage } from '@/lib/game-triggers';
 import { getGameCard, previewGameCard, type GameCard, type CommanderCardData } from '@/lib/game-card';
 
 interface PlayerInfo {
@@ -604,7 +605,7 @@ function MemoryCardOverlay({ onClose, onViewProfile, card, gameId, onRefreshed }
 }
 
 function PageContent() {
-  const { isGuest, isLoggedIn } = useAuth();
+  const { isGuest, isLoggedIn, user: authUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const gameId = searchParams.get('gameId') ?? '';
@@ -624,6 +625,13 @@ function PageContent() {
   const activeCardRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const doneCardRef = useRef<HTMLDivElement>(null);
+
+  // ── Track current_page in DB so revive flow knows this player is on review ──
+  useEffect(() => {
+    if (!gameId || !authUser?.id) return;
+    updateCurrentPage(gameId, authUser.id, 'review');
+    return () => { updateCurrentPage(gameId, authUser.id, null); };
+  }, [gameId, authUser?.id]);
 
   // Load game players on mount
   useEffect(() => {

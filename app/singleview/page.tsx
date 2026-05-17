@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getMyCommanders } from '@/lib/commanders';
 import { searchCommanders } from '@/lib/scryfall';
-import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, updateCommanderDamage, abandonGame } from '@/lib/game-triggers';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, updateCommanderDamage, abandonGame, updateCurrentPage, getOpponentCurrentPage } from '@/lib/game-triggers';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
 import AuraLoaderF from '@/app/components/AuraLoaderF';
 import { VictoryPopup, EliminatedPopup, PopupTheme } from '@/lib/game-popups';
@@ -1605,8 +1605,6 @@ function PageContent() {
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   const [summoningRevive, setSummoningRevive] = useState(false);
   const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
-  const summoningStartRef = useRef<number>(0);
-  const reviveLifeSnapshotRef = useRef<Record<string, number>>({});
   const [lightMode, setLightMode] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('aura-light-mode') === '1';
     return false;
@@ -1888,6 +1886,13 @@ function PageContent() {
     };
   }, [gameId, loading, user?.id]);
 
+  // ── Track current_page in DB so revive flow knows where each player is ──
+  useEffect(() => {
+    if (!gameId || !user?.id) return;
+    updateCurrentPage(gameId, user.id, 'singleview');
+    return () => { updateCurrentPage(gameId, user.id, null); };
+  }, [gameId, user?.id]);
+
   // Fetch Scryfall data for opponent commanders
   useEffect(() => {
     if (opponents.length === 0) return;
@@ -2029,24 +2034,32 @@ function PageContent() {
     }
   }, [opponents, life, dead, victoryDismissed, showVictory]);
 
-  // ── Auto-dismiss summoning when opponent actually interacts (life changes) ──
+  // ── Auto-dismiss summoning when opponent returns from review to a game page ──
   useEffect(() => {
-    if (!summoningRevive) return;
-    if (Date.now() - summoningStartRef.current < 5000) return;
-    const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
-    const opponentInteracted = realOpponents.some((o: any) => {
-      const current = o.life ?? 0;
-      const snapshot = reviveLifeSnapshotRef.current[o.userId ?? o.id] ?? 0;
-      return current > 0 && current !== snapshot;
-    });
-    if (opponentInteracted) {
-      setSummoningRevive(false);
-      setShowVictory(false);
-      setVictoryDismissed(false);
-      setShowEliminated(false);
-      setElimDismissed(false);
-    }
-  }, [opponents, summoningRevive]);
+    if (!summoningRevive || !gameId) return;
+    // Subscribe to game_players changes to watch for current_page updates
+    const channel = supabase
+      .channel(`summoning-watch-${gameId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
+        (payload: any) => {
+          const row = payload.new;
+          if (!row || row.user_id === user?.id) return; // ignore self
+          const page = row.current_page;
+          if (page && page !== 'review') {
+            // Opponent returned to a game page — dismiss summoning + all popups
+            setSummoningRevive(false);
+            setShowVictory(false);
+            setVictoryDismissed(false);
+            setShowEliminated(false);
+            setElimDismissed(false);
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [summoningRevive, gameId, user?.id]);
 
   // ── Check if any player accepted review (hides revive button) ──
   useEffect(() => {
@@ -2297,19 +2310,23 @@ function PageContent() {
           theme={popupTheme}
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
-          onRevive={() => {
+          onRevive={async () => {
             // Find the last dead opponent and revive them at 1 life
             const realOpponents = opponents.filter((o: any) => !o.isEmptySeat);
             const lastDead = [...realOpponents].reverse().find((o: any) => (o.life ?? 40) <= 0);
-            if (lastDead && lastDead.userId && gameId) {
-              updateLifeTotal(gameId, lastDead.userId, 1).catch(() => {});
+            if (!lastDead?.userId || !gameId) return;
+            // Revive in DB
+            updateLifeTotal(gameId, lastDead.userId, 1).catch(() => {});
+            // Check if the dead player is on the game page or review
+            const oppPage = await getOpponentCurrentPage(gameId, lastDead.userId);
+            if (oppPage && oppPage !== 'review') {
+              // Opponent is on game page — instant revive, dismiss popup
+              setShowVictory(false);
+              setVictoryDismissed(false);
+            } else {
+              // Opponent is on review or offline — show Summoning until they return
+              setSummoningRevive(true);
             }
-            // Snapshot for auto-dismiss
-            const snapshot: Record<string, number> = {};
-            realOpponents.forEach((o: any) => { snapshot[o.userId ?? o.id] = (o.life ?? 40) <= 0 ? 1 : (o.life ?? 40); });
-            reviveLifeSnapshotRef.current = snapshot;
-            summoningStartRef.current = Date.now();
-            setSummoningRevive(true);
           }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}/>
       )}
@@ -2321,7 +2338,8 @@ function PageContent() {
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onDismiss={() => { setShowEliminated(false); setElimDismissed(true); }}
-          onRevive={() => {
+          onRevive={async () => {
+            // Revive self based on elimination type
             if (eliminationReason === 'cmdr') {
               setCmdrDmg(prev => {
                 const fixed: Record<string, number> = {};
@@ -2353,12 +2371,24 @@ function PageContent() {
                 updateLifeTotal(gameId, user.id, 1).catch(() => {});
               }
             }
-            // Don't dismiss — show "Summoning…" until game resumes
-            const snapshot: Record<string, number> = {};
-            opponents.forEach((o: any) => { snapshot[o.userId ?? o.id] = o.life ?? 0; });
-            reviveLifeSnapshotRef.current = snapshot;
-            summoningStartRef.current = Date.now();
-            setSummoningRevive(true);
+            // Check if the last alive opponent is on a game page or review
+            const realOpponents = opponents.filter((o: any) => !o.isEmptySeat && o.userId);
+            const aliveOpp = realOpponents.find((o: any) => (o.life ?? 40) > 0);
+            if (aliveOpp && gameId) {
+              const oppPage = await getOpponentCurrentPage(gameId, aliveOpp.userId);
+              if (oppPage && oppPage !== 'review') {
+                // Opponent on game page — instant dismiss
+                setShowEliminated(false);
+                setElimDismissed(false);
+              } else {
+                // Opponent on review — show Summoning until they return
+                setSummoningRevive(true);
+              }
+            } else {
+              // No alive opponent found — just dismiss
+              setShowEliminated(false);
+              setElimDismissed(false);
+            }
           }}
           onReview={() => { setShowEliminated(false); setEliminationReason(null); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}/>
       )}

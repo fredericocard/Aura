@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getGame, claimSeat } from '@/lib/games';
 import { SeatPickerModal, SeatInfo } from '@/app/components/SeatPickerModal';
-import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat } from '@/lib/game-triggers';
+import { updateLifeTotal, updatePoisonCounters, updateExperienceCounters, updateEnergyCounters, concedeGame, updateLifeBySeat, updatePoisonBySeat, updateExperienceBySeat, updateEnergyBySeat, updateCommanderDamage, updateCommanderDamageBySeat, updateCurrentPage, getOpponentCurrentPage } from '@/lib/game-triggers';
 import { supabase } from '@/lib/supabase';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { getQrCodeUrl } from '@/lib/pods';
@@ -2011,8 +2011,14 @@ function PageContent() {
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   const [summoningRevive, setSummoningRevive] = useState(false);
   const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
-  const summoningStartRef = useRef<number>(0);
-  const reviveLifeSnapshotRef = useRef<Record<number, number>>({});
+
+  // ── Track current_page in DB so revive flow knows where each player is ──
+  useEffect(() => {
+    const uid = auth?.user?.id;
+    if (!gameId || !uid) return;
+    updateCurrentPage(gameId, uid, 'gridview-4p');
+    return () => { updateCurrentPage(gameId, uid, null); };
+  }, [gameId, auth?.user?.id]);
 
   useEffect(() => {
     const uid = auth?.user?.id;
@@ -2044,28 +2050,30 @@ function PageContent() {
     }
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
 
-  // ── Auto-dismiss summoning when opponent actually interacts ──
+  // ── Auto-dismiss summoning when opponent returns from review to a game page ──
   useEffect(() => {
-    if (!summoningRevive) return;
-    if (Date.now() - summoningStartRef.current < 5000) return;
-    const uid = auth?.user?.id;
-    const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
-    if (!mySeatEntry) return;
-    const mySeat = Number(mySeatEntry[0]);
-    const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat);
-    const opponentInteracted = otherSeats.some(n => {
-      const current = players[n]?.life ?? 0;
-      const snapshot = reviveLifeSnapshotRef.current[n] ?? 0;
-      return current > 0 && current !== snapshot;
-    });
-    if (opponentInteracted) {
-      setSummoningRevive(false);
-      setShowVictory(false);
-      setVictoryDismissed(false);
-      setShowEliminatedGV(false);
-      setElimDismissed(false);
-    }
-  }, [players, summoningRevive, playerUserIds, auth?.user?.id]);
+    if (!summoningRevive || !gameId) return;
+    const channel = supabase
+      .channel(`summoning-watch-${gameId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
+        (payload: any) => {
+          const row = payload.new;
+          if (!row || row.user_id === auth?.user?.id) return;
+          const page = row.current_page;
+          if (page && page !== 'review') {
+            setSummoningRevive(false);
+            setShowVictory(false);
+            setVictoryDismissed(false);
+            setShowEliminatedGV(false);
+            setElimDismissed(false);
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [summoningRevive, gameId, auth?.user?.id]);
 
   // ── Check if any player accepted review ──
   useEffect(() => {
@@ -2755,18 +2763,25 @@ function PageContent() {
           theme={popupTheme}
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
-          onRevive={() => {
+          onRevive={async () => {
             const uid = auth?.user?.id;
             const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
             const mySeat = mySeatEntry ? Number(mySeatEntry[0]) : -1;
             const deathOrder = deathOrderRef.current;
             const lastDeadOpponent = [...deathOrder].reverse().find(n => n !== mySeat);
             if (lastDeadOpponent != null) handleRevive(lastDeadOpponent);
-            const snapshot: Record<number, number> = {};
-            Object.keys(players).forEach(k => { const n = Number(k); if (n !== mySeat) snapshot[n] = 1; });
-            reviveLifeSnapshotRef.current = snapshot;
-            summoningStartRef.current = Date.now();
-            setSummoningRevive(true);
+            const oppUid = lastDeadOpponent != null ? playerUserIds[lastDeadOpponent] : undefined;
+            if (oppUid && gameId) {
+              const oppPage = await getOpponentCurrentPage(gameId, oppUid);
+              if (oppPage && oppPage !== 'review') {
+                setShowVictory(false);
+                setVictoryDismissed(false);
+              } else {
+                setSummoningRevive(true);
+              }
+            } else {
+              setSummoningRevive(true);
+            }
           }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
@@ -2778,21 +2793,29 @@ function PageContent() {
           summoning={summoningRevive}
           reviewAccepted={anyReviewAccepted}
           onDismiss={() => { setShowEliminatedGV(false); setElimDismissed(true); }}
-          onRevive={() => {
+          onRevive={async () => {
             const uid = auth?.user?.id;
+            let mySeat = -1;
             if (uid) {
               const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
-              if (seatEntry) handleRevive(Number(seatEntry[0]));
+              if (seatEntry) {
+                mySeat = Number(seatEntry[0]);
+                handleRevive(mySeat);
+              }
             }
-            const snapshot: Record<number, number> = {};
-            Object.keys(players).forEach(k => { snapshot[Number(k)] = players[Number(k)]?.life ?? 0; });
-            if (auth?.user?.id) {
-              const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === auth.user!.id);
-              if (seatEntry) snapshot[Number(seatEntry[0])] = 1;
+            const aliveOppEntry = Object.entries(playerUserIds).find(([k, v]) => Number(k) !== mySeat && v && (players[Number(k)]?.life ?? 0) > 0);
+            const oppUid = aliveOppEntry ? aliveOppEntry[1] : undefined;
+            if (oppUid && gameId) {
+              const oppPage = await getOpponentCurrentPage(gameId, oppUid);
+              if (oppPage && oppPage !== 'review') {
+                setShowEliminatedGV(false);
+                setElimDismissed(false);
+              } else {
+                setSummoningRevive(true);
+              }
+            } else {
+              setSummoningRevive(true);
             }
-            reviveLifeSnapshotRef.current = snapshot;
-            summoningStartRef.current = Date.now();
-            setSummoningRevive(true);
           }}
           onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
