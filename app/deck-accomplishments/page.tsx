@@ -207,9 +207,6 @@ function BracketPip({ n }: { n: number }) {
 // ── DistributionBar ─────────────────────────────────────────────────────────
 function DistributionBar({ counts, height = 12 }: { counts: Record<CategoryId, number>; height?: number }) {
   const allCats = CATEGORIES.map(c => ({ ...c, count: counts[c.id] || 0 }));
-  const total = allCats.reduce((s, c) => s + c.count, 0);
-  // Each zero-count slot gets a small fixed visual weight so it appears in the bar
-  const EMPTY_WEIGHT = total > 0 ? total * 0.04 : 1;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -222,18 +219,17 @@ function DistributionBar({ counts, height = 12 }: { counts: Record<CategoryId, n
         display: 'flex',
         boxShadow: 'inset 0 1px 2px rgba(43,33,24,0.06)',
       }}>
-        {allCats.map((s, i) => {
-          const earned = s.count > 0;
-          const flex = earned ? s.count : EMPTY_WEIGHT;
-          return (
+        {(() => {
+          const earned = allCats.filter(s => s.count > 0);
+          return earned.map((s, i) => (
             <div key={s.id} style={{
-              flex,
+              flex: s.count,
               height: '100%',
-              background: earned ? s.color : 'var(--parchment-deep)',
-              borderRight: i === allCats.length - 1 ? 'none' : '1px solid rgba(250,245,234,0.4)',
+              background: s.color,
+              borderRight: i === earned.length - 1 ? 'none' : '1px solid rgba(250,245,234,0.4)',
             }}/>
-          );
-        })}
+          ));
+        })()}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
