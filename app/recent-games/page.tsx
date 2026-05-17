@@ -1194,7 +1194,7 @@ function RecentGamesPageInner() {
           if (!playerMap.has(p.userId)) {
             playerMap.set(p.userId, {
               id: p.userId,
-              name: shortName(p.commanderName),  // best-effort: use commander short as display name
+              name: 'Player',  // overwritten below by display_name from profiles
               commanderShort: shortName(p.commanderName),
               art: p.artUrl ?? '',
             });
