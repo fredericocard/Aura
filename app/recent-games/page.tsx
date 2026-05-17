@@ -1310,6 +1310,7 @@ function RecentGamesPageInner() {
       players={players}
       myCommanders={commanders}
       youId={youId}
+      glyphBase="/assets/glyphs/"
       onOpenMemoryCard={(game: any) => {
         if (!game?.id) return;
         setMemoryCardOpen(true);
