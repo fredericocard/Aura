@@ -86,6 +86,28 @@ function useCommandersWithArt(input: CommanderCardData[]): CommanderCardData[] {
   }), [input, extraArt]);
 }
 
+function McpNarrativeText({ text, commanders }: { text: string; commanders: any[] }) {
+  const names = commanders
+    .map((c: any) => c.commander_name)
+    .filter((n: string) => n && !n.startsWith("P"))
+    .sort((a: string, b: string) => b.length - a.length);
+  if (names.length === 0) return <span style={{ color: "rgba(245,239,226,0.7)" }}>{text}</span>;
+  const pattern = new RegExp(`(${names.map((n: string) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "g");
+  const parts = text.split(pattern);
+  const nameSet = new Set(names);
+  return (
+    <span style={{ color: "rgba(245,239,226,0.7)" }}>
+      {parts.map((part: string, i: number) =>
+        nameSet.has(part) ? (
+          <span key={i} style={{ color: "#E2B858", fontWeight: 400 }}>{part}</span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </span>
+  );
+}
+
 /* ── KeepsakeCard — visual game card ─────────────────── */
 function KeepsakeCard({ card }: { card: GameCard }) {
   const rawCommanders = (card.commanders ?? []) as CommanderCardData[];
@@ -133,7 +155,7 @@ function KeepsakeCard({ card }: { card: GameCard }) {
             const badge = c.brewed_badge;
             const isWinner = c.is_winner;
             return (
-              <div key={c.deck_id ?? i} style={{ position: "relative", display: "flex", alignItems: "stretch", height: 72, background: "#0A0604", overflow: "hidden", borderBottom: i < commanders.length - 1 ? "1px solid rgba(201,155,47,0.22)" : "none" }}>
+              <div key={c.deck_id ?? i} style={{ position: "relative", display: "flex", alignItems: "stretch", minHeight: 72, background: "#0A0604", overflow: "hidden", borderBottom: i < commanders.length - 1 ? "1px solid rgba(201,155,47,0.22)" : "none" }}>
                 <div style={{ position: "relative", width: "65%", flexShrink: 0, overflow: "hidden" }}>
                   <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#1a140e", color: "#E2B858", fontSize: 28, fontFamily: "'Young Serif', Georgia, serif" }}>{(c.commander_name ?? "?").charAt(0)}</div>
                   {c.art_url && (
@@ -147,8 +169,8 @@ function KeepsakeCard({ card }: { card: GameCard }) {
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0, padding: "8px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 1 }}>
-                  <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 500, color: "#F5EFE2", letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.8 }}>{c.archetype === "The Unknown" && c.display_name ? c.display_name : c.archetype}</div>
-                  <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: "#F5EFE2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.commander_name}</div>
+                  <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 500, color: "#F5EFE2", letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.8 }}>{c.display_name ? c.display_name : (c.archetype !== "The Unknown" ? c.archetype : "Player")}</div>
+                  <div style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 15, lineHeight: 1.15, color: "#F5EFE2", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any }}>{c.commander_name}</div>
                   {badge && badge !== "none" && (
                     <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 8, fontWeight: 300, color: "rgba(245,239,226,0.55)", marginTop: 2 }}>
                       Brewed for <span style={{ fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 10, color: "#F5EFE2", marginLeft: 2 }}>{BADGE_LABELS[badge] ?? badge}</span>
@@ -162,7 +184,7 @@ function KeepsakeCard({ card }: { card: GameCard }) {
 
         {card.narrative && (
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(201,155,47,0.25)", position: "relative", textAlign: "center", fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400, fontSize: 13, lineHeight: 1.45, color: "#F5EFE2", padding: "12px 4px 0", textWrap: "pretty" as any }}>
-            <span style={{ color: "rgba(245,239,226,0.7)" }}>{card.narrative}</span>
+            <McpNarrativeText text={card.narrative} commanders={commanders} />
           </div>
         )}
       </div>
