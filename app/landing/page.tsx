@@ -83,6 +83,70 @@ function TornEdge({ width = 374, color = '#FAF5EA' }: { width?: number; color?: 
   );
 }
 
+/* ── BadgeRoller — cycling badge word in hero ── */
+const ROLLER_BADGES = [
+  { key: 'fun',        label: 'Fun',        color: '#E07B4A' },
+  { key: 'flavor',     label: 'Flavour',    color: '#7E4E8A' },
+  { key: 'brilliance', label: 'Brilliance', color: '#C99B2F' },
+  { key: 'allegiance', label: 'Allegiance', color: '#2F7A74' },
+  { key: 'rivalry',    label: 'Rivalry',    color: '#9E2B2B' },
+];
+type RollerPhase = 'idle' | 'exit' | 'enter';
+
+function BadgeRoller({ fontSize = 28 }: { fontSize?: number }) {
+  const [idx, setIdx] = useState(0);
+  const [rPhase, setRPhase] = useState<RollerPhase>('idle');
+
+  useEffect(() => {
+    const SWING = 260; // ms per swing direction
+    const REST  = 2800; // ms badge rests before next turn
+    const id = setInterval(() => {
+      setRPhase('exit');
+      setTimeout(() => {
+        setIdx(i => (i + 1) % ROLLER_BADGES.length);
+        setRPhase('enter');
+        setTimeout(() => setRPhase('idle'), SWING);
+      }, SWING);
+    }, REST + SWING);
+    return () => clearInterval(id);
+  }, []);
+
+  const badge    = ROLLER_BADGES[idx];
+  const glyphPx  = Math.round(fontSize * 0.75);
+  const animName = rPhase === 'exit' ? 'badge-exit' : rPhase === 'enter' ? 'badge-enter' : undefined;
+
+  return (
+    /* Outer: stable-width slot — prevents surrounding lines from shifting */
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      /* Sized to widest badge (Brilliance) + glyph + gap so lines never reflow */
+      minWidth: fontSize * 6.5,
+      overflow: 'hidden',
+      verticalAlign: 'bottom',
+    }} aria-hidden="true">
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        color: badge.color,
+        animation: animName ? `${animName} 260ms cubic-bezier(.22,.61,.36,1) forwards` : undefined,
+      }}>
+        {/* Badge glyph */}
+        <span style={{
+          display: 'inline-block', flexShrink: 0,
+          width: glyphPx, height: glyphPx,
+          backgroundColor: badge.color,
+          WebkitMaskImage: `url("/assets/glyphs/${badge.key}.png")`,
+          maskImage: `url("/assets/glyphs/${badge.key}.png")`,
+          WebkitMaskSize: 'contain', maskSize: 'contain',
+          WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+          WebkitMaskPosition: 'center', maskPosition: 'center',
+        }} />
+        {/* Badge label */}
+        <span>{badge.label}</span>
+      </span>
+    </span>
+  );
+}
+
 /* ── ActionTile — primary (forest) or secondary (parchment) ── */
 function ActionTile({ variant = 'primary', icon, label, sub, onClick }: { variant?: 'primary' | 'secondary'; icon: string; label: string; sub: string; onClick?: () => void }) {
   const isPrimary = variant === 'primary';
@@ -613,6 +677,16 @@ export default function HomePage() {
       padding: '60px 22px 22px',
     }}>
 
+      {/* ── Roller keyframes ── */}
+      <style>{`
+        @keyframes badge-exit  { from { transform: translateY(0);     opacity: 1; } to { transform: translateY(-110%); opacity: 0; } }
+        @keyframes badge-enter { from { transform: translateY(110%);  opacity: 0; } to { transform: translateY(0);      opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) {
+          @keyframes badge-exit  { from { opacity: 1; } to { opacity: 0; } }
+          @keyframes badge-enter { from { opacity: 0; } to { opacity: 1; } }
+        }
+      `}</style>
+
       {/* ── SPLASH LOCKUP — InkBloom mark + wordmark ── */}
       <div style={{
         position: 'absolute', left: 0, right: 0,
@@ -707,48 +781,16 @@ export default function HomePage() {
         transition: `opacity ${morph ? '500ms' : '600ms'} ${ease}, transform 600ms ${ease}`,
       }}>Every game has a story</div>
 
-      {/* ── UPPER BAND ── */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 14, position: 'relative', zIndex: 2,
-      }}>
-        <div style={{ height: 40 }} />
-        <div style={{
-          fontFamily: "'Young Serif', Georgia, serif", fontWeight: 400,
-          fontSize: 54, letterSpacing: '-0.02em',
-          lineHeight: 1, color: '#B06B2C',
-          opacity: phase >= 4 ? 1 : 0,
-          transition: `opacity 600ms ${ease} 80ms`,
-        }}>Aura</div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, width: 200, marginTop: -2,
-          opacity: phase >= 4 ? 1 : 0,
-          transition: `opacity 600ms ${ease}`,
-        }}>
-          <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.18)' }} />
-          <div style={{ width: 6, height: 6, transform: 'rotate(45deg)', background: '#2F5D3A' }} />
-          <div style={{ flex: 1, height: 1, background: 'rgba(43,33,24,0.18)' }} />
-        </div>
-        <div style={{
-          fontFamily: "'Young Serif', Georgia, serif",
-          fontStyle: 'italic', fontWeight: 400,
-          fontSize: 15, color: '#5C5043',
-          textAlign: 'center', lineHeight: 1.4,
-          maxWidth: 280, marginTop: 4,
-          opacity: phase >= 4 ? 1 : 0,
-          transform: phase >= 4 ? 'translateY(0)' : 'translateY(6px)',
-          transition: `opacity 600ms ${ease} 150ms, transform 600ms ${ease} 150ms`,
-        }}>
-          Your Commander Journey Remembered
-        </div>
-      </div>
+      {/* ── UPPER BAND — spacer so the morphed splash mark has room ── */}
+      <div style={{ height: 56, position: 'relative', zIndex: 2 }} />
 
-      {/* ── MIDDLE BAND ── */}
+      {/* ── MIDDLE BAND — hero ── */}
       <div style={{
         flex: 1, position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', alignItems: 'center',
         margin: '4px 0 4px',
       }}>
+        {/* Sun ornament */}
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
           transform: `translate(-50%, -50%) scale(${morph ? 1 : 0.5})`,
@@ -757,21 +799,43 @@ export default function HomePage() {
         }}>
           <SunCircle size={340} opacity={1} />
         </div>
+
+        {/* Hero copy */}
         <div style={{
-          position: 'relative', zIndex: 2, textAlign: 'center',
-          maxWidth: 220,
+          position: 'relative', zIndex: 2,
           opacity: phase >= 4 ? 1 : 0,
-          transform: phase >= 4 ? 'translateY(0)' : 'translateY(6px)',
-          transition: `opacity 600ms ${ease} 300ms, transform 600ms ${ease} 300ms`,
+          transform: phase >= 4 ? 'translateY(0)' : 'translateY(8px)',
+          transition: `opacity 600ms ${ease} 200ms, transform 600ms ${ease} 200ms`,
         }}>
-          <div style={{
+          {/* Accessible static version for screen readers */}
+          <p style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', margin: 0 }}>
+            With Aura. You play for Fun, Flavour, Brilliance, Allegiance, or Rivalry. Collect badges, build a character, and tell the story that invites you back.
+          </p>
+
+          {/* Visual hero — aria-hidden so screen readers use the static version above */}
+          <div aria-hidden="true" style={{
             fontFamily: "'Young Serif', Georgia, serif",
-            fontSize: 28, lineHeight: 1.15,
-            color: '#2B2118', letterSpacing: '-0.02em',
-            textAlign: 'left', maxWidth: 260,
+            fontWeight: 400, letterSpacing: '-0.02em',
+            fontSize: 28, lineHeight: 1.25,
+            color: '#2B2118',
           }}>
-            Play your style. Earn badges. Grow your Commander&apos;s{' '}
-            <span style={{ color: '#B06B2C' }}>Aura.</span>
+            {/* Line 1 */}
+            <div>
+              With <span style={{ color: '#B06B2C' }}>Aura</span>.
+            </div>
+            {/* Line 2 — cycling badge word */}
+            <div style={{ marginTop: 2 }}>
+              You play for <BadgeRoller fontSize={28} />
+            </div>
+            {/* Line 3 */}
+            <div style={{ marginTop: 2 }}>
+              Collect badges, build a character,
+            </div>
+            {/* Line 4 — "invites you back" accented */}
+            <div style={{ marginTop: 2 }}>
+              and tell the story that{' '}
+              <span style={{ color: '#B06B2C' }}>invites you back</span>.
+            </div>
           </div>
         </div>
       </div>
