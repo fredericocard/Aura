@@ -1781,6 +1781,8 @@ function PageContent() {
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   const [summoningRevive, setSummoningRevive] = useState(false);
   const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
+  const summoningStartRef = useRef<number>(0);
+  const reviveLifeSnapshotRef = useRef<Record<number, number>>({});
 
   useEffect(() => {
     const uid = auth?.user?.id;
@@ -1812,17 +1814,25 @@ function PageContent() {
     }
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, victoryDismissed, showVictory]);
 
-  // ── Auto-dismiss summoning when opponent is revived and alive ──
+  // ── Auto-dismiss summoning when opponent actually interacts (life changes) ──
+  // We ignore the initial revive update (our own action sets life to 1).
+  // Only dismiss when opponent's life differs from the snapshot we took at revive time,
+  // AND at least 5s have passed (to skip our own realtime echo).
   useEffect(() => {
     if (!summoningRevive) return;
-    // Check if any opponent is alive again → dismiss victory popup, back to game
+    if (Date.now() - summoningStartRef.current < 5000) return; // skip our own revive echo
     const uid = auth?.user?.id;
     const mySeatEntry = uid ? Object.entries(playerUserIds).find(([, v]) => v === uid) : null;
     if (!mySeatEntry) return;
     const mySeat = Number(mySeatEntry[0]);
     const otherSeats = Object.keys(players).map(Number).filter(n => n !== mySeat);
-    const anyAlive = otherSeats.some(n => (players[n]?.life ?? 40) > 0);
-    if (anyAlive) {
+    // Dismiss if any opponent's life changed from the snapshot (they're interacting)
+    const opponentInteracted = otherSeats.some(n => {
+      const current = players[n]?.life ?? 0;
+      const snapshot = reviveLifeSnapshotRef.current[n] ?? 0;
+      return current > 0 && current !== snapshot;
+    });
+    if (opponentInteracted) {
       setSummoningRevive(false);
       setShowVictory(false);
       setVictoryDismissed(false);
@@ -2464,7 +2474,11 @@ function PageContent() {
             const deathOrder = deathOrderRef.current;
             const lastDeadOpponent = [...deathOrder].reverse().find(n => n !== mySeat);
             if (lastDeadOpponent != null) handleRevive(lastDeadOpponent);
-            // Don't dismiss — show "Summoning…" until opponent returns
+            // Snapshot current life state so auto-dismiss knows what "unchanged" means
+            const snapshot: Record<number, number> = {};
+            Object.keys(players).forEach(k => { const n = Number(k); if (n !== mySeat) snapshot[n] = 1; }); // revive sets to 1
+            reviveLifeSnapshotRef.current = snapshot;
+            summoningStartRef.current = Date.now();
             setSummoningRevive(true);
           }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
@@ -2483,7 +2497,15 @@ function PageContent() {
               const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
               if (seatEntry) handleRevive(Number(seatEntry[0]));
             }
-            // Don't dismiss — show "Summoning…" until game resumes
+            // Snapshot: self goes to 1, opponents unchanged
+            const snapshot: Record<number, number> = {};
+            Object.keys(players).forEach(k => { const n = Number(k); snapshot[n] = players[n]?.life ?? 0; });
+            if (uid) {
+              const seatEntry = Object.entries(playerUserIds).find(([, v]) => v === uid);
+              if (seatEntry) snapshot[Number(seatEntry[0])] = 1;
+            }
+            reviveLifeSnapshotRef.current = snapshot;
+            summoningStartRef.current = Date.now();
             setSummoningRevive(true);
           }}
           onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
