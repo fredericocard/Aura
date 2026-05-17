@@ -4,7 +4,7 @@
 // ============================================
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from '../../lib/auth-context';
 import { getGame, type GamePlayer } from '@/lib/games';
@@ -239,8 +239,54 @@ function BracketActiveCard({ selectedIds, onToggle, onSelectOnBracket, players }
 }
 
 
+// In-memory cache for Scryfall art lookups.
+const _keepsakeArtCache = new Map<string, string | null>();
+async function fetchKeepsakeArt(name: string): Promise<string | null> {
+  const key = name.trim().toLowerCase();
+  if (!key) return null;
+  if (_keepsakeArtCache.has(key)) return _keepsakeArtCache.get(key) ?? null;
+  try {
+    const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+    if (!res.ok) { _keepsakeArtCache.set(key, null); return null; }
+    const card = await res.json();
+    const art = card?.image_uris?.art_crop || card?.card_faces?.[0]?.image_uris?.art_crop || null;
+    _keepsakeArtCache.set(key, art);
+    return art;
+  } catch { _keepsakeArtCache.set(key, null); return null; }
+}
+
+/** Backfill missing art_url from Scryfall for commanders that have none. */
+function useCommandersWithArt(input: CommanderCardData[]): CommanderCardData[] {
+  const [extraArt, setExtraArt] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    const missing = input.filter(c => !c.art_url && c.commander_name && c.commander_name !== `P${c.seat_number ?? '?'}`);
+    if (missing.length === 0) return;
+    (async () => {
+      const updates: Record<string, string> = {};
+      for (const c of missing) {
+        const key = c.commander_name.toLowerCase();
+        if (extraArt[key]) continue;
+        const art = await fetchKeepsakeArt(c.commander_name);
+        if (cancelled) return;
+        if (art) updates[key] = art;
+      }
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setExtraArt(prev => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [input.map(c => `${c.commander_name}|${c.art_url ?? ''}`).join(',')]);
+  return useMemo(() => input.map(c => {
+    if (c.art_url) return c;
+    const cached = extraArt[c.commander_name?.toLowerCase() ?? ''];
+    return cached ? { ...c, art_url: cached } : c;
+  }), [input, extraArt]);
+}
+
 function KeepsakeCard({ card }: { card: GameCard }) {
-  const commanders = (card.commanders ?? []) as CommanderCardData[];
+  const rawCommanders = (card.commanders ?? []) as CommanderCardData[];
+  const commanders = useCommandersWithArt(rawCommanders);
   const rawDate = card.game_date ?? '';
   const dateStr = (() => {
     try {
@@ -304,7 +350,6 @@ function KeepsakeCard({ card }: { card: GameCard }) {
                     <img
                       src={c.art_url}
                       alt=""
-                      crossOrigin="anonymous"
                       referrerPolicy="no-referrer"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 12%', transform: 'scale(1.15)' }}

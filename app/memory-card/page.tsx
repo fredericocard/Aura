@@ -5,7 +5,7 @@
 // ============================================
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { previewGameCard, type GameCard, type CommanderCardData } from "@/lib/game-card";
 
@@ -42,9 +42,54 @@ function CrownIcon({ size = 12 }: { size?: number }) {
   );
 }
 
+// In-memory cache for Scryfall art lookups.
+const _mcArtCache = new Map<string, string | null>();
+async function fetchMcArt(name: string): Promise<string | null> {
+  const key = name.trim().toLowerCase();
+  if (!key) return null;
+  if (_mcArtCache.has(key)) return _mcArtCache.get(key) ?? null;
+  try {
+    const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+    if (!res.ok) { _mcArtCache.set(key, null); return null; }
+    const card = await res.json();
+    const art = card?.image_uris?.art_crop || card?.card_faces?.[0]?.image_uris?.art_crop || null;
+    _mcArtCache.set(key, art);
+    return art;
+  } catch { _mcArtCache.set(key, null); return null; }
+}
+
+function useCommandersWithArt(input: CommanderCardData[]): CommanderCardData[] {
+  const [extraArt, setExtraArt] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    const missing = input.filter(c => !c.art_url && c.commander_name && c.commander_name !== `P${c.seat_number ?? '?'}`);
+    if (missing.length === 0) return;
+    (async () => {
+      const updates: Record<string, string> = {};
+      for (const c of missing) {
+        const key = c.commander_name.toLowerCase();
+        if (extraArt[key]) continue;
+        const art = await fetchMcArt(c.commander_name);
+        if (cancelled) return;
+        if (art) updates[key] = art;
+      }
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setExtraArt(prev => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [input.map(c => `${c.commander_name}|${c.art_url ?? ''}`).join(',')]);
+  return useMemo(() => input.map(c => {
+    if (c.art_url) return c;
+    const cached = extraArt[c.commander_name?.toLowerCase() ?? ''];
+    return cached ? { ...c, art_url: cached } : c;
+  }), [input, extraArt]);
+}
+
 /* ── KeepsakeCard — visual game card ─────────────────── */
 function KeepsakeCard({ card }: { card: GameCard }) {
-  const commanders = (card.commanders ?? []) as CommanderCardData[];
+  const rawCommanders = (card.commanders ?? []) as CommanderCardData[];
+  const commanders = useCommandersWithArt(rawCommanders);
   const rawDate = card.game_date ?? "";
   const dateStr = (() => {
     try {
@@ -90,10 +135,9 @@ function KeepsakeCard({ card }: { card: GameCard }) {
             return (
               <div key={c.deck_id ?? i} style={{ position: "relative", display: "flex", alignItems: "stretch", height: 72, background: "#0A0604", overflow: "hidden", borderBottom: i < commanders.length - 1 ? "1px solid rgba(201,155,47,0.22)" : "none" }}>
                 <div style={{ position: "relative", width: "65%", flexShrink: 0, overflow: "hidden" }}>
-                  {c.art_url ? (
-                    <img src={c.art_url} alt="" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "50% 12%", transform: "scale(1.15)" }} />
-                  ) : (
-                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#1a140e", color: "#E2B858", fontSize: 28, fontFamily: "'Young Serif', Georgia, serif" }}>{(c.commander_name ?? "?").charAt(0)}</div>
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#1a140e", color: "#E2B858", fontSize: 28, fontFamily: "'Young Serif', Georgia, serif" }}>{(c.commander_name ?? "?").charAt(0)}</div>
+                  {c.art_url && (
+                    <img src={c.art_url} alt="" referrerPolicy="no-referrer" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "50% 12%", transform: "scale(1.15)" }} />
                   )}
                   <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: 80, background: "linear-gradient(90deg, transparent 0%, rgba(10,6,4,0.55) 55%, #0A0604 100%)", pointerEvents: "none" }} />
                   {isWinner && (

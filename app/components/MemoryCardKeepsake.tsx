@@ -156,7 +156,6 @@ export function KeepsakeCard({ card }: { card: GameCard }) {
                     <img
                       src={c.art_url}
                       alt=""
-                      crossOrigin="anonymous"
                       referrerPolicy="no-referrer"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "50% 12%", transform: "scale(1.15)" }}
