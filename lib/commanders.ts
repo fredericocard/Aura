@@ -110,21 +110,6 @@ export async function confirmBracketAndApplyScoring(
 }
 
 /**
- * Update a deck's bracket. Records the timestamp automatically via trigger.
- * AURA score is NOT reset on bracket change (that's by design).
- */
-export async function updateBracket(deckId: string, bracket: number): Promise<{ error: string | null }> {
-  if (bracket < 1 || bracket > 5) return { error: 'Bracket must be between 1 and 5' };
-
-  const { error } = await supabase
-    .from('decks')
-    .update({ bracket })
-    .eq('id', deckId);
-
-  return { error: error?.message ?? null };
-}
-
-/**
  * Update the art_crop URL displayed for a deck's commander.
  * Persisted on decks.commander_art_url — every surface in the app reads from
  * this column (gridviews, singleview, game card, recent games, profile, etc.)
