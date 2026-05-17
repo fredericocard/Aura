@@ -424,9 +424,9 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
 
   return (
     <div style={{
-      background: 'var(--parchment-card)',
-      border: `1.5px solid ${cat ? cat.color : 'var(--line)'}`,
-      borderLeft: `6px solid ${cat ? cat.color : 'var(--line-strong)'}`,
+      background: '#0A0604',
+      border: '1px solid var(--line)',
+      borderLeft: `4px solid ${cat ? cat.color : 'var(--line-strong)'}`,
       borderRadius: 'var(--r-card)',
       boxShadow: expanded ? 'var(--shadow-active)' : 'var(--shadow-rest)',
       overflow: 'hidden',
@@ -435,9 +435,8 @@ function GameRow({ game, expanded, onToggle, onOpenMemoryCard, players, commande
       <button onClick={onToggle} style={{
         width: '100%', padding: 0,
         display: 'block', position: 'relative',
-        background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+        background: '#0A0604', border: 'none', cursor: 'pointer', textAlign: 'left',
         overflow: 'hidden',
-        borderRadius: 'inherit',
       }}>
         {/* Commander art — full bleed background */}
         {cmd?.art && (
