@@ -113,8 +113,8 @@ function AuraMark({ size = 22, color = T.forest }: { size?: number; color?: stri
 /* ──────────────────────────────────────────────────────────────────
    MonogramAvatar — serif initial, copper rim, compass ticks
    ────────────────────────────────────────────────────────────── */
-function MonogramAvatar({ initial, size = 96, ring = true }: {
-  initial: string; size?: number; ring?: boolean;
+function MonogramAvatar({ initial, size = 96, ring = true, photoUrl }: {
+  initial: string; size?: number; ring?: boolean; photoUrl?: string;
 }) {
   return (
     <div style={{
@@ -127,23 +127,33 @@ function MonogramAvatar({ initial, size = 96, ring = true }: {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {ring && (
-        <svg width={size} height={size} viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, opacity: 0.18 }}>
-          <g stroke={T.copperDeep} strokeWidth="0.6" fill="none">
-            {Array.from({ length: 24 }).map((_, i) => {
-              const a = (i / 24) * Math.PI * 2;
-              const x1 = 50 + Math.cos(a) * 42, y1 = 50 + Math.sin(a) * 42;
-              const x2 = 50 + Math.cos(a) * 47, y2 = 50 + Math.sin(a) * 47;
-              return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}/>;
-            })}
-          </g>
-        </svg>
+      {photoUrl ? (
+        <img
+          src={photoUrl}
+          alt="Profile photo"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+        />
+      ) : (
+        <>
+          {ring && (
+            <svg width={size} height={size} viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, opacity: 0.18 }}>
+              <g stroke={T.copperDeep} strokeWidth="0.6" fill="none">
+                {Array.from({ length: 24 }).map((_, i) => {
+                  const a = (i / 24) * Math.PI * 2;
+                  const x1 = 50 + Math.cos(a) * 42, y1 = 50 + Math.sin(a) * 42;
+                  const x2 = 50 + Math.cos(a) * 47, y2 = 50 + Math.sin(a) * 47;
+                  return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}/>;
+                })}
+              </g>
+            </svg>
+          )}
+          <span style={{
+            fontFamily: T.fontDisplay, fontWeight: 400,
+            fontSize: size * 0.46, color: T.ink, letterSpacing: '-0.02em',
+            lineHeight: 1, position: 'relative',
+          }}>{initial}</span>
+        </>
       )}
-      <span style={{
-        fontFamily: T.fontDisplay, fontWeight: 400,
-        fontSize: size * 0.46, color: T.ink, letterSpacing: '-0.02em',
-        lineHeight: 1, position: 'relative',
-      }}>{initial}</span>
     </div>
   );
 }
@@ -170,8 +180,8 @@ function CompassRose({ size = 200, color = 'rgba(201,155,47,0.07)' }: { size?: n
   );
 }
 
-function ProfileTopBar({ onSettings, name, initial, joined, gameCount }: {
-  onSettings: () => void; name: string; initial: string; joined: string; gameCount: number;
+function ProfileTopBar({ onSettings, name, initial, joined, gameCount, photoUrl }: {
+  onSettings: () => void; name: string; initial: string; joined: string; gameCount: number; photoUrl?: string;
 }) {
   return (
     <div style={{
@@ -220,11 +230,16 @@ function ProfileTopBar({ onSettings, name, initial, joined, gameCount }: {
           background: 'rgba(201,155,47,0.12)',
           boxShadow: `0 0 0 2px rgba(201,155,47,0.25), 0 8px 20px -8px rgba(0,0,0,0.5)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden', position: 'relative',
         }}>
-          <span style={{
-            fontFamily: T.fontDisplay, fontWeight: 400,
-            fontSize: 24, color: T.gold, letterSpacing: '-0.02em', lineHeight: 1,
-          }}>{initial}</span>
+          {photoUrl ? (
+            <img src={photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}/>
+          ) : (
+            <span style={{
+              fontFamily: T.fontDisplay, fontWeight: 400,
+              fontSize: 24, color: T.gold, letterSpacing: '-0.02em', lineHeight: 1,
+            }}>{initial}</span>
+          )}
         </div>
         <div>
           <h1 style={{
@@ -244,15 +259,15 @@ function ProfileTopBar({ onSettings, name, initial, joined, gameCount }: {
 /* ──────────────────────────────────────────────────────────────────
    IdentityHero — avatar + name + meta line
    ────────────────────────────────────────────────────────────── */
-function IdentityHero({ name, initial, joined, gameCount }: {
-  name: string; initial: string; joined: string; gameCount: number;
+function IdentityHero({ name, initial, joined, gameCount, photoUrl }: {
+  name: string; initial: string; joined: string; gameCount: number; photoUrl?: string;
 }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       gap: 8, padding: '0 24px',
     }}>
-      <MonogramAvatar initial={initial} size={76}/>
+      <MonogramAvatar initial={initial} size={76} photoUrl={photoUrl}/>
       <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
         <div style={{
           fontFamily: T.fontDisplay, fontWeight: 400,
@@ -675,8 +690,8 @@ function FormField({ label, value, onChange, type = 'text', focused = false, rea
   );
 }
 
-function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, onSave, onDeleteAccount, onChangePhoto }: {
-  initial: string; nameValue: string; emailValue: string;
+function AccountScreen({ initial, nameValue, emailValue, avatarUrl, onNameChange, onBack, onSave, onDeleteAccount, onChangePhoto, uploading }: {
+  initial: string; nameValue: string; emailValue: string; avatarUrl?: string; uploading?: boolean;
   onNameChange: (v: string) => void; onBack: () => void;
   onSave: () => void; onDeleteAccount: () => Promise<void>; onChangePhoto: () => void;
 }) {
@@ -778,25 +793,40 @@ function AccountScreen({ initial, nameValue, emailValue, onNameChange, onBack, o
         {/* Avatar block */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '4px 0 8px' }}>
           <div style={{ position: 'relative' }}>
-            <MonogramAvatar initial={initial} size={96}/>
-            <button onClick={onChangePhoto} aria-label="Change photo" style={{
+            <MonogramAvatar initial={initial} size={96} photoUrl={avatarUrl}/>
+            {/* Upload progress overlay */}
+            {uploading && (
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: 999,
+                background: 'rgba(43,33,24,0.45)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: 999,
+                  border: `2.5px solid rgba(255,255,255,0.35)`,
+                  borderTopColor: '#fff',
+                  animation: 'spin 0.7s linear infinite',
+                }}/>
+              </div>
+            )}
+            <button onClick={onChangePhoto} disabled={uploading} aria-label="Change photo" style={{
               position: 'absolute', right: -2, bottom: -2,
               width: 34, height: 34, borderRadius: 999,
-              background: T.ink, color: T.parchment,
+              background: uploading ? T.ink3 : T.ink, color: T.parchment,
               border: `3px solid ${T.parchment}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
+              cursor: uploading ? 'default' : 'pointer',
               boxShadow: '0 4px 10px -2px rgba(43,33,24,0.35)',
             }}>
               <ProfileIcon name="camera" size={16} width={2} stroke={T.parchment}/>
             </button>
           </div>
-          <button onClick={onChangePhoto} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
+          <button onClick={onChangePhoto} disabled={uploading} style={{
+            background: 'transparent', border: 'none', cursor: uploading ? 'default' : 'pointer',
             fontFamily: T.fontUI, fontSize: 13, fontWeight: 600,
-            color: T.forest, padding: '4px 8px',
+            color: uploading ? T.ink3 : T.forest, padding: '4px 8px',
             letterSpacing: '0.04em',
-          }}>Change photo</button>
+          }}>{uploading ? 'Uploading…' : 'Change photo'}</button>
         </div>
 
         {/* Form fields */}
@@ -854,6 +884,9 @@ export default function ProfilePage() {
   const [nameInputValue, setNameInputValue] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [commanders, setCommanders] = useState<CommanderSummary[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(true);
   const [userEmail, setUserEmail] = useState('');
@@ -870,6 +903,9 @@ export default function ProfilePage() {
       if (!authUser) { setLoadingDecks(false); return; }
       setNameInputValue(authUser.user_metadata?.display_name ?? authUser.email?.split('@')[0] ?? '');
       setUserEmail(authUser.email ?? '');
+      if (authUser.user_metadata?.avatar_url) {
+        setAvatarUrl(authUser.user_metadata.avatar_url);
+      }
 
       // Derive join date
       if (authUser.created_at) {
@@ -944,6 +980,61 @@ export default function ProfilePage() {
 
   const initial = (nameInputValue || '?').charAt(0).toUpperCase();
 
+  // Compress image via canvas, upload to Supabase Storage, save URL in user metadata
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    try {
+      // Compress to 400×400 JPEG via canvas
+      const compressed = await new Promise<Blob>((resolve, reject) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          const SIZE = 400;
+          const canvas = document.createElement('canvas');
+          canvas.width = SIZE; canvas.height = SIZE;
+          const ctx = canvas.getContext('2d')!;
+          // Centre-crop
+          const scale = Math.max(SIZE / img.width, SIZE / img.height);
+          const w = img.width * scale, h = img.height * scale;
+          ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+          canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', 0.82);
+        };
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not logged in');
+
+      const path = `${user.id}/avatar.jpg`;
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, compressed, { contentType: 'image/jpeg', upsert: true });
+
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      // Bust cache with timestamp so the new photo shows immediately
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: metaErr } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
+      if (metaErr) throw metaErr;
+
+      setAvatarUrl(publicUrl);
+      showToastMsg('Photo updated');
+    } catch (err: any) {
+      showToastMsg('Upload failed: ' + (err?.message ?? 'Unknown error'));
+    } finally {
+      setUploadingAvatar(false);
+      // Reset input so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -953,7 +1044,18 @@ export default function ProfilePage() {
           from { transform: translateY(20px); opacity: 0.6; }
           to   { transform: translateY(0);    opacity: 1; }
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
       ` }} />
+
+      {/* Hidden file input — triggers native photo picker when clicked */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarFileChange}
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
 
       <div style={{
         width: '100%', height: '100%', maxWidth: 430, margin: '0 auto',
@@ -970,6 +1072,7 @@ export default function ProfilePage() {
           initial={initial}
           joined={joinDate || 'Joined recently'}
           gameCount={gameCount}
+          photoUrl={avatarUrl}
         />
 
         <div style={{
@@ -1029,7 +1132,9 @@ export default function ProfilePage() {
               showToastMsg('Failed to delete: ' + (e?.message || 'Unknown error'));
             }
           }}
-          onChangePhoto={() => showToastMsg('Change Photo — Coming Soon')}
+          avatarUrl={avatarUrl}
+          uploading={uploadingAvatar}
+          onChangePhoto={() => fileInputRef.current?.click()}
         />
       )}
 
