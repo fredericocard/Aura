@@ -603,8 +603,8 @@ export default function HomePage() {
   const [showLogin, setShowLogin] = useState(false);
   const [loginRedirect, setLoginRedirect] = useState('/create');
 
-  /* Hero panel — badge cycle ↔ tagline slide */
-  const [heroMode, setHeroMode]   = useState<'badge' | 'tagline'>('badge');
+  /* Hero panel — badge cycle ↔ phase slides */
+  const [heroMode, setHeroMode]   = useState<'badge' | 'collect' | 'character' | 'tagline'>('badge');
   const [heroSlide, setHeroSlide] = useState<'idle' | 'exit' | 'enter'>('idle');
   const inTransitionRef           = useRef(false);
   const phaseRef                  = useRef(0);
@@ -676,19 +676,37 @@ export default function HomePage() {
   // Keep phaseRef in sync so handleCycleComplete can gate on hero visibility
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
-  // Fired by BadgeRoller after each full cycle (after Rivalry, before Fun)
+  // Fired by BadgeRoller after each full cycle (after Rivalry → Fun)
+  // Sequence: badge (wait one beat) → collect (2s) → character (3s) → tagline (10s) → badge
   const handleCycleComplete = async () => {
     if (inTransitionRef.current || phaseRef.current < 4) return;
     inTransitionRef.current = true;
 
-    const SLIDE = 460, TAGLINE_MS = 10000;
+    const SLIDE      = 600;   // slide animation duration (ms)
+    const BADGE_BEAT = 3060;  // REST(2800) + SWING(260) — one full badge display
     const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
+    // Wait one full badge beat after Fun reappears, then begin
+    await wait(BADGE_BEAT);
+
+    // → Collect badges.
+    setHeroSlide('exit');                           await wait(SLIDE);
+    setHeroMode('collect'); setHeroSlide('enter');  await wait(SLIDE);
+    setHeroSlide('idle');                           await wait(2000);
+
+    // → Build a character.
+    setHeroSlide('exit');                            await wait(SLIDE);
+    setHeroMode('character'); setHeroSlide('enter'); await wait(SLIDE);
+    setHeroSlide('idle');                            await wait(3000);
+
+    // → Every game tells a story.
+    setHeroSlide('exit');                           await wait(SLIDE);
+    setHeroMode('tagline'); setHeroSlide('enter');  await wait(SLIDE);
+    setHeroSlide('idle');                           await wait(10000);
+
+    // → Back to badge roller
     setHeroSlide('exit');                          await wait(SLIDE);
-    setHeroMode('tagline'); setHeroSlide('enter'); await wait(SLIDE);
-    setHeroSlide('idle');                          await wait(TAGLINE_MS);
-    setHeroSlide('exit');                          await wait(SLIDE);
-    setHeroMode('badge');   setHeroSlide('enter'); await wait(SLIDE);
+    setHeroMode('badge');  setHeroSlide('enter');  await wait(SLIDE);
     setHeroSlide('idle');
 
     inTransitionRef.current = false;
@@ -879,27 +897,30 @@ export default function HomePage() {
         }}>
           {/* Screen reader: one stable sentence, never interrupted */}
           <p style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', margin: 0 }}>
-            You play for Fun, Flavour, Brilliance, Allegiance, or Rivalry. Collect badges, build a character. Every game tells a story.
+            You play for Fun, Flavour, Brilliance, Allegiance, or Rivalry. Collect badges. Build a character. Every game tells a story.
           </p>
 
-          {/* Visual hero — slides left/right between badge cycle and tagline */}
+          {/* Visual hero — slides left/right through each phase */}
           <div aria-hidden="true" style={{
             fontFamily: "'Young Serif', Georgia, serif",
             fontWeight: 400, letterSpacing: '-0.02em',
-            fontSize: 34, lineHeight: 1.25, color: '#2B2118',
+            fontSize: 42, lineHeight: 1.2, color: '#2B2118',
             animation:
-              heroSlide === 'exit'  ? 'panel-exit  460ms cubic-bezier(.22,.61,.36,1) forwards' :
-              heroSlide === 'enter' ? 'panel-enter 460ms cubic-bezier(.22,.61,.36,1) forwards' :
+              heroSlide === 'exit'  ? 'panel-exit  600ms cubic-bezier(.22,.61,.36,1) forwards' :
+              heroSlide === 'enter' ? 'panel-enter 600ms cubic-bezier(.22,.61,.36,1) forwards' :
               undefined,
           }}>
             {heroMode === 'badge' && (
-              <>
-                <div>You play for{' '}<BadgeRoller fontSize={34} onCycleComplete={handleCycleComplete} /></div>
-                <div style={{ marginTop: 4 }}>Collect badges, build a character,</div>
-              </>
+              <div>You play for{' '}<BadgeRoller fontSize={42} onCycleComplete={handleCycleComplete} /></div>
+            )}
+            {heroMode === 'collect' && (
+              <div>Collect badges.</div>
+            )}
+            {heroMode === 'character' && (
+              <div>Build a character.</div>
             )}
             {heroMode === 'tagline' && (
-              <div>Every game tells a story</div>
+              <div>Every game tells a story.</div>
             )}
           </div>
         </div>
