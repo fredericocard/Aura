@@ -697,6 +697,9 @@ function AccountScreen({ initial, nameValue, emailValue, avatarUrl, onNameChange
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pwResetSent, setPwResetSent] = useState(false);
+  const [pwResetLoading, setPwResetLoading] = useState(false);
+  const { resetPassword } = useAuth();
 
   return (<>
     {/* Delete confirmation overlay */}
@@ -845,7 +848,27 @@ function AccountScreen({ initial, nameValue, emailValue, avatarUrl, onNameChange
           boxShadow: T.shadowRest,
         }}>Save changes</button>
 
-        <div style={{ flex: 1, minHeight: 12 }}/>
+        {/* Change password */}
+        <button
+          disabled={pwResetLoading || pwResetSent}
+          onClick={async () => {
+            setPwResetLoading(true);
+            const { error } = await resetPassword(emailValue);
+            setPwResetLoading(false);
+            if (!error) setPwResetSent(true);
+          }}
+          style={{
+            width: '100%', border: `1px solid ${T.lineStrong}`, cursor: pwResetSent ? 'default' : 'pointer',
+            background: T.parchment, color: pwResetSent ? T.ink3 : T.ink,
+            fontFamily: T.fontUI, fontWeight: 600, fontSize: 15,
+            padding: '14px 20px', borderRadius: 20,
+            transition: 'opacity 200ms',
+          }}
+        >
+          {pwResetLoading ? 'Sending…' : pwResetSent ? '✓ Reset link sent — check your email' : 'Change password'}
+        </button>
+
+        <div style={{ flex: 1, minHeight: 4 }}/>
 
         {/* Danger zone */}
         <div style={{
