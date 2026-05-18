@@ -699,6 +699,7 @@ function AccountScreen({ initial, nameValue, emailValue, avatarUrl, onNameChange
   const [deleting, setDeleting] = useState(false);
   const [pwResetSent, setPwResetSent] = useState(false);
   const [pwResetLoading, setPwResetLoading] = useState(false);
+  const [pwResetError, setPwResetError] = useState('');
   const { resetPassword } = useAuth();
 
   return (<>
@@ -821,7 +822,7 @@ function AccountScreen({ initial, nameValue, emailValue, avatarUrl, onNameChange
               cursor: uploading ? 'default' : 'pointer',
               boxShadow: '0 4px 10px -2px rgba(43,33,24,0.35)',
             }}>
-              <ProfileIcon name="camera" size={16} width={2} stroke={T.parchment}/>
+              <ProfileIcon name="pencil" size={16} width={2} stroke={T.parchment}/>
             </button>
           </div>
           <button onClick={onChangePhoto} disabled={uploading} style={{
@@ -852,21 +853,37 @@ function AccountScreen({ initial, nameValue, emailValue, avatarUrl, onNameChange
         <button
           disabled={pwResetLoading || pwResetSent}
           onClick={async () => {
+            setPwResetError('');
+            if (!emailValue) {
+              setPwResetError('No email address found on this account.');
+              return;
+            }
             setPwResetLoading(true);
             const { error } = await resetPassword(emailValue);
             setPwResetLoading(false);
-            if (!error) setPwResetSent(true);
+            if (error) {
+              setPwResetError(error);
+            } else {
+              setPwResetSent(true);
+            }
           }}
           style={{
-            width: '100%', border: `1px solid ${T.lineStrong}`, cursor: pwResetSent ? 'default' : 'pointer',
-            background: T.parchment, color: pwResetSent ? T.ink3 : T.ink,
+            width: '100%', border: `1px solid ${pwResetSent ? T.forest : T.lineStrong}`,
+            cursor: pwResetLoading || pwResetSent ? 'default' : 'pointer',
+            background: T.parchment, color: pwResetSent ? T.forest : T.ink,
             fontFamily: T.fontUI, fontWeight: 600, fontSize: 15,
             padding: '14px 20px', borderRadius: 20,
-            transition: 'opacity 200ms',
+            transition: 'all 200ms',
           }}
         >
           {pwResetLoading ? 'Sending…' : pwResetSent ? '✓ Reset link sent — check your email' : 'Change password'}
         </button>
+        {pwResetError && (
+          <div style={{
+            fontSize: 13, color: T.rivalry, fontWeight: 600,
+            textAlign: 'center', marginTop: -4,
+          }}>{pwResetError}</div>
+        )}
 
         <div style={{ flex: 1, minHeight: 4 }}/>
 
