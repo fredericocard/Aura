@@ -191,20 +191,22 @@ function CommanderRow({ commander, onTap }: { commander: CommanderRowData; onTap
       width: '100%', textAlign: 'left', cursor: 'pointer',
       display: 'flex', alignItems: 'center', gap: 12,
       padding: '12px 14px',
-      background: 'var(--parchment-card)',
-      border: '1px solid var(--line)',
+      background: 'rgba(10,6,4,0.5)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      border: '1px solid rgba(201,155,47,0.2)',
       borderRadius: 'var(--r-card)',
-      boxShadow: 'var(--shadow-rest)',
+      boxShadow: 'inset 0 0 12px rgba(0,0,0,0.15)',
       fontFamily: 'var(--font-ui)',
       transition: 'transform 120ms var(--ease)',
+      position: 'relative', zIndex: 1,
     }}>
       {/* Commander art crop */}
       <div style={{
         width: 56, height: 56, borderRadius: 14,
         overflow: 'hidden', flexShrink: 0,
-        border: '1px solid var(--line-strong)',
-        boxShadow: 'inset 0 0 0 2px var(--parchment-card)',
-        background: 'var(--ink)',
+        border: '1px solid rgba(201,155,47,0.3)',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+        background: '#1a140e',
       }}>
         {commander.art ? (
           <img src={commander.art} alt=""
@@ -215,7 +217,7 @@ function CommanderRow({ commander, onTap }: { commander: CommanderRowData; onTap
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'var(--ink-3)',
           }}>
-            <AuraMark size={28} color="var(--ink-3)"/>
+            <AuraMark size={28} color="#E2B858"/>
           </div>
         )}
       </div>
@@ -225,7 +227,7 @@ function CommanderRow({ commander, onTap }: { commander: CommanderRowData; onTap
         <div style={{
           fontFamily: 'var(--font-display)',
           fontWeight: 400, fontSize: 17,
-          color: 'var(--ink)', lineHeight: 1.15,
+          color: '#F5EFE2', lineHeight: 1.15,
           letterSpacing: '-0.005em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{commander.name}</div>
@@ -233,7 +235,7 @@ function CommanderRow({ commander, onTap }: { commander: CommanderRowData; onTap
           <ManaPips colors={commander.colors}/>
           {commander.bracket && <BracketPip n={commander.bracket}/>}
           <span style={{
-            fontSize: 11, color: 'var(--ink-3)',
+            fontSize: 11, color: 'rgba(226,184,88,0.6)',
             fontVariantNumeric: 'tabular-nums', fontWeight: 500,
           }}>{commander.gamesPlayed} game{commander.gamesPlayed === 1 ? '' : 's'}</span>
         </div>
@@ -256,7 +258,7 @@ function CommanderRow({ commander, onTap }: { commander: CommanderRowData; onTap
             </div>
             <span style={{
               fontSize: 10, fontWeight: 700,
-              color: 'var(--ink-2)',
+              color: 'rgba(226,184,88,0.7)',
               fontVariantNumeric: 'tabular-nums',
               letterSpacing: '0.04em',
             }}>×{topBadge.count}</span>
@@ -269,13 +271,13 @@ function CommanderRow({ commander, onTap }: { commander: CommanderRowData; onTap
         width: 84, flexShrink: 0,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         paddingLeft: 6,
-        borderLeft: '1px solid var(--line)',
+        borderLeft: '1px solid rgba(201,155,47,0.2)',
       }}>
-        <AuraScore score={commander.aura} size="sm" color="var(--forest)"/>
+        <AuraScore score={commander.aura} size="sm" color="#E2B858"/>
         <span style={{
           fontFamily: 'var(--font-ui)',
           fontWeight: 700,
-          fontSize: 9, color: 'var(--forest)',
+          fontSize: 9, color: '#E2B858',
           letterSpacing: '0.16em',
           textTransform: 'uppercase',
           textAlign: 'center',
@@ -780,24 +782,43 @@ export default function Page() {
           </div>
         </div>
 
-        {/* List */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)', padding: '0 4px' }}>
+        {/* List — game-card-inspired dark background */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', background: 'linear-gradient(180deg, #3a2e22 0%, #2B2118 30%, #1e1710 60%, #140e09 100%)' }}>
+          {/* Golden rays SVG — same pattern as KeepsakeCard */}
+          <svg width="520" height="520" viewBox="0 0 320 320" style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.12, pointerEvents: 'none' }}>
+            <g stroke="#C99B2F" strokeWidth="0.6" fill="none">
+              {Array.from({ length: 24 }).map((_, i) => {
+                const a = (i / 24) * Math.PI * 2;
+                const r1 = 40, r2 = 170, cx = 160, cy = 160;
+                return <line key={i} x1={cx + Math.cos(a) * r1} y1={cy + Math.sin(a) * r1} x2={cx + Math.cos(a) * r2} y2={cy + Math.sin(a) * r2} />;
+              })}
+              <circle cx="160" cy="160" r="40" />
+              <circle cx="160" cy="160" r="60" strokeDasharray="1 3" />
+              <circle cx="160" cy="160" r="110" strokeDasharray="1 4" />
+              <circle cx="160" cy="160" r="170" />
+            </g>
+          </svg>
+          {/* Copper radial glows */}
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 15%, rgba(201,155,47,0.18) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(140,90,40,0.12) 0%, transparent 45%)', pointerEvents: 'none' }} />
+          {/* Inner gold border accent */}
+          <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 0 1px rgba(201,155,47,0.15)', pointerEvents: 'none' }} />
+
+          <div className="ph-stamp" style={{ fontSize: 10, color: 'rgba(226,184,88,0.6)', padding: '0 4px', position: 'relative', zIndex: 1 }}>
             {decks.length} commander{decks.length !== 1 ? 's' : ''} ·{' '}
-            <span style={{ color: 'var(--forest)', fontWeight: 700 }}>{totalGames}</span>{' '}
+            <span style={{ color: 'rgba(226,184,88,0.85)', fontWeight: 700 }}>{totalGames}</span>{' '}
             game{totalGames === 1 ? '' : 's'} played
           </div>
 
           {loadingDecks && (
-            <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-3)', fontSize: 13 }}>Loading your decks...</div>
+            <div style={{ textAlign: 'center', padding: 24, color: 'rgba(226,184,88,0.6)', fontSize: 13, position: 'relative', zIndex: 1 }}>Loading your decks...</div>
           )}
 
           {!loadingDecks && decks.length === 0 && (
             <div style={{
               textAlign: 'center', padding: '40px 16px',
               fontFamily: 'var(--font-display)', fontStyle: 'italic',
-              fontSize: 14, color: 'var(--ink-3)',
-            }}>No commanders yet — tap <strong style={{ fontStyle: 'normal' }}>New</strong> to add one.</div>
+              fontSize: 14, color: 'rgba(226,184,88,0.6)', position: 'relative', zIndex: 1,
+            }}>No commanders yet — tap <strong style={{ fontStyle: 'normal', color: '#E2B858' }}>New</strong> to add one.</div>
           )}
 
           {!loadingDecks && sorted.map(d => (
@@ -808,7 +829,7 @@ export default function Page() {
             <div style={{
               textAlign: 'center', padding: '16px 0 4px',
               fontFamily: 'var(--font-display)', fontStyle: 'italic',
-              fontSize: 13, color: 'var(--ink-3)',
+              fontSize: 13, color: 'rgba(226,184,88,0.45)', position: 'relative', zIndex: 1,
             }}>— End of library —</div>
           )}
         </div>

@@ -682,8 +682,3 @@ function hashPick(s: string, count: number): number {
   }
   return Math.abs(hash) % count;
 }
-
-/** Pick from array using string as seed (deterministic) */
-function pickRandom(options: string[], seed: string): string {
-  return options[hashPick(seed, options.length)];
-}
