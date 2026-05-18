@@ -191,9 +191,9 @@ function CommanderRow({ commander, onTap }: { commander: CommanderRowData; onTap
       width: '100%', textAlign: 'left', cursor: 'pointer',
       display: 'flex', alignItems: 'center', gap: 12,
       padding: '12px 14px',
-      background: 'rgba(10,6,4,0.5)',
+      background: 'rgba(212,191,160,0.15)',
       backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-      border: '1px solid rgba(201,155,47,0.2)',
+      border: '1px solid rgba(201,155,47,0.12)',
       borderRadius: 'var(--r-card)',
       boxShadow: 'inset 0 0 12px rgba(0,0,0,0.15)',
       fontFamily: 'var(--font-ui)',
@@ -1056,129 +1056,4 @@ export default function Page() {
                     border: `2px solid ${selected ? '#B06B2C' : 'rgba(43,33,24,0.14)'}`,
                     borderRadius: 12, padding: 0, cursor: 'pointer', overflow: 'hidden', textAlign: 'left',
                     boxShadow: selected ? '0 0 0 2px rgba(176,107,44,0.25)' : 'none',
-                    transition: 'border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease',
-                    transform: selected ? 'scale(1.01)' : 'scale(1)',
-                  }}>
-                    <div style={{ width: '100%', aspectRatio: '16 / 11', background: 'rgba(176,107,44,0.12)', position: 'relative', overflow: 'hidden' }}>
-                      {thumb && (
-                        <img src={thumb} alt="" referrerPolicy="no-referrer" loading="lazy"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
-                      )}
-                    </div>
-                    <div style={{ padding: '6px 8px 8px', fontFamily: "'Instrument Sans', sans-serif", fontSize: 10, color: '#8A7E6F', lineHeight: 1.3 }}>
-                      <div style={{ fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#2B2118', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.set_name}</div>
-                      <div style={{ marginTop: 2 }}>#{p.collector_number}{p.released_at ? ` · ${p.released_at.slice(0, 4)}` : ''}{p.promo ? ' · promo' : ''}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            {/* Footer */}
-            <div style={{ display: 'flex', gap: 10, padding: '12px 16px 16px', borderTop: '1px solid rgba(43,33,24,0.08)' }}>
-              <button onClick={handleArtCancel} style={{
-                flex: 1, padding: '12px 14px', borderRadius: 999,
-                background: 'transparent', color: '#8A7E6F',
-                border: '1px solid rgba(43,33,24,0.14)',
-                fontFamily: "'Instrument Sans', sans-serif", fontSize: 12, fontWeight: 700,
-                letterSpacing: '0.16em', textTransform: 'uppercase', cursor: 'pointer',
-              }}>Cancel</button>
-              <button onClick={handleArtConfirm} disabled={!selectedArtId} style={{
-                flex: 1, padding: '12px 14px', borderRadius: 999,
-                background: !selectedArtId ? 'rgba(176,107,44,0.5)' : '#B06B2C',
-                color: '#F5EFE2', border: 'none',
-                fontFamily: "'Instrument Sans', sans-serif", fontSize: 12, fontWeight: 700,
-                letterSpacing: '0.16em', textTransform: 'uppercase',
-                cursor: !selectedArtId ? 'not-allowed' : 'pointer',
-              }}>Use this art</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bracket picker — appears after art is confirmed */}
-      {pendingCard && (
-        <div onClick={() => setPendingCard(null)} style={{
-          position: 'fixed', inset: 0, zIndex: 100,
-          background: 'rgba(43,33,24,0.55)',
-          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-          fontFamily: 'var(--font-ui)',
-        }}>
-          <div ref={bracketSheetDrag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', maxWidth: 430,
-            background: 'var(--parchment)',
-            borderRadius: '24px 24px 0 0',
-            padding: '14px 16px 28px',
-            boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
-            maxHeight: '90%', overflow: 'auto',
-            borderTop: '1px solid var(--line-strong)',
-            animation: 'popIn 240ms var(--ease)',
-          }}>
-            {/* Drag handle + close */}
-            <div
-              onTouchStart={bracketSheetDrag.onTouchStart}
-              onTouchMove={bracketSheetDrag.onTouchMove}
-              onTouchEnd={bracketSheetDrag.onTouchEnd}
-              style={{ cursor: 'grab', touchAction: 'none' }}
-            >
-              <div style={{ width: 40, height: 4, borderRadius: 999, background: 'var(--ink-4)', margin: '0 auto 6px' }}/>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', padding: '8px 0 10px' }}>
-                <button onClick={() => setPendingCard(null)} style={{
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
-                  color: 'var(--ink-3)', padding: 0,
-                }}>Done</button>
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'center', marginBottom: 14 }}>
-              <div className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Power level</div>
-              <div style={{
-                fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 26,
-                color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: 2,
-              }}>Choose a bracket</div>
-              <div style={{
-                fontSize: 13, color: 'var(--ink-2)',
-                marginTop: 4, padding: '0 12px',
-              }}>How this commander reads at the table. Set honestly so the pod knows what to bring.</div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {BRACKETS.map(b => (
-                <BracketTile key={b.value} n={b.value} label={b.label} description={b.desc}
-                  selected={selectedBracket === b.value}
-                  onSelect={() => setSelectedBracket(b.value)}/>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-              <button onClick={() => setPendingCard(null)} style={{
-                flex: 1, cursor: 'pointer',
-                background: 'transparent',
-                border: '1px solid var(--line-strong)',
-                borderRadius: 'var(--r-card)',
-                padding: '14px 16px',
-                color: 'var(--ink)',
-                fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 15,
-              }}>Cancel</button>
-              <button onClick={handleConfirmRegistration} disabled={registering} style={{
-                flex: 1.4, cursor: registering ? 'default' : 'pointer',
-                background: registering ? 'var(--ink-3)' : 'var(--forest)',
-                border: 'none',
-                borderRadius: 'var(--r-card)',
-                padding: '14px 16px',
-                color: 'var(--parchment)',
-                fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 15,
-                boxShadow: 'var(--shadow-rest)',
-              }}>{registering ? 'Saving…' : 'Save bracket'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Toast */}
-      <div className={`toast ${showToast ? 'show' : ''}`}>{toastMsg}</div>
-    </>
-  );
-}
+                    transition: 'border-color 160m
