@@ -93,14 +93,33 @@ const ROLLER_BADGES = [
 ];
 type RollerPhase = 'idle' | 'exit' | 'enter';
 
-function BadgeRoller({ badgeIdx, badgeAnim, fontSize = 28 }: {
-  badgeIdx: number;
-  badgeAnim: RollerPhase;
-  fontSize?: number;
-}) {
-  const badge    = ROLLER_BADGES[badgeIdx];
+function BadgeRoller({ fontSize = 28, onCycleComplete }: { fontSize?: number; onCycleComplete?: () => void }) {
+  const [idx, setIdx]     = useState(0);
+  const [rPhase, setRPhase] = useState<RollerPhase>('idle');
+  const cbRef = useRef(onCycleComplete);
+  useEffect(() => { cbRef.current = onCycleComplete; });
+
+  useEffect(() => {
+    const SWING = 260;
+    const REST  = 2800;
+    const id = setInterval(() => {
+      setRPhase('exit');
+      setTimeout(() => {
+        setIdx(prev => {
+          const next = (prev + 1) % ROLLER_BADGES.length;
+          if (next === 0) setTimeout(() => cbRef.current?.(), 0);
+          return next;
+        });
+        setRPhase('enter');
+        setTimeout(() => setRPhase('idle'), SWING);
+      }, SWING);
+    }, REST + SWING);
+    return () => clearInterval(id);
+  }, []);
+
+  const badge    = ROLLER_BADGES[idx];
   const glyphPx  = Math.round(fontSize * 0.75);
-  const animName = badgeAnim === 'exit' ? 'badge-exit' : badgeAnim === 'enter' ? 'badge-enter' : undefined;
+  const animName = rPhase === 'exit' ? 'badge-exit' : rPhase === 'enter' ? 'badge-enter' : undefined;
 
   return (
     /* Outer: stable-width slot — prevents surrounding lines from shifting */
@@ -584,12 +603,11 @@ export default function HomePage() {
   const [showLogin, setShowLogin] = useState(false);
   const [loginRedirect, setLoginRedirect] = useState('/create');
 
-  /* Hero badge-cycle / tagline sequence */
-  const [heroBadgeIdx, setHeroBadgeIdx]           = useState(0);
-  const [heroBadgeAnim, setHeroBadgeAnim]         = useState<RollerPhase>('idle');
-  const [heroContentVisible, setHeroContentVisible] = useState(true);
-  const [heroMode, setHeroMode]                   = useState<'badge' | 'tagline'>('badge');
-  const heroSeqStarted                            = useRef(false);
+  /* Hero panel — badge cycle ↔ tagline slide */
+  const [heroMode, setHeroMode]   = useState<'badge' | 'tagline'>('badge');
+  const [heroSlide, setHeroSlide] = useState<'idle' | 'exit' | 'enter'>('idle');
+  const inTransitionRef           = useRef(false);
+  const phaseRef                  = useRef(0);
   const router = useRouter();
   const { isLoggedIn, isGuest, user, signOut, loading } = useAuth();
 
@@ -655,50 +673,26 @@ export default function HomePage() {
     }
   }, [isLoggedIn, loading, showLogin, loginRedirect, router]);
 
-  // Start badge → tagline cycle once the hero is visible (phase 4)
-  useEffect(() => {
-    if (phase < 4 || heroSeqStarted.current) return;
-    heroSeqStarted.current = true;
+  // Keep phaseRef in sync so handleCycleComplete can gate on hero visibility
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
-    let cancelled = false;
-    const SWING = 260, REST = 2800, CROSS = 380, TAGLINE_MS = 10000;
+  // Fired by BadgeRoller after each full cycle (after Rivalry, before Fun)
+  const handleCycleComplete = async () => {
+    if (inTransitionRef.current || phaseRef.current < 4) return;
+    inTransitionRef.current = true;
+
+    const SLIDE = 460, TAGLINE_MS = 10000;
     const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-    const go = async () => {
-      while (!cancelled) {
-        // ── Cycle through all 5 badges ──
-        for (let i = 0; i < 5 && !cancelled; i++) {
-          if (i > 0) {
-            setHeroBadgeIdx(i);
-            setHeroBadgeAnim('enter');
-            await wait(SWING); if (cancelled) return;
-            setHeroBadgeAnim('idle');
-          }
-          await wait(REST); if (cancelled) return;
-          setHeroBadgeAnim('exit');
-          await wait(SWING); if (cancelled) return;
-        }
-        // ── Cross-fade to tagline ──
-        setHeroContentVisible(false);
-        await wait(CROSS); if (cancelled) return;
-        setHeroMode('tagline');
-        setHeroContentVisible(true);
-        await wait(TAGLINE_MS); if (cancelled) return;
-        // ── Cross-fade back to badge cycling ──
-        setHeroContentVisible(false);
-        await wait(CROSS); if (cancelled) return;
-        setHeroMode('badge');
-        setHeroBadgeIdx(0);
-        setHeroBadgeAnim('idle');
-        setHeroContentVisible(true);
-        await wait(CROSS); if (cancelled) return;
-      }
-    };
+    setHeroSlide('exit');                          await wait(SLIDE);
+    setHeroMode('tagline'); setHeroSlide('enter'); await wait(SLIDE);
+    setHeroSlide('idle');                          await wait(TAGLINE_MS);
+    setHeroSlide('exit');                          await wait(SLIDE);
+    setHeroMode('badge');   setHeroSlide('enter'); await wait(SLIDE);
+    setHeroSlide('idle');
 
-    // Fun is already visible — wait one REST before the first swing
-    const startId = setTimeout(go, REST);
-    return () => { cancelled = true; clearTimeout(startId); };
-  }, [phase]);
+    inTransitionRef.current = false;
+  };
 
   const ease = 'cubic-bezier(.22,.61,.36,1)';
   const morph = phase >= 3;
@@ -718,11 +712,15 @@ export default function HomePage() {
 
       {/* ── Roller keyframes ── */}
       <style>{`
-        @keyframes badge-exit  { from { transform: translateY(0);     opacity: 1; } to { transform: translateY(-110%); opacity: 0; } }
-        @keyframes badge-enter { from { transform: translateY(110%);  opacity: 0; } to { transform: translateY(0);      opacity: 1; } }
+        @keyframes badge-exit  { from { transform: translateY(0);    opacity: 1; } to { transform: translateY(-110%); opacity: 0; } }
+        @keyframes badge-enter { from { transform: translateY(110%); opacity: 0; } to { transform: translateY(0);      opacity: 1; } }
+        @keyframes panel-exit  { from { transform: translateX(0);    opacity: 1; } to { transform: translateX(-60px);  opacity: 0; } }
+        @keyframes panel-enter { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0);      opacity: 1; } }
         @media (prefers-reduced-motion: reduce) {
           @keyframes badge-exit  { from { opacity: 1; } to { opacity: 0; } }
           @keyframes badge-enter { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes panel-exit  { from { opacity: 1; } to { opacity: 0; } }
+          @keyframes panel-enter { from { opacity: 0; } to { opacity: 1; } }
         }
       `}</style>
 
@@ -884,18 +882,20 @@ export default function HomePage() {
             You play for Fun, Flavour, Brilliance, Allegiance, or Rivalry. Collect badges, build a character. Every game tells a story.
           </p>
 
-          {/* Visual hero — cross-fades between badge cycle and tagline */}
+          {/* Visual hero — slides left/right between badge cycle and tagline */}
           <div aria-hidden="true" style={{
             fontFamily: "'Young Serif', Georgia, serif",
             fontWeight: 400, letterSpacing: '-0.02em',
-            fontSize: 28, lineHeight: 1.25, color: '#2B2118',
-            opacity: heroContentVisible ? 1 : 0,
-            transition: 'opacity 380ms ease',
+            fontSize: 34, lineHeight: 1.25, color: '#2B2118',
+            animation:
+              heroSlide === 'exit'  ? 'panel-exit  460ms cubic-bezier(.22,.61,.36,1) forwards' :
+              heroSlide === 'enter' ? 'panel-enter 460ms cubic-bezier(.22,.61,.36,1) forwards' :
+              undefined,
           }}>
             {heroMode === 'badge' && (
               <>
-                <div>You play for{' '}<BadgeRoller badgeIdx={heroBadgeIdx} badgeAnim={heroBadgeAnim} fontSize={28} /></div>
-                <div style={{ marginTop: 2 }}>Collect badges, build a character,</div>
+                <div>You play for{' '}<BadgeRoller fontSize={34} onCycleComplete={handleCycleComplete} /></div>
+                <div style={{ marginTop: 4 }}>Collect badges, build a character,</div>
               </>
             )}
             {heroMode === 'tagline' && (
