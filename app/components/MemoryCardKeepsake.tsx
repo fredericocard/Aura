@@ -107,7 +107,7 @@ function CrownIcon({ size = 12 }: { size?: number }) {
 function NarrativeText({ text, commanders }: { text: string; commanders: CommanderCardData[] }) {
   const names = commanders
     .map((c) => c.commander_name)
-    .filter((n) => n && !n.startsWith("P"))
+    .filter((n) => n && !/^P\d$/.test(n)) // exclude placeholder seats (P1–P5), not real commanders
     .sort((a, b) => b.length - a.length); // longest first to avoid partial matches
   if (names.length === 0) return <span style={{ color: "rgba(245,239,226,0.7)" }}>{text}</span>;
   const pattern = new RegExp(`(${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "g");

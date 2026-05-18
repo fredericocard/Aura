@@ -217,16 +217,17 @@ export async function composeGameCard(
     throw new Error(`Failed to load players: ${playersErr?.message}`);
   }
 
-  // 1b. Fetch player display names from profiles
+  // 1b. Fetch player display names from profiles (with email fallback)
   const userIds = players.map((p: any) => p.user_id).filter(Boolean);
   let displayNameMap = new Map<string, string>();
   if (userIds.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, display_name')
+      .select('id, display_name, email')
       .in('id', userIds) as { data: any };
     for (const pr of (profiles ?? [])) {
-      if (pr.display_name) displayNameMap.set(pr.id, pr.display_name);
+      const name = pr.display_name || (pr.email ? pr.email.split('@')[0] : null);
+      if (name) displayNameMap.set(pr.id, name);
     }
   }
 
@@ -312,9 +313,10 @@ export async function composeGameCard(
   }));
 
   // 9. Compose narrative
+  // Filter out placeholder seat names (P1–P5) but NOT real commanders starting with P
   const allCommanderNames = commanders
     .map((c) => c.commander_name)
-    .filter((n) => n && !n.startsWith("P"));
+    .filter((n) => n && !/^P\d$/.test(n));
   const narrative = composeNarrative({
     winnerName: winnerCommander,
     archenemyName: archenemyCommander,
