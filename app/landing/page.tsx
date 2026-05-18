@@ -94,22 +94,26 @@ const ROLLER_BADGES = [
 type RollerPhase = 'idle' | 'exit' | 'enter';
 
 function BadgeRoller({ fontSize = 28, onCycleComplete }: { fontSize?: number; onCycleComplete?: () => void }) {
-  const [idx, setIdx]     = useState(0);
+  const [idx, setIdx]       = useState(0);
   const [rPhase, setRPhase] = useState<RollerPhase>('idle');
-  const cbRef = useRef(onCycleComplete);
+  const cbRef  = useRef(onCycleComplete);
+  const idxRef = useRef(0);                    // tracks current idx without triggering re-renders
   useEffect(() => { cbRef.current = onCycleComplete; });
 
   useEffect(() => {
     const SWING = 260;
     const REST  = 2800;
     const id = setInterval(() => {
+      const cur = idxRef.current;
+      // Fire callback at the START of Rivalry's exit — before Fun ever appears
+      if (cur === ROLLER_BADGES.length - 1) {
+        setTimeout(() => cbRef.current?.(), 0);
+      }
       setRPhase('exit');
       setTimeout(() => {
-        setIdx(prev => {
-          const next = (prev + 1) % ROLLER_BADGES.length;
-          if (next === 0) setTimeout(() => cbRef.current?.(), 0);
-          return next;
-        });
+        const next = (cur + 1) % ROLLER_BADGES.length;
+        idxRef.current = next;
+        setIdx(next);
         setRPhase('enter');
         setTimeout(() => setRPhase('idle'), SWING);
       }, SWING);
@@ -682,13 +686,10 @@ export default function HomePage() {
     if (inTransitionRef.current || phaseRef.current < 4) return;
     inTransitionRef.current = true;
 
-    const SLIDE      = 600;   // slide animation duration (ms)
-    const BADGE_BEAT = 3060;  // REST(2800) + SWING(260) — one full badge display
+    const SLIDE = 600;  // slide animation duration (ms)
     const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-    // Wait one full badge beat after Fun reappears, then begin
-    await wait(BADGE_BEAT);
-
+    // Callback fires at Rivalry's exit — slide starts immediately, Fun never shows
     // → Collect badges.
     setHeroSlide('exit');                           await wait(SLIDE);
     setHeroMode('collect'); setHeroSlide('enter');  await wait(SLIDE);
