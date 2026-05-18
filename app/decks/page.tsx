@@ -273,7 +273,7 @@ function CommanderRow({ commander, onTap }: { commander: CommanderRowData; onTap
         paddingLeft: 6,
         borderLeft: '1px solid rgba(201,155,47,0.2)',
       }}>
-        <AuraScore score={commander.aura} size="sm" color="#E2B858"/>
+        <AuraScore score={commander.aura} size="sm" color="#C99B2F" fill="rgba(43,33,24,0.85)"/>
         <span style={{
           fontFamily: 'var(--font-ui)',
           fontWeight: 700,
