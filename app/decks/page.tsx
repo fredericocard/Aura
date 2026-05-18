@@ -1056,4 +1056,4 @@ export default function Page() {
                     border: `2px solid ${selected ? '#B06B2C' : 'rgba(43,33,24,0.14)'}`,
                     borderRadius: 12, padding: 0, cursor: 'pointer', overflow: 'hidden', textAlign: 'left',
                     boxShadow: selected ? '0 0 0 2px rgba(176,107,44,0.25)' : 'none',
-                    transition: 'border-color 160m
+                    transition: 'border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease',
