@@ -1057,3 +1057,141 @@ export default function Page() {
                     borderRadius: 12, padding: 0, cursor: 'pointer', overflow: 'hidden', textAlign: 'left',
                     boxShadow: selected ? '0 0 0 2px rgba(176,107,44,0.25)' : 'none',
                     transition: 'border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease',
+                  }}>
+                    <div style={{ width: '100%', aspectRatio: '16 / 11', background: 'rgba(176,107,44,0.12)', position: 'relative', overflow: 'hidden' }}>
+                      {thumb && (
+                        <img src={thumb} alt="" referrerPolicy="no-referrer" loading="lazy"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+                      )}
+                    </div>
+                    <div style={{ padding: '6px 8px 8px', fontFamily: "'Instrument Sans', sans-serif", fontSize: 10, color: '#8A7E6F', lineHeight: 1.3 }}>
+                      <div style={{ fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#2B2118', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.set_name}</div>
+                      <div style={{ marginTop: 2 }}>#{p.collector_number}{p.released_at ? ` · ${p.released_at.slice(0, 4)}` : ''}{p.promo ? ' · promo' : ''}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Footer */}
+            <div style={{ display: 'flex', gap: 10, padding: '12px 16px 16px', borderTop: '1px solid rgba(43,33,24,0.08)' }}>
+              <button onClick={handleArtCancel} style={{
+                flex: 1, padding: '12px 14px', borderRadius: 999,
+                background: 'transparent', color: '#8A7E6F',
+                border: '1px solid rgba(43,33,24,0.14)',
+                fontFamily: "'Instrument Sans', sans-serif", fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.16em', textTransform: 'uppercase', cursor: 'pointer',
+              }}>Cancel</button>
+              <button onClick={handleArtConfirm} disabled={!selectedArtId} style={{
+                flex: 1, padding: '12px 14px', borderRadius: 999,
+                background: !selectedArtId ? 'rgba(176,107,44,0.5)' : '#B06B2C',
+                color: '#F5EFE2', border: 'none',
+                fontFamily: "'Instrument Sans', sans-serif", fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                cursor: !selectedArtId ? 'not-allowed' : 'pointer',
+              }}>Use this art</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bracket picker — appears after art is confirmed */}
+      {pendingCard && (
+        <div onClick={() => setPendingCard(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(43,33,24,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          fontFamily: "'Instrument Sans', sans-serif",
+        }}>
+          <div ref={bracketSheetDrag.sheetRef} onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 430,
+            background: '#F5EFE2',
+            borderRadius: '24px 24px 0 0',
+            padding: '12px 16px 24px',
+            boxShadow: '0 -20px 60px -10px rgba(43,33,24,0.4)',
+            borderTop: '1px solid rgba(43,33,24,0.14)',
+            animation: 'sheetUp 240ms cubic-bezier(.22,.61,.36,1)',
+          }}>
+            <div
+              onTouchStart={bracketSheetDrag.onTouchStart}
+              onTouchMove={bracketSheetDrag.onTouchMove}
+              onTouchEnd={bracketSheetDrag.onTouchEnd}
+              style={{ cursor: 'grab', touchAction: 'none' }}
+            >
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: '#B8AE9E', margin: '0 auto 4px' }}/>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, marginBottom: 12 }}>
+              {pendingCard.artUrl && (
+                <div style={{
+                  width: 52, height: 52, borderRadius: 14, overflow: 'hidden', flexShrink: 0,
+                  border: '2px solid #B06B2C',
+                  boxShadow: '0 6px 16px -6px rgba(43,33,24,0.35)',
+                }}>
+                  <img src={pendingCard.artUrl} alt={pendingCard.cardName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }}/>
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8A7E6F' }}>Power level</div>
+                <div style={{
+                  fontFamily: "'Young Serif', serif", fontWeight: 400, fontSize: 20,
+                  color: '#2B2118', letterSpacing: '-0.01em', marginTop: 1, lineHeight: 1.15,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>Bracket for {pendingCard.cardName.split(',')[0]}</div>
+                <div style={{ fontSize: 11, color: '#5C5043', marginTop: 2 }}>Set honestly so the pod knows what to expect.</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              {BRACKETS.map(b => {
+                const selected = selectedBracket === b.value;
+                return (
+                  <button key={b.value} onClick={() => setSelectedBracket(b.value)} style={{
+                    flex: 1, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                    padding: '10px 4px 8px',
+                    background: selected ? '#F3E3D1' : '#FAF5EA',
+                    border: selected ? '2px solid #B06B2C' : '1px solid rgba(43,33,24,0.1)',
+                    borderRadius: 14,
+                    boxShadow: selected ? '0 2px 0 rgba(43,33,24,.05), 0 18px 36px -12px rgba(43,33,24,.22)' : '0 1px 3px rgba(43,33,24,0.06)',
+                    fontFamily: "'Instrument Sans', sans-serif",
+                    transition: 'all 140ms cubic-bezier(.22,.61,.36,1)',
+                    position: 'relative',
+                  }}>
+                    <span style={{ fontFamily: "'Young Serif', serif", fontSize: 26, fontWeight: 400, color: selected ? '#B06B2C' : '#2B2118', lineHeight: 1, letterSpacing: '-0.02em' }}>{b.value}</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: selected ? '#8C5422' : '#8A7E6F', letterSpacing: '0.04em', lineHeight: 1.2, textAlign: 'center' }}>{b.desc.split(' ')[0]}</span>
+                    {selected && (
+                      <div style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: 999, background: '#B06B2C', color: '#F5EFE2', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(43,33,24,0.25)' }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#5C5043', padding: '4px 8px 8px', lineHeight: 1.4 }}>
+              {BRACKETS.find(b => b.value === selectedBracket)?.desc}
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button onClick={() => setPendingCard(null)} style={{
+                flex: 1, cursor: 'pointer', background: 'transparent',
+                border: '1px solid rgba(43,33,24,0.14)', borderRadius: 20, padding: '14px 16px',
+                color: '#2B2118', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 15,
+              }}>Cancel</button>
+              <button onClick={handleConfirmRegistration} disabled={registering} style={{
+                flex: 1.4, cursor: registering ? 'default' : 'pointer',
+                background: registering ? '#8A7E6F' : '#2F5D3A',
+                border: 'none', borderRadius: 20, padding: '14px 16px',
+                color: '#F5EFE2', fontFamily: "'Instrument Sans', sans-serif", fontWeight: 600, fontSize: 15,
+                boxShadow: '0 1px 0 rgba(43,33,24,.04), 0 6px 18px -8px rgba(43,33,24,.12)',
+              }}>{registering ? 'Registering…' : 'Save bracket'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      <div className={`toast ${showToast ? 'show' : ''}`}>{toastMsg}</div>
+    </>
+  );
+}
