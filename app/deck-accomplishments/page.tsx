@@ -778,12 +778,8 @@ function PageContent() {
             boxShadow: 'var(--shadow-rest)',
             flexShrink: 0,
           }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ marginBottom: 10 }}>
               <span className="ph-stamp" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Personality</span>
-              <span style={{
-                fontFamily: 'var(--font-display)', fontStyle: 'italic',
-                fontSize: 12, color: 'var(--ink-3)',
-              }}>The Mastermind</span>
             </div>
             <DistributionBar counts={c.counts}/>
           </div>
