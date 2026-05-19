@@ -7,6 +7,7 @@ export interface Pod {
   id: string;
   short_code: string;
   host_id: string;
+  name: string | null;
   state: PodState;
   min_players: number;
   max_players: number;
@@ -43,7 +44,7 @@ function generateShortCode(): string {
  * Create a new pod. The current user becomes the host and first member.
  * Optionally pass a deck_id for the host's commander selection.
  */
-export async function createPod(deckId?: string): Promise<{ data: Pod | null; error: string | null }> {
+export async function createPod(deckId?: string, podName?: string): Promise<{ data: Pod | null; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not signed in' };
 
@@ -73,6 +74,7 @@ export async function createPod(deckId?: string): Promise<{ data: Pod | null; er
     .insert({
       short_code: shortCode,
       host_id: user.id,
+      name: podName?.trim() || null,
     })
     .select()
     .single() as { data: any; error: any };

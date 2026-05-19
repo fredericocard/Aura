@@ -27,6 +27,7 @@ export interface CommanderCardData {
 export interface GameCardData {
   gameId: string;
   podId: string;
+  podName: string | null;
   narrative: string;
   gameDate: string;
   gameTime: string;  // HH:MM (local) — empty string for persisted rows without time
@@ -59,6 +60,7 @@ export interface GameCard {
   id: string;
   game_id: string;
   pod_id: string;
+  pod_name: string | null;
   narrative: string;
   game_date: string;
   game_time?: string;
@@ -199,7 +201,7 @@ export async function composeGameCard(
   // 1. Load game + players + decks
   const { data: game, error: gameErr } = await supabase
     .from("games")
-    .select("id, pod_id, pod_size, winner_player_id, winner_deck_id, created_at")
+    .select("id, pod_id, pod_size, winner_player_id, winner_deck_id, created_at, pods(name)")
     .eq("id", gameId)
     .single() as { data: any; error: any };
 
@@ -329,6 +331,7 @@ export async function composeGameCard(
   return {
     gameId,
     podId: game.pod_id,
+    podName: (game.pods as any)?.name ?? null,
     narrative,
     gameDate: game.created_at.split("T")[0],
     gameTime: (() => {
@@ -385,6 +388,7 @@ export async function createGameCard(gameId: string): Promise<GameCard> {
     .insert({
       game_id: data.gameId,
       pod_id: data.podId,
+      pod_name: data.podName,
       narrative: data.narrative,
       game_date: data.gameDate,
       pod_size: data.podSize,
@@ -503,6 +507,7 @@ export async function previewGameCard(gameId: string): Promise<GameCard | null> 
       id: 'preview',
       game_id: data.gameId,
       pod_id: data.podId,
+      pod_name: data.podName,
       narrative: data.narrative,
       game_date: data.gameDate,
       game_time: data.gameTime,

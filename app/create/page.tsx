@@ -62,7 +62,7 @@ function useSheetDrag(onDismiss: () => void) {
 
 export default function Page() {
   const router = useRouter();
-  const [podName, setPodName] = useState('Friday Night Pod');
+  const [podName, setPodName] = useState('');
   const [selectedPlayers, setSelectedPlayers] = useState(4);
   const [selectedDeck, setSelectedDeck] = useState(0);
   const [showQr, setShowQr] = useState(false);
@@ -111,8 +111,8 @@ export default function Page() {
     const selectedDeckId = decks[selectedDeck]?.id;
     if (!selectedDeckId) { setCreating(false); return; }
 
-    // 1. Create the pod with the selected deck
-    const { data: pod, error: podErr } = await createPod(selectedDeckId);
+    // 1. Create the pod with the selected deck and optional name
+    const { data: pod, error: podErr } = await createPod(selectedDeckId, podName);
     if (podErr || !pod) {
       setError(podErr ?? 'Failed to create pod');
       setCreating(false);
@@ -423,6 +423,12 @@ export default function Page() {
       font-size: 18px;
       color: #2B2118;
       outline: none;
+      box-sizing: border-box;
+    }
+
+    .pod-name-input::placeholder {
+      color: rgba(43,33,24,0.35);
+      font-style: italic;
     }
 
     .pod-name-input:focus {
@@ -903,7 +909,7 @@ export default function Page() {
             type="text"
             value={podName}
             onChange={(e) => setPodName(e.target.value)}
-            placeholder="Enter pod name..."
+            placeholder="e.g. Friday Night Pod"
           />
 
           {/* Player Count */}
@@ -1445,11 +1451,6 @@ export default function Page() {
           </div>
         </div>
       )}
-
-      {/* Toast */}
-      <div className={`toast ${showToast ? 'show' : ''}`}>
-        {toastMsg}
-      </div>
     </>
   );
 }

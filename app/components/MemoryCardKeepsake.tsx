@@ -163,7 +163,7 @@ export function KeepsakeCard({ card }: { card: GameCard }) {
         </div>
 
         <div style={{ position: "relative", marginBottom: 12, textAlign: "center", fontFamily: "'Instrument Sans', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(226,184,88,0.85)", textShadow: "0 0 12px rgba(201,155,47,0.45)" }}>
-          ✦ &nbsp; Every Game Has a Story &nbsp; ✦
+          ✦ &nbsp; {card.pod_name ? card.pod_name : "Every Game Has a Story"} &nbsp; ✦
         </div>
 
         <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 10px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(201,155,47,0.3)" }}>
