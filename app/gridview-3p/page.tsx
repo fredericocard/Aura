@@ -12,7 +12,7 @@ import { getQrCodeUrl } from '@/lib/pods';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
 import AuraLoaderF from '@/app/components/AuraLoaderF';
 import { DefeatedOverlay, DefeatedButtonsLayer, useDefeatAnimation } from '@/app/components/DefeatedOverlay';
-import { VictoryPopup, EliminatedPopup, PopupTheme } from '@/lib/game-popups';
+import { VictoryPopup, EliminatedPopup, AbandonVictoryPopup, PopupTheme } from '@/lib/game-popups';
 
 const DARK_THEME = {
   bg:        '#0A0604',
@@ -1955,8 +1955,7 @@ function PageContent() {
       // If game is already in questionnaire (e.g. opponent abandoned while we were away,
       // or we navigated back), show the forced abandon-review popup
       if (game.state === 'in_questionnaire') {
-        setAnyReviewAccepted(true);
-        setShowVictory(true);
+        setShowAbandonVictory(true);
       }
 
       if (game.pod_id) {
@@ -2151,9 +2150,7 @@ function PageContent() {
           if (row.state === 'completed') {
             router.push('/recent-games?gameFinished=1');
           } else if (row.state === 'in_questionnaire') {
-            // Opponent abandoned or game ended — show VictoryPopup with no revive.
-            setAnyReviewAccepted(true);
-            setShowVictory(true);
+            setShowAbandonVictory(true);
           }
         })
         .subscribe();
@@ -2191,6 +2188,7 @@ function PageContent() {
   const auth = useAuth();
   const [showVictory, setShowVictory] = useState(false);
   const [victoryDismissed, setVictoryDismissed] = useState(false);
+  const [showAbandonVictory, setShowAbandonVictory] = useState(false);
   const [summoningRevive, setSummoningRevive] = useState(false);
   const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
 
@@ -2938,7 +2936,9 @@ function PageContent() {
             const oppUid = lastDeadOpponent != null ? playerUserIds[lastDeadOpponent] : null;
             if (oppUid && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, oppUid);
-              if (oppPage && oppPage !== 'review') {
+              if (oppPage === 'review') {
+                // Opponent is on review — summoning stays active
+              } else {
                 setSummoningRevive(false);
                 setShowVictory(false);
                 setVictoryDismissed(false);
@@ -2979,7 +2979,9 @@ function PageContent() {
             const oppUid = aliveOppEntry ? aliveOppEntry[1] : null;
             if (oppUid && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, oppUid);
-              if (oppPage && oppPage !== 'review') {
+              if (oppPage === 'review') {
+                // Opponent is on review — summoning stays active
+              } else {
                 setSummoningRevive(false);
                 setShowEliminatedGV(false);
                 setElimDismissed(false);
@@ -2992,6 +2994,13 @@ function PageContent() {
         />
       )}
 
+
+      {showAbandonVictory && !showVictory && !showEliminatedGV && (
+        <AbandonVictoryPopup
+          theme={popupTheme}
+          onReview={() => { router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
+        />
+      )}
 
       {toast && (
         <div className="toast show">

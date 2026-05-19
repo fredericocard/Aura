@@ -12,7 +12,7 @@ import { getQrCodeUrl } from '@/lib/pods';
 import AuraLoaderG from '@/app/components/AuraLoaderG';
 import AuraLoaderF from '@/app/components/AuraLoaderF';
 import { DefeatedOverlay, DefeatedButtonsLayer, useDefeatAnimation } from '@/app/components/DefeatedOverlay';
-import { VictoryPopup, EliminatedPopup, PopupTheme } from '@/lib/game-popups';
+import { VictoryPopup, EliminatedPopup, AbandonVictoryPopup, PopupTheme } from '@/lib/game-popups';
 
 const DARK_THEME = {
   bg:        '#0A0604',
@@ -1327,10 +1327,9 @@ function PageContent() {
       }
 
       // If game is already in questionnaire (e.g. opponent abandoned while we were away,
-      // or we navigated back), show VictoryPopup with no revive option
+      // or we navigated back via rejoin), show forced AbandonVictoryPopup
       if (game.state === 'in_questionnaire') {
-        setAnyReviewAccepted(true);
-        setShowVictory(true);
+        setShowAbandonVictory(true);
       }
 
       if (game.pod_id) {
@@ -1527,10 +1526,10 @@ function PageContent() {
           if (row.state === 'completed') {
             router.push('/recent-games?gameFinished=1');
           } else if (row.state === 'in_questionnaire') {
-            // Opponent abandoned or game ended — show VictoryPopup with no revive.
-            // If VictoryPopup is already visible from life-to-0, this is harmless.
-            setAnyReviewAccepted(true);
-            setShowVictory(true);
+            // Opponent abandoned or game ended — show forced AbandonVictoryPopup.
+            // If VictoryPopup is already visible from normal life-to-0, the JSX
+            // guard (!showVictory) prevents both from showing simultaneously.
+            setShowAbandonVictory(true);
           }
         })
         .subscribe();
@@ -1573,6 +1572,7 @@ function PageContent() {
   const auth = useAuth();
   const [showVictory, setShowVictory] = useState(false);
   const [victoryDismissed, setVictoryDismissed] = useState(false);
+  const [showAbandonVictory, setShowAbandonVictory] = useState(false);
   const [summoningRevive, setSummoningRevive] = useState(false);
   const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
 
@@ -2274,12 +2274,14 @@ function PageContent() {
             const oppUid = playerUserIds[lastDeadOpponent];
             if (oppUid && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, oppUid);
-              if (oppPage && oppPage !== 'review') {
+              if (oppPage === 'review') {
+                // Opponent is on review — summoning stays active, wait for them
+              } else {
+                // Opponent is on a game page (or page unknown) — dismiss immediately
                 setSummoningRevive(false);
                 setShowVictory(false);
                 setVictoryDismissed(false);
               }
-              // else: opponent on review — summoning stays active
             } else {
               setSummoningRevive(false);
               setShowVictory(false);
@@ -2315,12 +2317,14 @@ function PageContent() {
             const aliveOppUid = aliveOppSeat != null ? playerUserIds[aliveOppSeat] : null;
             if (aliveOppUid && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, aliveOppUid);
-              if (oppPage && oppPage !== 'review') {
+              if (oppPage === 'review') {
+                // Opponent is on review — summoning stays active, wait for them
+              } else {
+                // Opponent is on a game page (or page unknown) — dismiss immediately
                 setSummoningRevive(false);
                 setShowEliminatedGV(false);
                 setElimDismissed(false);
               }
-              // else: opponent on review — summoning stays active
             } else {
               setSummoningRevive(false);
               setShowEliminatedGV(false);
@@ -2328,6 +2332,13 @@ function PageContent() {
             }
           }}
           onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
+        />
+      )}
+
+      {showAbandonVictory && !showVictory && !showEliminatedGV && (
+        <AbandonVictoryPopup
+          theme={popupTheme}
+          onReview={() => { router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
       )}
 

@@ -2373,13 +2373,14 @@ function PageContent() {
             ));
             // Check if the dead player is on the game page or review
             const oppPage = await getOpponentCurrentPage(gameId, lastDead.userId);
-            if (oppPage && oppPage !== 'review') {
-              // Opponent is on game page — instant revive, dismiss popup
+            if (oppPage === 'review') {
+              // Opponent is on review — summoning stays active until they return
+            } else {
+              // Opponent is on game page (or page is null) — instant revive, dismiss popup
               setSummoningRevive(false);
               setShowVictory(false);
               setVictoryDismissed(false);
             }
-            // else: opponent on review — summoning stays active until they return
           }}
           onReview={() => { setShowVictory(false); setVictoryDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}/>
       )}
@@ -2429,13 +2430,14 @@ function PageContent() {
             );
             if (aliveOpp && gameId) {
               const oppPage = await getOpponentCurrentPage(gameId, aliveOpp.userId);
-              if (oppPage && oppPage !== 'review') {
-                // Opponent on game page — instant dismiss
+              if (oppPage === 'review') {
+                // Opponent on review — summoning stays active
+              } else {
+                // Opponent on game page (or page is null) — instant dismiss
                 setSummoningRevive(false);
                 setShowEliminated(false);
                 setElimDismissed(false);
               }
-              // else: opponent on review — summoning stays active
             } else {
               // No alive opponent found — just dismiss
               setSummoningRevive(false);
