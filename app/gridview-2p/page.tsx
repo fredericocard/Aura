@@ -270,7 +270,7 @@ function CommanderArt({ colors = ['C'], art = null, opacity = 0.4 }: { colors?: 
 }
 
 function CellInner({ player, defeated = false, defeatTrigger = 0 }: { player: any; defeated?: boolean; defeatTrigger?: string | number }) {
-  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(defeated, defeatTrigger, { pulseSize: 200 });
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(defeated, defeatTrigger, { pulseSize: 200, color: DARK.ink });
   const counters = player.counters || {};
   const counterEntries = Object.entries(counters).filter(([, n]) => (n as number) > 0);
   const hasRing = (player.cmdrDamage || []).length > 0;
@@ -422,7 +422,7 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
   const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
   const isDefeated = isLifeZero || isPoisoned || isCmdrLethal;
   const defeatTrigger = `${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`;
-  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 200 });
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 200, color: DARK.ink });
   if (showQR) {
     return (
       <div style={{

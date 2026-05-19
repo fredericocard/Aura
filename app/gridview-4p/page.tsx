@@ -295,7 +295,7 @@ function CommanderArt({ colors = ['C'], art = null, opacity = 0.4 }: { colors?: 
 }
 
 function CellInner({ player, defeated = false, defeatTrigger = 0 }: { player: any; defeated?: boolean; defeatTrigger?: string | number }) {
-  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(defeated, defeatTrigger, { pulseSize: 110 });
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(defeated, defeatTrigger, { pulseSize: 110, color: DARK.ink });
   const wash = COLOR_WASH[player.colors[0] as keyof typeof COLOR_WASH] || 'rgba(168,159,142,0.10)';
   const counters = player.counters || {};
   const counterEntries = Object.entries(counters).filter(([, n]) => (n as number) > 0);
@@ -457,7 +457,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
   const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
   const isDefeated = isLifeZero || isPoisoned || isCmdrLethal;
   const defeatTrigger = `${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`;
-  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 110 });
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 110, color: DARK.ink });
   if (showQR) {
     return (
       <div style={{
