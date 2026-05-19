@@ -190,6 +190,9 @@ function PageContent() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanTimerRef = useRef<number | null>(null);
+  // jsQR is loaded dynamically as a fallback for iOS/Safari where BarcodeDetector is unavailable.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jsQRRef = useRef<((data: Uint8ClampedArray, width: number, height: number, opts?: any) => { data: string } | null) | null>(null);
   const [camStatus, setCamStatus] = useState<'idle' | 'requesting' | 'active' | 'denied' | 'unavailable'>('idle');
   // Bumping this re-runs the camera-start effect (used by tap-to-reset on the viewport).
   const [cameraResetKey, setCameraResetKey] = useState(0);
@@ -348,6 +351,14 @@ function PageContent() {
     setCameraResetKey((k) => k + 1);
   }, []);
 
+  // Preload jsQR on iOS/Safari (where BarcodeDetector is undefined) so it's ready by the time
+  // the camera starts. Dynamic import keeps it out of the main bundle on Android/Chrome.
+  useEffect(() => {
+    if (typeof BarcodeDetector === 'undefined') {
+      import('jsqr').then((m) => { jsQRRef.current = m.default; }).catch(() => {});
+    }
+  }, []);
+
   /* ── QR scanning loop ─────────────────────────────────────────────────── */
   const startScanning = useCallback(() => {
     let detector: BarcodeDetector | null = null;
@@ -360,8 +371,14 @@ function PageContent() {
       ctx.drawImage(video, 0, 0);
       try {
         if (detector) {
+          // Native path: Android / Chrome
           const barcodes = await detector.detect(canvas);
           for (const bc of barcodes) { const code = extractCode(bc.rawValue); if (code) { handleScannedCode(code); return; } }
+        } else if (jsQRRef.current) {
+          // Fallback path: iOS / Safari — BarcodeDetector not available
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const result = jsQRRef.current(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'dontInvert' });
+          if (result?.data) { const code = extractCode(result.data); if (code) { handleScannedCode(code); return; } }
         }
       } catch { /* */ }
     };
