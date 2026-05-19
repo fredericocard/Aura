@@ -270,7 +270,7 @@ function CommanderArt({ colors = ['C'], art = null, opacity = 0.4 }: { colors?: 
 }
 
 function CellInner({ player, lifeSize = 64, defeated = false, defeatTrigger = 0 }: { player: any; lifeSize?: number; defeated?: boolean; defeatTrigger?: string | number }) {
-  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(defeated, defeatTrigger, { pulseSize: Math.round(lifeSize * 1.6), color: DARK.ink });
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(defeated, defeatTrigger, { pulseSize: Math.round(lifeSize * 1.6), color: DARK.ink, smokeColor: DARK.ink3 });
   const counters = player.counters || {};
   const counterEntries = Object.entries(counters).filter(([, n]) => (n as number) > 0);
   const hasRing = (player.cmdrDamage || []).length > 0;
@@ -431,7 +431,7 @@ function SidewaysEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCoun
   const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
   const isDefeated = isLifeZero || isPoisoned || isCmdrLethal;
   const defeatTrigger = `${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`;
-  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 110, color: DARK.ink });
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 110, color: DARK.ink, smokeColor: DARK.ink3 });
   if (showQR) {
     return (
       <div style={{
@@ -626,7 +626,7 @@ function NormalEmptyCell({ seatLabel = 'Player', life = 40, counters: cellCounte
   const isCmdrLethal = (cmdrDamage || []).some((d: any) => d.amount >= 21);
   const isDefeated = isLifeZero || isPoisoned || isCmdrLethal;
   const defeatTrigger = `${isLifeZero ? 'L' : ''}${isPoisoned ? 'P' : ''}${isCmdrLethal ? 'C' : ''}`;
-  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 200, color: DARK.ink });
+  const { keyframesNode, lifeAnimationStyle, fadeStyle, pulseAndWispsNode } = useDefeatAnimation(isDefeated, defeatTrigger, { pulseSize: 200, color: DARK.ink, smokeColor: DARK.ink3 });
   if (showQR) {
     return (
       <div style={{
