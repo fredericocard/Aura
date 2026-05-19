@@ -5,32 +5,6 @@ import React, { useEffect, useId, useState, CSSProperties, ReactNode } from 'rea
 // Total runtime of the in-place defeat animation, ms.
 export const ZERO_FADE_DEFAULT_DURATION = 320 + 340 + 1200; // 1860ms
 
-// ─── Dark-mode defaults (gridview cells) ──────────────────────────────────
-// These are the built-in defaults of useDefeatAnimation — listed here for
-// clarity. Crimson flash on dark parchment background.
-export const DARK_DEFEAT_OPTS = {
-  color: 'var(--parchment, #F5EFE2)',
-  hot: '#E78A85',
-  glow: 'rgba(158,43,43,0.7)',
-  pulseColor: 'rgba(158,43,43,0.55)',
-  ashColor: 'rgba(245,239,226,0.32)',
-  ashOpacity: 0.6,
-  smokeColor: 'rgba(245,239,226,0.55)',
-} as const;
-
-// ─── Light-mode preset ────────────────────────────────────────────────────
-// Warm copper flash on light parchment background. Dark ink text drains to
-// muted brown ash. Pulse and wisps use soft copper tones.
-export const LIGHT_DEFEAT_OPTS = {
-  color: '#2B2118',                        // --ink (dark text on light bg)
-  hot: '#B06B2C',                          // --copper (warm flash)
-  glow: 'rgba(176,107,44,0.6)',            // copper glow
-  pulseColor: 'rgba(176,107,44,0.35)',     // soft copper pulse
-  ashColor: 'rgba(138,126,111,0.45)',      // --ink-3 faded
-  ashOpacity: 0.5,
-  smokeColor: 'rgba(43,33,24,0.3)',        // dark wisps on light bg
-} as const;
-
 function pct(at: number, total: number) {
   return ((at / total) * 100).toFixed(2);
 }

@@ -400,14 +400,15 @@ export async function reviveSelf(gameId: string, userId: string): Promise<{ erro
 /**
  * Abandon a game entirely. This is NOT the same as conceding mid-game.
  * Used when a player wants to leave and start fresh (e.g. internet crash, stale game).
- * - Eliminates the player
- * - Marks the game as 'completed' (not 'in_questionnaire') so it no longer blocks new games
- * - If there's only one other player, they don't get stuck either
+ * - Eliminates the player (with can_review: false — they chose to leave)
+ * - Calls checkLastStanding() so the remaining player(s) get proper winner detection
+ *   and can_review: true, and the game transitions to 'in_questionnaire'.
+ * - If no other claimed players remain, forces game to 'completed'.
  */
 export async function abandonGame(gameId: string, userId: string): Promise<{ error: string | null }> {
   const now = new Date().toISOString();
 
-  // 1. Eliminate this player
+  // 1. Eliminate this player (they chose to leave — no review for them)
   const { error: elimError } = await supabase
     .from('game_players')
     .update({
@@ -422,23 +423,28 @@ export async function abandonGame(gameId: string, userId: string): Promise<{ err
     console.error('abandonGame: failed to eliminate player', elimError);
   }
 
-  // 2. Always force the game to 'completed' — abandon means done, no review needed
-  const { error: gameError } = await supabase
-    .from('games')
-    .update({
-      state: 'completed',
-      ended_at: now,
-      completed_at: now,
-    })
-    .eq('id', gameId);
+  // 2. Let checkLastStanding handle winner detection + state transition.
+  //    If a last player is standing → game goes to 'in_questionnaire' with winner.
+  //    If everyone is eliminated → game goes to 'in_questionnaire' (draw).
+  //    If multiple still alive → game stays 'active'.
+  await checkLastStanding(gameId);
 
-  if (gameError) {
-    console.error('abandonGame: failed to update game state', gameError);
-    // If RLS blocks updating games table, try via the pod instead
-    // At minimum, the player is eliminated so getActiveGameForUser won't find an 'active' game
+  // 3. If checkLastStanding didn't end the game (e.g. only 1 claimed player total,
+  //    or edge case), force to completed so it doesn't block new games.
+  const { data: gameRow } = await supabase
+    .from('games')
+    .select('state')
+    .eq('id', gameId)
+    .single() as { data: any };
+
+  if (gameRow && gameRow.state === 'active') {
+    await supabase
+      .from('games')
+      .update({ state: 'completed', ended_at: now, completed_at: now })
+      .eq('id', gameId);
   }
 
-  return { error: gameError?.message ?? null };
+  return { error: null };
 }
 
 /**

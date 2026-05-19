@@ -1778,6 +1778,13 @@ function PageContent() {
         return;
       }
 
+      // If game is already in questionnaire (e.g. opponent abandoned while we were away,
+      // or we navigated back), show the forced abandon-review popup
+      if (game.state === 'in_questionnaire') {
+        setAnyReviewAccepted(true);
+        setShowVictory(true);
+      }
+
       if (game.pod_id) {
         const { data: pod } = await supabase.from('pods').select('short_code').eq('id', game.pod_id).single() as { data: any };
         if (pod?.short_code) setPodShortCode(pod.short_code);
@@ -1971,7 +1978,9 @@ function PageContent() {
           if (row.state === 'completed') {
             router.push('/recent-games?gameFinished=1');
           } else if (row.state === 'in_questionnaire') {
-            router.push(`/review?podId=${row.pod_id}&gameId=${gameId}`);
+            // Opponent abandoned or game ended — show VictoryPopup with no revive.
+            setAnyReviewAccepted(true);
+            setShowVictory(true);
           }
         })
         .subscribe();
@@ -2829,6 +2838,7 @@ function PageContent() {
           onReview={() => { setShowEliminatedGV(false); setElimDismissed(true); router.push(`/review?podId=${podId}&gameId=${gameId}`); }}
         />
       )}
+
 
       {toast && (
         <div className="toast show">
