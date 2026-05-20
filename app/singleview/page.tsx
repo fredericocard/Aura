@@ -2069,8 +2069,10 @@ function PageContent() {
           const row = payload.new;
           if (!row || row.user_id === user?.id) return; // ignore self
           const page = row.current_page;
-          if (page && page !== 'review') {
-            // Opponent returned to a game page — dismiss summoning + all popups
+          if (page === 'review') {
+            // Opponent is on review page — keep summoning active
+          } else {
+            // Opponent returned to a game page OR page is null — dismiss summoning + all popups
             setSummoningRevive(false);
             setShowVictory(false);
             setVictoryDismissed(false);

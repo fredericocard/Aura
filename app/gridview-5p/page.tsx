@@ -2164,7 +2164,9 @@ function PageContent() {
           if (row.state === 'completed') {
             router.push('/recent-games?gameFinished=1');
           } else if (row.state === 'in_questionnaire') {
-            setShowAbandonVictory(true);
+            if (!gameEndedLocallyRef.current) {
+              setShowAbandonVictory(true);
+            }
           }
         })
         .subscribe();
@@ -2203,6 +2205,7 @@ function PageContent() {
   const [showVictory, setShowVictory] = useState(false);
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   const [showAbandonVictory, setShowAbandonVictory] = useState(false);
+  const gameEndedLocallyRef = useRef(false);
   const [summoningRevive, setSummoningRevive] = useState(false);
   const [anyReviewAccepted, setAnyReviewAccepted] = useState(false);
 
@@ -2234,6 +2237,7 @@ function PageContent() {
       return (opp?.life ?? 40) <= 0 || oppPoison >= 10 || oppCmdrLethal;
     });
     if (allDead) {
+      gameEndedLocallyRef.current = true;
       if (!victoryDismissed) setShowVictory(true);
     } else if (!summoningRevive) {
       // Skip if summoning is active (revive in progress, waiting for opponent to return)
@@ -2254,7 +2258,10 @@ function PageContent() {
           const row = payload.new;
           if (!row || row.user_id === auth?.user?.id) return;
           const page = row.current_page;
-          if (page && page !== 'review') {
+          if (page === 'review') {
+            // Opponent is on review page — keep summoning active
+          } else {
+            // Opponent returned to a game page OR page is null — dismiss summoning + all popups
             setSummoningRevive(false);
             setShowVictory(false);
             setVictoryDismissed(false);
@@ -2263,7 +2270,6 @@ function PageContent() {
           }
         }
       )
-      .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [summoningRevive, gameId, auth?.user?.id]);
 
@@ -2361,7 +2367,10 @@ function PageContent() {
       return (opp?.life ?? 40) > 0 && oppPoison < 10 && !oppCmdrLethal;
     });
     // Only 1 alive opponent left — game over for me, they win
-    if (aliveOpps.length === 1) setShowEliminatedGV(true);
+    if (aliveOpps.length === 1) {
+      gameEndedLocallyRef.current = true;
+      setShowEliminatedGV(true);
+    }
   }, [players, counters, cmdrDamage, playerUserIds, auth?.user?.id, elimDismissed, showEliminatedGV]);
 
   if (!gameLoaded) {
